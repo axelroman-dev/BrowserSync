@@ -99,3 +99,22 @@ jobs:
           # so anyone (including future-you) can verify what went into it.
           sbom: true
           provenance: true
+
+  # Keeps the Docker Hub repo's "Overview" tab in sync with server/DOCKERHUB.md,
+  # instead of that description drifting out of date after being pasted in
+  # once by hand. Only runs after a real publish (not on PRs, which never push).
+  dockerhub-description:
+    needs: docker
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ env.IMAGE_NAME }}
+          short-description: "Self-hosted, end-to-end encrypted bookmark/history sync for Chromium browsers"
+          readme-filepath: server/DOCKERHUB.md

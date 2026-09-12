@@ -132,15 +132,18 @@ Para activarlo:
 2. En tu repo de GitHub, agrega dos secrets en **Settings → Secrets and variables →
    Actions**: `DOCKERHUB_USERNAME` y `DOCKERHUB_TOKEN`.
 3. Haz push a `main` (o ejecuta el workflow manualmente) — publica
-   `<tu-usuario-de-dockerhub>/browsersync-server` con el tag `latest`, el hash corto
-   del commit, y cualquier tag semver que subas (ej. `v1.0.0` → `1.0.0`, `1.0`, `1`).
+   `axelromandev/browsersync-server` con el tag `latest`, el hash corto
+   del commit, y cualquier tag semver que subas (ej. `v1.0.0` → `1.0.0`, `1.0`, `1`), y
+   sincroniza la pestaña "Overview" del repo en Docker Hub desde
+   [`server/DOCKERHUB.md`](server/DOCKERHUB.md) — edita ese archivo (no la interfaz web
+   de Docker Hub) para cambiar la descripción que se muestra ahí.
 
 Luego, en tu homelab, apunta el servicio `app` de `docker-compose.yml` a la imagen
 publicada en vez de construirla localmente:
 
 ```yaml
 app:
-  image: <tu-usuario-de-dockerhub>/browsersync-server:latest # en vez de "build: ."
+  image: axelromandev/browsersync-server:latest # en vez de "build: ."
 ```
 
 ```bash
