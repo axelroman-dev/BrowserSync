@@ -185,28 +185,31 @@ ungoogled-chromium, Chrome, Brave, Edge, and so on.
 
 On the tab that opened (or any time later, by clicking the toolbar icon):
 
-1. Enter your **email** and choose a **password**, then click **Create account**.
-   That's it for this screen — you do **not** need to touch the server URL, it's
-   already pointed at the default server (only click "Using a self-hosted server?" if
-   you were specifically told to point at a different one).
-2. Right after that, BrowserSync shows you a **recovery passphrase** it generated for
+1. Enter your **email** and choose a **password**. There's no officially hosted
+   BrowserSync server (yet), so the screen also asks for the **server URL** — enter the
+   one whoever set up your server gave you, and click **Test connection** (the "Create
+   account" button stays disabled until it succeeds). If a future version of this
+   extension ships with a default server, this step becomes optional.
+2. Click **Create account**.
+3. Right after that, BrowserSync shows you a **recovery passphrase** it generated for
    you. **Save it somewhere safe right now** — a password manager like Bitwarden,
    1Password, or KeePass. This passphrase is the only way to connect a second device or
    reset your password later if you forget it. It's never sent anywhere in a form that
    would let the server (or its admin) read your data — that's what keeps your
    bookmarks private. There is no "forgot passphrase" option: if you lose both your
    password and this passphrase, nobody can recover your synced data.
-3. Check the confirmation box and click **Continue**.
+4. Check the confirmation box and click **Continue**.
 
 ### 3. Using it day to day
 
 - BrowserSync syncs automatically in the background (every 15 minutes by default).
 - Click the toolbar icon any time to see your last sync status, or hit **Sync now** for
   an immediate sync.
-- To sync bookmarks to a second device: install the extension there, choose **"Already
-  have an account? Log in"**, and enter the same email and password. Since this is a
-  new device, it'll ask for your **recovery passphrase once** to finish connecting —
-  after that, your password alone unlocks BrowserSync on that device.
+- To sync bookmarks to a second device: install the extension there, enter the **same
+  server URL** and test the connection, choose **"Already have an account? Log in"**,
+  and enter the same email and password. Since this is a new device, it'll ask for your
+  **recovery passphrase once** to finish connecting — after that, your password alone
+  unlocks BrowserSync on that device.
 - If you restart your browser, the popup will ask you to re-enter your **password**
   once to resume syncing — your login stays intact, this just re-derives the local
   encryption key, which is deliberately never written to disk. This never requires the

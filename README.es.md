@@ -198,11 +198,14 @@ Chromium — Helium, ungoogled-chromium, Chrome, Brave, Edge, etc.
 En la pestaña que se abrió (o en cualquier momento después, haciendo clic en el
 ícono de la barra de herramientas):
 
-1. Ingresa tu **email** y elige una **contraseña**, y haz clic en **Crear cuenta**.
-   Eso es todo en esta pantalla — **no** necesitas tocar la URL del servidor, ya está
-   apuntando al servidor por defecto (solo haz clic en "¿Usas un servidor
-   self-hosted?" si alguien te dijo específicamente que apuntes a uno distinto).
-2. Justo después, BrowserSync te muestra una **passphrase de recuperación** generada
+1. Ingresa tu **email** y elige una **contraseña**. Todavía no existe un servidor
+   oficial de BrowserSync, así que la pantalla también te pide la **URL del
+   servidor** — ingresa la que te haya dado quien administra tu servidor, y haz clic
+   en **Probar conexión** (el botón "Crear cuenta" queda deshabilitado hasta que
+   funcione). Si en el futuro esta extensión trae un servidor por defecto, este paso
+   se vuelve opcional.
+2. Haz clic en **Crear cuenta**.
+3. Justo después, BrowserSync te muestra una **passphrase de recuperación** generada
    para ti. **Guárdala en un lugar seguro ahora mismo** — un gestor de contraseñas
    como Bitwarden, 1Password, o KeePass. Esta passphrase es la única forma de conectar
    un segundo dispositivo o de restablecer tu contraseña si la olvidas. Nunca se envía
@@ -210,7 +213,7 @@ En la pestaña que se abrió (o en cualquier momento después, haciendo clic en 
    es justo lo que mantiene tus marcadores privados. No existe una opción de
    "olvidé mi passphrase": si pierdes tanto tu contraseña como esta passphrase, nadie
    puede recuperar tus datos sincronizados.
-3. Marca la casilla de confirmación y haz clic en **Continuar**.
+4. Marca la casilla de confirmación y haz clic en **Continuar**.
 
 ### 3. Usarlo en el día a día
 
@@ -220,9 +223,10 @@ En la pestaña que se abrió (o en cualquier momento después, haciendo clic en 
   estado de tu última sincronización, o presiona **Sincronizar ahora** para una
   sincronización inmediata.
 - Para sincronizar marcadores en un segundo dispositivo: instala la extensión ahí,
-  elige **"¿Ya tienes una cuenta? Inicia sesión"**, e ingresa el mismo email y
-  contraseña. Como es un dispositivo nuevo, te pedirá tu **passphrase de recuperación
-  una vez** para terminar de conectarlo — después de eso, tu contraseña sola
+  ingresa la **misma URL del servidor** y prueba la conexión, elige **"¿Ya tienes una
+  cuenta? Inicia sesión"**, e ingresa el mismo email y contraseña. Como es un
+  dispositivo nuevo, te pedirá tu **passphrase de recuperación una vez** para terminar
+  de conectarlo — después de eso, tu contraseña sola
   desbloquea BrowserSync en ese dispositivo.
 - Si reinicias tu navegador, el popup te pedirá que vuelvas a ingresar tu
   **contraseña** una vez para reanudar la sincronización — tu sesión sigue intacta,

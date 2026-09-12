@@ -79,6 +79,7 @@ wireConnectForm(
     errorMessage: document.getElementById("error-message"),
 
     serverToggleLink: document.getElementById("server-toggle-link"),
+    serverRequiredHint: document.getElementById("server-required-hint"),
     serverSection: document.getElementById("server-section"),
     serverUrlInput: document.getElementById("server-url"),
     testConnectionBtn: document.getElementById("test-connection"),

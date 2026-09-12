@@ -1,10 +1,16 @@
 // Single source of truth for the default sync server.
 //
-// This is the ONE line to change if you fork this extension for your own
-// self-hosted server: users who never click "Using a self-hosted server?"
-// in the connect screen will register/log in against this URL with zero
-// configuration on their end.
-export const OFFICIAL_SERVER_URL = "https://sync.midominio.com";
+// Set to null/empty for now: there is no officially hosted BrowserSync
+// server yet, so every install must point at a self-hosted one. When this
+// is falsy, the connect screen forces the server-URL field open and
+// requires a successful "Test connection" before letting anyone
+// register/log in - see connectForm.js.
+//
+// If an official hosted server is ever stood up, set this to its URL. The
+// connect screen automatically switches back to today's behavior (hidden
+// by default, used silently unless someone clicks "Using a self-hosted
+// server?") with no other code changes needed.
+export const OFFICIAL_SERVER_URL = "";
 
 // Bump this if the on-disk shape of synced bookmark/history payloads ever
 // changes in a way older extension versions can't read.

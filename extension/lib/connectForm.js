@@ -37,9 +37,16 @@ function describeConnectError(err) {
  * @param {(session: any) => void} onConnected
  */
 export function wireConnectForm(el, onConnected) {
+  // No officially hosted server exists yet (see config.js) - every install
+  // must point at a self-hosted one, so the server-URL field starts
+  // required and expanded instead of hidden behind a "default" nobody set.
+  const hasOfficialServer = Boolean(OFFICIAL_SERVER_URL);
+
   let mode = "register"; // "register" | "login"
-  let currentServerUrl = OFFICIAL_SERVER_URL;
-  let serverVerified = true; // true until the user opens the custom-server section and edits it
+  let currentServerUrl = hasOfficialServer ? OFFICIAL_SERVER_URL : "";
+  // true until the user opens the custom-server section and edits it - or,
+  // with no official server at all, false until they test their own.
+  let serverVerified = hasOfficialServer;
   // Held only in memory, only for the few seconds between a login() call
   // that needs device setup and the user submitting the passphrase for it.
   let pendingDeviceSetup = null; // { email, password, dekEnvelope }
@@ -264,6 +271,14 @@ export function wireConnectForm(el, onConnected) {
     } catch {
       return false;
     }
+  }
+
+  if (!hasOfficialServer) {
+    // Nothing to "toggle" - there's no default to fall back to, so just
+    // show the required server field permanently and explain why.
+    el.serverToggleLink.hidden = true;
+    el.serverSection.hidden = false;
+    if (el.serverRequiredHint) el.serverRequiredHint.hidden = false;
   }
 
   applyMode();
