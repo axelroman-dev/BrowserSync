@@ -1,4 +1,7 @@
 import { wireConnectForm } from "../lib/connectForm.js";
+import { PRIVACY_POLICY_URL } from "../config.js";
+
+document.getElementById("privacy-link").href = PRIVACY_POLICY_URL;
 
 const el = {
   form: document.getElementById("connect-form"),

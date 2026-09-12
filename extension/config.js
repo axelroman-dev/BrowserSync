@@ -12,6 +12,15 @@
 // server?") with no other code changes needed.
 export const OFFICIAL_SERVER_URL = "";
 
+// Public URL for this project's PRIVACY.md, linked from the onboarding
+// screen. It has to be an absolute URL, not a relative path into the repo -
+// PRIVACY.md lives at the repo root, one level above extension/, so it's
+// never packaged inside the extension .zip itself (a relative link like
+// "../PRIVACY.md" 404s once installed from the Chrome Web Store). If you
+// fork this project and maintain your own privacy policy, change this to
+// point at that instead.
+export const PRIVACY_POLICY_URL = "https://github.com/axelroman-dev/BrowserSync/blob/main/PRIVACY.md";
+
 // Bump this if the on-disk shape of synced bookmark/history payloads ever
 // changes in a way older extension versions can't read.
 export const SYNC_PAYLOAD_VERSION = 1;

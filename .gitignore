@@ -4,8 +4,9 @@ server/dist/
 server/.env
 server/backups/
 
-# Extension (no build step, but keep any stray artifacts out)
-extension/*.zip
+# Extension (no build step, but keep any packaged build artifacts out,
+# wherever they land - e.g. the zip you build for the Chrome Web Store)
+*.zip
 
 # OS/editor cruft
 .DS_Store
