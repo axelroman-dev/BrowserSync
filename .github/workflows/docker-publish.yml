@@ -1,0 +1,101 @@
+name: Build and publish server image
+
+# Only touches server/ - the extension has no build/publish step of its own.
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+    paths:
+      - "server/**"
+      - ".github/workflows/docker-publish.yml"
+  pull_request:
+    paths:
+      - "server/**"
+      - ".github/workflows/docker-publish.yml"
+  workflow_dispatch: {} # lets you trigger a rebuild/republish manually from the Actions tab
+
+# Cancels an in-progress run for the same branch/PR when a new commit lands,
+# so pushes don't queue up a pile of redundant builds.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/browsersync-server
+
+jobs:
+  # Fast fail-early check, separate from the (slower) multi-arch image build
+  # below - a broken build shows up in ~30s instead of after a multi-minute
+  # buildx run, and it also runs on PRs from forks that can't see the Docker
+  # Hub secrets the publish job needs.
+  typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npx tsc -p tsconfig.json --noEmit
+
+  docker:
+    needs: typecheck
+    runs-on: ubuntu-latest
+    # Least-privilege token: this job only ever reads repo contents. (Nothing
+    # here needs `packages: write` - that's only for GitHub Container Registry,
+    # not Docker Hub.)
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # Multi-arch build: your homelab might be a different CPU architecture
+      # (e.g. amd64 dev machine, arm64 Raspberry Pi/NAS) than wherever this
+      # workflow runs.
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      # Derives every tag/label this image should get from git context:
+      #   - the branch name, on a push to main
+      #   - "latest", also only on the default branch (never on a PR build)
+      #   - semver tags (v1.2.3 -> 1.2.3, 1.2, 1) when you push a version tag
+      #   - a short commit SHA, always - lets you pin/rollback to an exact build
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+
+      # Only log in when we're actually going to push - a pull_request run
+      # (including from a fork, which never has access to repo secrets)
+      # still builds and validates the image, it just can't publish it.
+      - if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: server
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # GitHub Actions cache for build layers - keeps rebuilds fast even
+          # though multi-arch builds can't reuse the local Docker layer cache.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Attaches SBOM + provenance attestations to the published image,
+          # so anyone (including future-you) can verify what went into it.
+          sbom: true
+          provenance: true

@@ -110,6 +110,40 @@ your users know what to expect.
 gunzip -c server/backups/browsersync_TIMESTAMP.sql.gz | docker compose exec -T db psql -U browsersync -d browsersync
 ```
 
+### Publishing the server image automatically (optional)
+
+If you'd rather pull a pre-built image on your homelab than `git clone` and
+`docker compose up --build` there every time, [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml)
+builds and pushes a multi-architecture image (amd64 + arm64) to Docker Hub whenever
+`server/` changes on `main`, on version tags (`v1.2.3`), or on demand from the Actions
+tab. Pull requests still build (so a broken Dockerfile fails CI) but never publish.
+
+To enable it:
+
+1. Create a Docker Hub [access token](https://hub.docker.com/settings/security) (not
+   your account password).
+2. In your GitHub repo, add two secrets under **Settings → Secrets and variables →
+   Actions**: `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`.
+3. Push to `main` (or run the workflow manually) - it publishes
+   `<your-dockerhub-username>/browsersync-server` tagged `latest`, the short commit SHA,
+   and any semver tag you push (e.g. `v1.0.0` → `1.0.0`, `1.0`, `1`).
+
+Then on your homelab, point `docker-compose.yml`'s `app` service at the published image
+instead of building locally:
+
+```yaml
+app:
+  image: <your-dockerhub-username>/browsersync-server:latest # instead of "build: ."
+```
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Consider pinning to a specific tag (a version or commit SHA) rather than `latest` in
+production, so a bad push doesn't silently roll out to your homelab on the next
+`docker compose pull` - bump it deliberately when you're ready.
+
 ### Forking for your own server
 
 The whole point of the "self-hosted server" field in the extension is that anyone can
