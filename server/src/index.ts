@@ -11,6 +11,11 @@ import { authRateLimit } from "./middleware/rateLimit.js";
 
 const app = express();
 
+// Needed for express-rate-limit (and req.ip generally) to see the real
+// client IP instead of the reverse proxy's, in the single-proxy deployments
+// this project documents - see config.ts for how to tune the hop count.
+app.set("trust proxy", config.trustProxyHops);
+
 app.use(helmet());
 app.use(cors({ origin: config.corsOrigin === "*" ? true : config.corsOrigin.split(",") }));
 app.use(compression());

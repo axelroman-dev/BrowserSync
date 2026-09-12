@@ -1,0 +1,11 @@
+# Keeps these out of the build context entirely - defense in depth on top of
+# the Dockerfile's explicit COPY list (which never references them anyway),
+# and a much smaller/faster context upload to the Docker daemon.
+node_modules
+dist
+.env
+.env.*
+!.env.example
+backups
+*.log
+.git

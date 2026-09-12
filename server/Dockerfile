@@ -19,6 +19,12 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/src/db/migrations ./src/db/migrations
 COPY drizzle.config.ts ./
 
+# Run as the unprivileged "node" user the base image already ships with,
+# rather than root - if the app is ever compromised (a dependency RCE, say),
+# this limits what it can do to the rest of the container.
+RUN chown -R node:node /app
+USER node
+
 EXPOSE 3000
 
 # Run pending migrations, then start the server. Safe on every restart -
