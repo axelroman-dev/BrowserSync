@@ -1,0 +1,142 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f5f6f8;
+  --card-bg: #ffffff;
+  --text: #1b1f24;
+  --muted: #5c6570;
+  --border: #d7dbe0;
+  --accent: #2f6fed;
+  --accent-contrast: #ffffff;
+  --error-bg: #fdecec;
+  --error-text: #a4262c;
+  --ok: #1a7f37;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171a;
+    --card-bg: #1e2226;
+    --text: #e7eaee;
+    --muted: #9aa4af;
+    --border: #33393f;
+    --error-bg: #3a1f20;
+    --error-text: #ff9a9a;
+    --ok: #57d778;
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* Author display rules on form/section below would otherwise silently
+   override the native [hidden] attribute, since same-origin author rules
+   beat the UA stylesheet regardless of selector specificity. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding: 24px;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  width: 100%;
+  max-width: 380px;
+}
+
+h1 { margin: 0 0 4px; font-size: 22px; }
+h2 { margin: 0 0 8px; font-size: 17px; }
+.subtitle { margin: 0 0 24px; color: var(--muted); font-size: 14px; }
+
+form, section { display: flex; flex-direction: column; gap: 6px; }
+
+label { font-size: 13px; font-weight: 600; margin-top: 12px; }
+
+input[type="email"], input[type="password"], input[type="text"] {
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.hint { font-size: 12px; color: var(--muted); margin: 4px 0 0; line-height: 1.4; }
+
+.passphrase-display-row { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+.passphrase-display {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px dashed var(--accent);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  word-break: break-all;
+  user-select: all;
+}
+
+.checkbox-row { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; margin-top: 14px; }
+.checkbox-row input { margin-top: 3px; width: auto; }
+
+.primary-button {
+  margin-top: 18px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.primary-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.secondary-button {
+  margin-top: 6px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.link {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+}
+.link:hover { text-decoration: underline; }
+
+.server-block { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 12px; }
+.discreet { display: block; text-align: right; font-size: 12px; color: var(--muted); margin: 0; }
+
+.test-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.test-status { font-size: 12px; color: var(--muted); }
+.test-status-ok { color: var(--ok); }
+.test-status-error { color: var(--error-text); }
+
+.error {
+  background: var(--error-bg);
+  color: var(--error-text);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.footer-note { font-size: 11px; color: var(--muted); margin-top: 20px; line-height: 1.4; }
+.footer-note a { color: var(--muted); }

@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "BrowserSync",
+  "version": "1.0.0",
+  "description": "Sync bookmarks and history between your own devices via a self-hosted server, with client-side end-to-end encryption.",
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "bookmarks",
+    "history",
+    "storage",
+    "alarms",
+    "management"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "minimum_chrome_version": "102"
+}

@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: browsersync
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: browsersync
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U browsersync -d browsersync"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Not published to the host on purpose: only the app container talks to
+    # Postgres directly. Uncomment to reach it from the host for debugging:
+    # ports:
+    #   - "127.0.0.1:5432:5432"
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Overrides whatever DATABASE_URL is in .env so the app always reaches
+      # Postgres via the compose network, regardless of what a developer put
+      # in .env for local (non-compose) runs.
+      DATABASE_URL: postgres://browsersync:${POSTGRES_PASSWORD:-changeme}@db:5432/browsersync
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

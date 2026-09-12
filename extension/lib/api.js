@@ -1,0 +1,141 @@
+// Thin fetch wrapper around the BrowserSync REST API. Knows nothing about
+// encryption - it only ever sees the opaque ciphertext/iv strings that
+// crypto.js produces, which is exactly what should cross the network.
+import { getAllLocal, setLocal } from "./storage.js";
+
+export class ApiError extends Error {
+  constructor(status, body) {
+    super(body?.message || `Request failed with status ${status}`);
+    this.status = status;
+    this.code = body?.error;
+    this.body = body;
+  }
+}
+
+/** Thrown when the server URL is unreachable, times out, or isn't BrowserSync at all. */
+export class NetworkError extends Error {}
+
+async function request(serverUrl, path, { method = "GET", body, accessToken, signal } = {}) {
+  let response;
+  try {
+    response = await fetch(new URL(path, serverUrl), {
+      method,
+      headers: {
+        ...(body ? { "Content-Type": "application/json" } : {}),
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      signal,
+    });
+  } catch (err) {
+    throw new NetworkError(`Could not reach ${serverUrl}: ${err.message}`);
+  }
+
+  if (response.status === 204) return null;
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    // Non-JSON response (e.g. a proxy error page) - treat as a network-level problem.
+    if (!response.ok) throw new NetworkError(`Server returned ${response.status} with an unexpected response.`);
+  }
+
+  if (!response.ok) throw new ApiError(response.status, payload);
+  return payload;
+}
+
+export async function checkHealth(serverUrl, { timeoutMs = 5000 } = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const result = await request(serverUrl, "/api/health", { signal: controller.signal });
+    return result?.status === "ok";
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export function register(serverUrl, { email, password, passphraseVerifier, dekEnvelope, deviceLabel }) {
+  return request(serverUrl, "/api/auth/register", {
+    method: "POST",
+    body: { email, password, passphraseVerifier, dekEnvelope, deviceLabel },
+  });
+}
+
+export function login(serverUrl, { email, password, deviceLabel }) {
+  return request(serverUrl, "/api/auth/login", { method: "POST", body: { email, password, deviceLabel } });
+}
+
+export function logout(serverUrl, refreshToken) {
+  return request(serverUrl, "/api/auth/logout", { method: "POST", body: { refreshToken } });
+}
+
+export function deleteAccount(serverUrl, { accessToken, password }) {
+  return request(serverUrl, "/api/auth/account", { method: "DELETE", accessToken, body: { password } });
+}
+
+export function resetPassword(serverUrl, { email, passphraseVerifier, newPassword }) {
+  return request(serverUrl, "/api/auth/reset-password", {
+    method: "POST",
+    body: { email, passphraseVerifier, newPassword },
+  });
+}
+
+/** Fetches the account's server-stored (passphrase-wrapped) DEK envelope on demand. */
+export async function getDekEnvelope() {
+  const { serverUrl } = await getAllLocal();
+  return withAuthRetry((accessToken) => request(serverUrl, "/api/auth/dek-envelope", { accessToken }));
+}
+
+/**
+ * Wraps an authenticated call with a single automatic retry after a token
+ * refresh, so callers (bookmarksSync, historySync) don't each need to
+ * reimplement "refresh once, then retry" logic.
+ */
+async function withAuthRetry(fn) {
+  const { serverUrl, accessToken, refreshToken } = await getAllLocal();
+  try {
+    return await fn(accessToken);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401 && refreshToken) {
+      const { accessToken: newAccessToken } = await request(serverUrl, "/api/auth/refresh", {
+        method: "POST",
+        body: { refreshToken },
+      });
+      await setLocal({ accessToken: newAccessToken });
+      return fn(newAccessToken);
+    }
+    throw err;
+  }
+}
+
+export async function getSyncBlob(dataType) {
+  const { serverUrl } = await getAllLocal();
+  try {
+    return await withAuthRetry((accessToken) =>
+      request(serverUrl, `/api/sync/${dataType}`, { accessToken }),
+    );
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
+export async function putSyncBlob(dataType, { ciphertext, iv, clientUpdatedAt, expectedVersion }) {
+  const { serverUrl } = await getAllLocal();
+  return withAuthRetry((accessToken) =>
+    request(serverUrl, `/api/sync/${dataType}`, {
+      method: "POST",
+      accessToken,
+      body: { ciphertext, iv, clientUpdatedAt, expectedVersion },
+    }),
+  ).catch((err) => {
+    // Surface a 409's "current" server state to the caller so it can merge
+    // and retry - this is not an error the sync engine treats as fatal.
+    if (err instanceof ApiError && err.status === 409) return { conflict: err.body.current };
+    throw err;
+  });
+}

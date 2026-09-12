@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Synced data - BrowserSync</title>
+<link rel="stylesheet" href="viewer.css" />
+</head>
+<body>
+  <header>
+    <span class="brand">BrowserSync — Synced data</span>
+    <span id="account-label" class="account-label"></span>
+  </header>
+
+  <main>
+    <section id="not-connected-view" hidden>
+      <p>Not connected. Open the BrowserSync toolbar icon to log in first.</p>
+    </section>
+
+    <section id="locked-view" hidden>
+      <p>Enter your password to view your synced data.</p>
+      <div class="unlock-row">
+        <input id="unlock-password" type="password" placeholder="Password" />
+        <button id="unlock-btn" class="primary-button">Unlock</button>
+      </div>
+      <p id="unlock-error" class="error" hidden></p>
+    </section>
+
+    <section id="needs-repair-view" hidden>
+      <p>
+        This device needs to be reconnected before it can show your synced data. Open the BrowserSync toolbar icon -
+        it will walk you through reconnecting with your password and recovery passphrase.
+      </p>
+    </section>
+
+    <section id="data-view" hidden>
+      <p id="data-error" class="error" hidden></p>
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="bookmarks">Bookmarks</button>
+        <button class="tab-btn" data-tab="history">History</button>
+        <button class="tab-btn" data-tab="extensions">Extensions</button>
+      </nav>
+
+      <div id="tab-bookmarks" class="tab-panel active">
+        <p class="meta" id="bookmarks-meta"></p>
+        <div id="bookmarks-tree" class="tree"></div>
+      </div>
+
+      <div id="tab-history" class="tab-panel">
+        <p class="meta" id="history-meta"></p>
+        <input id="history-filter" type="text" placeholder="Filter by title or URL..." class="filter-input" />
+        <div id="history-list" class="list"></div>
+      </div>
+
+      <div id="tab-extensions" class="tab-panel">
+        <p class="meta" id="extensions-meta"></p>
+        <p class="hint">
+          This reflects whichever device synced most recently - extension lists aren't merged across
+          devices, each sync simply uploads that device's current list.
+        </p>
+        <div id="extensions-list" class="list"></div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="viewer.js"></script>
+</body>
+</html>

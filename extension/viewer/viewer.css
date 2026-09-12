@@ -1,0 +1,147 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f5f6f8;
+  --card-bg: #ffffff;
+  --text: #1b1f24;
+  --muted: #5c6570;
+  --border: #d7dbe0;
+  --accent: #2f6fed;
+  --accent-contrast: #ffffff;
+  --error-bg: #fdecec;
+  --error-text: #a4262c;
+  --badge-on-bg: #e6f4ea;
+  --badge-on-text: #1a7f37;
+  --badge-off-bg: #f1f1f1;
+  --badge-off-text: #666;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171a;
+    --card-bg: #1e2226;
+    --text: #e7eaee;
+    --muted: #9aa4af;
+    --border: #33393f;
+    --error-bg: #3a1f20;
+    --error-text: #ff9a9a;
+    --badge-on-bg: #113322;
+    --badge-on-text: #57d778;
+    --badge-off-bg: #2a2e33;
+    --badge-off-text: #9aa4af;
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* Author display rules on form/section below would otherwise silently
+   override the native [hidden] attribute, since same-origin author rules
+   beat the UA stylesheet regardless of selector specificity. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg);
+}
+.brand { font-weight: 700; }
+.account-label { color: var(--muted); font-size: 13px; }
+
+main { max-width: 720px; margin: 0 auto; padding: 24px; }
+
+section > p:first-child { margin-top: 0; }
+
+.unlock-row { display: flex; gap: 8px; margin: 12px 0; }
+.unlock-row input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+}
+
+.primary-button {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.error {
+  background: var(--error-bg);
+  color: var(--error-text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin: 12px 0;
+}
+
+.hint { color: var(--muted); font-size: 13px; }
+.meta { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.filter-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+
+.tree, .list { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; max-height: 60vh; overflow-y: auto; }
+
+ul.tree-root, .tree ul { list-style: none; margin: 0; padding-left: 20px; }
+ul.tree-root { padding-left: 0; }
+.tree li { margin: 2px 0; }
+.tree-row { display: flex; align-items: center; gap: 6px; }
+.tree-icon { font-size: 13px; }
+.folder-label { font-weight: 600; }
+.tree a { color: var(--text); text-decoration: none; font-size: 13px; }
+.tree a:hover { text-decoration: underline; color: var(--accent); }
+
+.list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.list-row:last-child { border-bottom: none; }
+.list-row a { color: var(--text); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-row a:hover { text-decoration: underline; color: var(--accent); }
+.list-time { color: var(--muted); font-size: 11px; flex-shrink: 0; }
+
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; flex-shrink: 0; }
+.badge-on { background: var(--badge-on-bg); color: var(--badge-on-text); }
+.badge-off { background: var(--badge-off-bg); color: var(--badge-off-text); }

@@ -1,0 +1,12 @@
+# Server
+server/node_modules/
+server/dist/
+server/.env
+server/backups/
+
+# Extension (no build step, but keep any stray artifacts out)
+extension/*.zip
+
+# OS/editor cruft
+.DS_Store
+*.swp
