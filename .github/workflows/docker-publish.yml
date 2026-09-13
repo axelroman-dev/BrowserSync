@@ -125,3 +125,51 @@ jobs:
           repository: ${{ env.IMAGE_NAME }}
           short-description: "Self-hosted, end-to-end encrypted bookmark/history sync for Chromium browsers"
           readme-filepath: server/DOCKERHUB.md
+
+  # Reports the run's outcome to Telegram. Skipped on pull_request the same
+  # way the docker job's push step is - a fork PR can't see repo secrets
+  # anyway, and a same-repo PR build isn't the kind of event worth paging
+  # someone about. `if: always()` is what lets this job run even when
+  # typecheck/docker failed (the normal "needs" default would just skip it).
+  notify-telegram:
+    needs: [typecheck, docker, dockerhub-description]
+    if: always() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Work out overall pass/fail
+        id: result
+        run: |
+          # Any of the three jobs above being non-'success' - including
+          # 'skipped', which here only happens because an earlier one in the
+          # chain failed - means the pipeline didn't fully succeed.
+          if ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}; then
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=success" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send Telegram notification
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          STATUS: ${{ steps.result.outputs.status }}
+          WORKFLOW: ${{ github.workflow }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$STATUS" = "success" ]; then
+            ICON="✅"
+            WORD="succeeded"
+          else
+            ICON="❌"
+            WORD="failed"
+          fi
+          MESSAGE="${ICON} *${WORKFLOW}* ${WORD} on \`${REF_NAME}\` (${SHA:0:7})
+          Triggered by: ${ACTOR}
+          ${RUN_URL}"
+          curl -sS --fail -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${MESSAGE}" \
+            --data-urlencode "parse_mode=Markdown"
