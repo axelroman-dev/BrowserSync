@@ -11,6 +11,7 @@ import { syncBookmarks } from "./bookmarksSync.js";
 import { syncHistory } from "./historySync.js";
 import { syncExtensionsList } from "./extensionsList.js";
 import { NetworkError, ApiError } from "./api.js";
+import { needsFirstSyncChoice, applyFirstSyncChoice } from "./firstSyncPrompt.js";
 
 function describeError(err) {
   if (err?.code === "decrypt_failed") return "Could not decrypt synced data - try unlocking again from the popup.";
@@ -24,6 +25,14 @@ export async function runSyncCycle() {
   const session = await getSession();
   if (!session.isLoggedIn) return { status: "skipped", reason: "not_logged_in" };
   if (!session.isUnlocked) return { status: "skipped", reason: "locked" };
+  // Guards EVERY caller (manual "Sync now", the background alarm, unlock,
+  // repair - not just the post-login flow in connectForm.js) against
+  // silently duplicating a device's pre-existing bookmarks the first time it
+  // ever syncs - see firstSyncPrompt.js for why a plain merge can't tell a
+  // pre-existing local bookmark apart from a genuinely new one. The
+  // background alarm has no UI to ask with, so it just skips here and waits
+  // for the user to resolve it from the popup (see runSyncCycleInteractive).
+  if (await needsFirstSyncChoice()) return { status: "skipped", reason: "needs_first_sync_choice" };
 
   const key = await getActiveKey();
   const { historyEnabled } = await getAllLocal();
@@ -43,4 +52,28 @@ export async function runSyncCycle() {
     await setLocal({ lastSyncAt: Date.now(), lastSyncStatus: "error", lastSyncError: message });
     return { status: "error", message };
   }
+}
+
+/**
+ * Same as runSyncCycle(), but when this device's very first bookmark sync
+ * needs the merge-or-replace choice, resolves it right here with a plain
+ * confirm() dialog instead of just skipping. The nicer themed version of
+ * this same question lives in connectForm.js's first-sync-choice-view and
+ * covers the common case (right after login); this is the fallback for
+ * every other entry point that can show UI - manual "Sync now", unlock,
+ * repair - so none of them can silently duplicate bookmarks either. Only
+ * call this from a page with a window (popup/onboarding/viewer), never from
+ * the background service worker.
+ */
+export async function runSyncCycleInteractive() {
+  const result = await runSyncCycle();
+  if (result.status !== "skipped" || result.reason !== "needs_first_sync_choice") return result;
+
+  const replace = confirm(
+    "This device has bookmarks that have never been synced with this account.\n\n" +
+      "Press OK to REPLACE this device's bookmarks with the ones already synced.\n" +
+      "Press Cancel to MERGE them instead - bookmarks that exist on both sides may end up duplicated.",
+  );
+  await applyFirstSyncChoice(replace ? "replace" : "merge");
+  return runSyncCycle();
 }

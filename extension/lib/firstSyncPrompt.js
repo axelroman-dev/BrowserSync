@@ -14,7 +14,7 @@
 // whether to keep both (merge, accepting possible duplicates) or start fresh
 // from what's already synced (replace, discarding this device's pre-existing
 // bookmarks) avoids that surprise without changing the merge engine itself.
-import { getAllLocal } from "./storage.js";
+import { getAllLocal, setLocal } from "./storage.js";
 import { hasLocalBookmarkContent, wipeLocalBookmarksForFreshStart } from "./bookmarksSync.js";
 import { getSyncBlob } from "./api.js";
 
@@ -32,4 +32,11 @@ export async function needsFirstSyncChoice() {
 
 export async function applyFirstSyncChoice(choice) {
   if (choice === "replace") await wipeLocalBookmarksForFreshStart();
+  // Marks the question as answered right away, independently of whether the
+  // sync that follows actually succeeds - otherwise a failed/deferred first
+  // sync (e.g. the alarm ticks before the user's next "Sync now") would see
+  // bookmarksInitializedAt still unset and ask again, even though "merge" or
+  // "replace" was already decided. runSyncCycle() also re-sets this on every
+  // successful sync, which is harmless.
+  await setLocal({ bookmarksInitializedAt: Date.now() });
 }

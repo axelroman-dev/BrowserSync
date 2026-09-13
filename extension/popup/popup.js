@@ -2,7 +2,7 @@ import { wireConnectForm } from "../lib/connectForm.js";
 import * as auth from "../lib/auth.js";
 import * as api from "../lib/api.js";
 import { getAllLocal, setLocal } from "../lib/storage.js";
-import { runSyncCycle } from "../lib/syncOrchestrator.js";
+import { runSyncCycleInteractive } from "../lib/syncOrchestrator.js";
 
 const views = {
   connect: document.getElementById("connect-view"),
@@ -111,7 +111,7 @@ wireConnectForm(
   async () => {
     await chrome.runtime.sendMessage({ type: "refresh-alarm" });
     await render();
-    runSyncCycle().then(renderStatusView);
+    runSyncCycleInteractive().then(renderStatusView);
   },
 );
 
@@ -128,7 +128,7 @@ document.getElementById("unlock-btn").addEventListener("click", async () => {
     await auth.unlock(password);
     errorEl.hidden = true;
     await render();
-    runSyncCycle().then(renderStatusView);
+    runSyncCycleInteractive().then(renderStatusView);
   } catch (err) {
     if (err.code === "no_local_envelope") {
       showView("repair");
@@ -166,7 +166,7 @@ document.getElementById("repair-btn").addEventListener("click", async () => {
     await auth.completeDeviceSetup({ email: accountEmail, password, passphrase, dekEnvelope });
     errorEl.hidden = true;
     await render();
-    runSyncCycle().then(renderStatusView);
+    runSyncCycleInteractive().then(renderStatusView);
   } catch (err) {
     errorEl.textContent = err.message || "Could not reconnect this device.";
     errorEl.hidden = false;
@@ -183,7 +183,7 @@ document.getElementById("sync-now-btn").addEventListener("click", async (e) => {
   const btn = e.currentTarget;
   btn.disabled = true;
   btn.textContent = "Syncing...";
-  await runSyncCycle();
+  await runSyncCycleInteractive();
   await renderStatusView();
   btn.disabled = false;
   btn.textContent = "Sync now";
