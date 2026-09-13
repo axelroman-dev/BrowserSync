@@ -100,7 +100,13 @@ export async function register({ serverUrl, email, password }) {
     deviceLabel: await deviceLabel(),
   });
 
-  await setLocal({ serverUrl, accountEmail: email, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+  await setLocal({
+    serverUrl,
+    accountEmail: email,
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    currentDeviceId: tokens.deviceId,
+  });
   await storeDeviceEnvelope(dek, password, email);
   await activateDEK(dek);
 
@@ -116,7 +122,13 @@ export async function register({ serverUrl, email, password }) {
  */
 export async function login({ serverUrl, email, password }) {
   const result = await api.login(serverUrl, { email, password, deviceLabel: await deviceLabel() });
-  await setLocal({ serverUrl, accountEmail: email, accessToken: result.accessToken, refreshToken: result.refreshToken });
+  await setLocal({
+    serverUrl,
+    accountEmail: email,
+    accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
+    currentDeviceId: result.deviceId,
+  });
 
   const { dekEnvelopePasswordCiphertext, dekEnvelopePasswordIv } = await getAllLocal();
   if (dekEnvelopePasswordCiphertext) {
@@ -191,7 +203,13 @@ export async function resetPassword({ serverUrl, email, passphrase, newPassword 
   await api.resetPassword(serverUrl, { email, passphraseVerifier, newPassword });
 
   const result = await api.login(serverUrl, { email, password: newPassword, deviceLabel: await deviceLabel() });
-  await setLocal({ serverUrl, accountEmail: email, accessToken: result.accessToken, refreshToken: result.refreshToken });
+  await setLocal({
+    serverUrl,
+    accountEmail: email,
+    accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
+    currentDeviceId: result.deviceId,
+  });
   await completeDeviceSetup({ email, password: newPassword, passphrase, dekEnvelope: result.dekEnvelope });
 }
 

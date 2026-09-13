@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { users, refreshTokens } from "../db/schema.js";
 import { config } from "../config.js";
@@ -38,13 +38,19 @@ function refreshTokenExpiry(): Date {
 async function issueTokenPair(userId: string, deviceLabel: string | undefined) {
   const accessToken = signAccessToken(userId);
   const { token: refreshToken, hash } = generateRefreshToken();
-  await db.insert(refreshTokens).values({
-    userId,
-    tokenHash: hash,
-    deviceLabel: deviceLabel ?? null,
-    expiresAt: refreshTokenExpiry(),
-  });
-  return { accessToken, refreshToken };
+  const [inserted] = await db
+    .insert(refreshTokens)
+    .values({
+      userId,
+      tokenHash: hash,
+      deviceLabel: deviceLabel ?? null,
+      expiresAt: refreshTokenExpiry(),
+    })
+    .returning({ id: refreshTokens.id });
+  // deviceId lets the client remember which /devices row is itself, so the
+  // "linked devices" list can point out "this device" instead of leaving the
+  // user to guess from the label alone - see extension/lib/auth.js.
+  return { accessToken, refreshToken, deviceId: inserted.id };
 }
 
 const registerSchema = z.object({
@@ -180,6 +186,60 @@ authRouter.post("/reset-password", async (req, res) => {
   await db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.userId, user.id));
 
   res.json({ dekEnvelope: { ciphertext: user.dekEnvelopeCiphertext, iv: user.dekEnvelopeIv } });
+});
+
+// Lists every device (non-revoked, non-expired refresh token) currently
+// signed into this account, so the account owner can see what's linked and
+// revoke anything they don't recognize/still use without having to log out
+// everywhere - the "logged in devices" list a reviewer of the raw DB could
+// already see, now surfaced to the user themselves.
+authRouter.get("/devices", requireAuth, async (req, res) => {
+  const rows = await db
+    .select({
+      id: refreshTokens.id,
+      deviceLabel: refreshTokens.deviceLabel,
+      createdAt: refreshTokens.createdAt,
+      lastUsedAt: refreshTokens.lastUsedAt,
+      expiresAt: refreshTokens.expiresAt,
+    })
+    .from(refreshTokens)
+    .where(
+      and(
+        eq(refreshTokens.userId, req.userId!),
+        isNull(refreshTokens.revokedAt),
+        gt(refreshTokens.expiresAt, new Date()),
+      ),
+    )
+    .orderBy(refreshTokens.createdAt);
+  res.json({ devices: rows });
+});
+
+const deviceIdParamSchema = z.object({ id: z.string().uuid() });
+
+// Revokes one device's refresh token - functionally identical to /logout,
+// but callable for ANY of the account's devices (by id) rather than only the
+// one presenting its own token, and gated by the access token instead of the
+// refresh token being revoked. The now-revoked device keeps working until
+// its current access token expires, then fails to refresh and is signed out.
+authRouter.delete("/devices/:id", requireAuth, async (req, res) => {
+  const parsedParams = deviceIdParamSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    res.status(400).json({ error: "invalid_input", message: "Invalid device id" });
+    return;
+  }
+
+  const [row] = await db
+    .select({ id: refreshTokens.id })
+    .from(refreshTokens)
+    .where(and(eq(refreshTokens.id, parsedParams.data.id), eq(refreshTokens.userId, req.userId!)))
+    .limit(1);
+  if (!row) {
+    res.status(404).json({ error: "not_found", message: "Device not found." });
+    return;
+  }
+
+  await db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.id, row.id));
+  res.status(204).send();
 });
 
 const refreshSchema = z.object({ refreshToken: z.string().min(1) });

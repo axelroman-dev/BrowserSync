@@ -96,6 +96,10 @@ wireConnectForm(
     deviceSetupError: document.getElementById("device-setup-error"),
     deviceSetupSubmitBtn: document.getElementById("device-setup-submit-btn"),
 
+    firstSyncChoiceView: document.getElementById("first-sync-choice-view"),
+    firstSyncMergeBtn: document.getElementById("first-sync-merge-btn"),
+    firstSyncReplaceBtn: document.getElementById("first-sync-replace-btn"),
+
     forgotPasswordView: document.getElementById("forgot-password-view"),
     forgotEmailInput: document.getElementById("forgot-email"),
     forgotPassphraseInput: document.getElementById("forgot-passphrase"),
@@ -188,6 +192,11 @@ document.getElementById("sync-now-btn").addEventListener("click", async (e) => {
 document.getElementById("view-data-link").addEventListener("click", (e) => {
   e.preventDefault();
   chrome.tabs.create({ url: chrome.runtime.getURL("viewer/viewer.html") });
+});
+
+document.getElementById("manage-devices-link").addEventListener("click", (e) => {
+  e.preventDefault();
+  chrome.tabs.create({ url: chrome.runtime.getURL("devices/devices.html") });
 });
 
 document.getElementById("logout-link").addEventListener("click", async (e) => {

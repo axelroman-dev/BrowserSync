@@ -10,6 +10,7 @@
   --error-bg: #fdecec;
   --error-text: #a4262c;
   --ok: #1a7f37;
+  --danger: #c53030;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,6 +23,7 @@
     --error-bg: #3a1f20;
     --error-text: #ff9a9a;
     --ok: #57d778;
+    --danger: #ff8080;
   }
 }
 
@@ -109,6 +111,17 @@ input[type="email"], input[type="password"], input[type="text"] {
   padding: 8px;
   font-size: 13px;
   color: var(--text);
+  cursor: pointer;
+}
+
+.danger-button {
+  margin-top: 8px;
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 13px;
   cursor: pointer;
 }
 

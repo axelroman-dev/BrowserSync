@@ -18,6 +18,7 @@
 import { OFFICIAL_SERVER_URL } from "../config.js";
 import * as auth from "./auth.js";
 import { checkHealth, ApiError, NetworkError } from "./api.js";
+import { needsFirstSyncChoice, applyFirstSyncChoice } from "./firstSyncPrompt.js";
 
 function describeConnectError(err) {
   if (err instanceof ApiError) {
@@ -119,7 +120,45 @@ export function wireConnectForm(el, onConnected) {
     el.savePassphraseView.hidden = true;
     el.deviceSetupView.hidden = true;
     el.forgotPasswordView.hidden = true;
+    if (el.firstSyncChoiceView) el.firstSyncChoiceView.hidden = true;
   }
+
+  // Gate every path that's about to call onConnected() through the
+  // "this device already has bookmarks" check first - see firstSyncPrompt.js
+  // for why this only ever fires on a device's genuine first bookmark sync.
+  async function proceedToConnected() {
+    if (el.firstSyncChoiceView && (await needsFirstSyncChoice())) {
+      el.form.hidden = true;
+      el.savePassphraseView.hidden = true;
+      el.deviceSetupView.hidden = true;
+      el.forgotPasswordView.hidden = true;
+      el.firstSyncChoiceView.hidden = false;
+      return;
+    }
+    onConnected(await auth.getSession());
+  }
+
+  el.firstSyncMergeBtn?.addEventListener("click", async () => {
+    await applyFirstSyncChoice("merge");
+    onConnected(await auth.getSession());
+  });
+
+  el.firstSyncReplaceBtn?.addEventListener("click", async () => {
+    if (
+      !confirm(
+        "This permanently deletes the bookmarks currently on this device and replaces them with your synced bookmarks. Continue?",
+      )
+    ) {
+      return;
+    }
+    el.firstSyncReplaceBtn.disabled = true;
+    try {
+      await applyFirstSyncChoice("replace");
+      onConnected(await auth.getSession());
+    } finally {
+      el.firstSyncReplaceBtn.disabled = false;
+    }
+  });
 
   // --- Main email/password form ---
   el.form.addEventListener("submit", async (e) => {
@@ -149,7 +188,7 @@ export function wireConnectForm(el, onConnected) {
           pendingDeviceSetup = { email, password, dekEnvelope: result.dekEnvelope };
           showDeviceSetupView();
         } else {
-          onConnected(await auth.getSession());
+          await proceedToConnected();
         }
       }
     } catch (err) {
@@ -184,7 +223,7 @@ export function wireConnectForm(el, onConnected) {
   });
 
   el.continueAfterSaveBtn.addEventListener("click", async () => {
-    onConnected(await auth.getSession());
+    await proceedToConnected();
   });
 
   // --- Device-setup sub-view (shown once per new device, on first login) ---
@@ -206,7 +245,7 @@ export function wireConnectForm(el, onConnected) {
     try {
       await auth.completeDeviceSetup({ ...pendingDeviceSetup, passphrase });
       pendingDeviceSetup = null;
-      onConnected(await auth.getSession());
+      await proceedToConnected();
     } catch (err) {
       el.deviceSetupError.textContent = describeConnectError(err);
       el.deviceSetupError.hidden = false;
@@ -249,7 +288,7 @@ export function wireConnectForm(el, onConnected) {
     el.forgotSubmitBtn.textContent = "Resetting...";
     try {
       await auth.resetPassword({ serverUrl: currentServerUrl, email, passphrase, newPassword });
-      onConnected(await auth.getSession());
+      await proceedToConnected();
     } catch (err) {
       el.forgotError.textContent = describeConnectError(err);
       el.forgotError.hidden = false;

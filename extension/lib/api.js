@@ -90,6 +90,21 @@ export async function getDekEnvelope() {
   return withAuthRetry((accessToken) => request(serverUrl, "/api/auth/dek-envelope", { accessToken }));
 }
 
+/** Lists every device (non-revoked, non-expired login) currently linked to this account. */
+export async function listDevices() {
+  const { serverUrl } = await getAllLocal();
+  const { devices } = await withAuthRetry((accessToken) => request(serverUrl, "/api/auth/devices", { accessToken }));
+  return devices;
+}
+
+/** Revokes one linked device by id, signing it out next time it tries to refresh its session. */
+export async function revokeDevice(deviceId) {
+  const { serverUrl } = await getAllLocal();
+  await withAuthRetry((accessToken) =>
+    request(serverUrl, `/api/auth/devices/${encodeURIComponent(deviceId)}`, { method: "DELETE", accessToken }),
+  );
+}
+
 /**
  * Wraps an authenticated call with a single automatic retry after a token
  * refresh, so callers (bookmarksSync, historySync) don't each need to

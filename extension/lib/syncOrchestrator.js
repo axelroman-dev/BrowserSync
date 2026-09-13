@@ -33,7 +33,10 @@ export async function runSyncCycle() {
     if (historyEnabled) await syncHistory(key);
     await syncExtensionsList(key);
 
-    await setLocal({ lastSyncAt: Date.now(), lastSyncStatus: "ok", lastSyncError: null });
+    // Marks this device as past its first bookmark sync, so firstSyncPrompt.js
+    // never asks the merge-or-replace question again once it's been answered
+    // (or was moot because there was nothing to ask about).
+    await setLocal({ lastSyncAt: Date.now(), lastSyncStatus: "ok", lastSyncError: null, bookmarksInitializedAt: Date.now() });
     return { status: "ok", bookmarksResult };
   } catch (err) {
     const message = describeError(err);

@@ -1,0 +1,106 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f5f6f8;
+  --card-bg: #ffffff;
+  --text: #1b1f24;
+  --muted: #5c6570;
+  --border: #d7dbe0;
+  --accent: #2f6fed;
+  --accent-contrast: #ffffff;
+  --error-bg: #fdecec;
+  --error-text: #a4262c;
+  --danger: #c53030;
+  --badge-bg: #e6f0ff;
+  --badge-text: #2f6fed;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171a;
+    --card-bg: #1e2226;
+    --text: #e7eaee;
+    --muted: #9aa4af;
+    --border: #33393f;
+    --error-bg: #3a1f20;
+    --error-text: #ff9a9a;
+    --danger: #ff8080;
+    --badge-bg: #16233d;
+    --badge-text: #7fa8ff;
+  }
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg);
+}
+.brand { font-weight: 700; }
+.account-label { color: var(--muted); font-size: 13px; }
+
+main { max-width: 640px; margin: 0 auto; padding: 24px; }
+
+section > p:first-child { margin-top: 0; }
+
+.hint { color: var(--muted); font-size: 13px; }
+
+.error {
+  background: var(--error-bg);
+  color: var(--error-text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin: 12px 0;
+}
+
+.list { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; }
+
+.device-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.device-row:last-child { border-bottom: none; }
+
+.device-info { min-width: 0; }
+.device-label { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.device-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+.badge-current {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--badge-bg);
+  color: var(--badge-text);
+}
+
+.revoke-button {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.revoke-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.empty-hint { padding: 16px; color: var(--muted); font-size: 13px; }

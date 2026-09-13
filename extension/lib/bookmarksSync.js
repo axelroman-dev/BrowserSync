@@ -343,3 +343,36 @@ export async function fetchRemoteBookmarksTree(key) {
   const payload = await decryptJSON(key, blob.ciphertext, blob.iv);
   return { tree: buildDisplayTree(payload.nodes ?? []), updatedAt: blob.updatedAt };
 }
+
+/**
+ * True if the live bookmarks tree has anything in it beyond the three empty
+ * root folders. Used by the "first sync on this device" prompt (see
+ * firstSyncPrompt.js) to decide whether it's worth asking how to reconcile
+ * pre-existing local bookmarks with what's already synced, before the first
+ * sync on this device silently treats them all as new (see the module
+ * comment at the top of this file - matching is by syncId, not content, so
+ * anything pre-existing locally has no syncId in common with the synced copy
+ * even if it's "the same" bookmark, and ends up duplicated instead of matched).
+ */
+export async function hasLocalBookmarkContent() {
+  const [superRoot] = await chrome.bookmarks.getTree();
+  const roots = superRoot.children ?? [];
+  return roots.some((root) => (root.children ?? []).length > 0);
+}
+
+/**
+ * Deletes every local bookmark/folder (keeping the three root folders
+ * themselves) and clears this device's sync bookkeeping, so the very next
+ * sync starts from a blank slate and simply adopts whatever's already
+ * synced instead of merging pre-existing local bookmarks in. Used when the
+ * user picks "replace" in the first-sync prompt.
+ */
+export async function wipeLocalBookmarksForFreshStart() {
+  const [superRoot] = await chrome.bookmarks.getTree();
+  for (const root of superRoot.children ?? []) {
+    for (const child of root.children ?? []) {
+      await chrome.bookmarks.removeTree(child.id).catch(() => {});
+    }
+  }
+  await setLocal({ bookmarkSyncIds: {}, bookmarkTimestamps: {}, bookmarkTombstones: {} });
+}

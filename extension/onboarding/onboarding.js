@@ -30,6 +30,10 @@ const el = {
   deviceSetupError: document.getElementById("device-setup-error"),
   deviceSetupSubmitBtn: document.getElementById("device-setup-submit-btn"),
 
+  firstSyncChoiceView: document.getElementById("first-sync-choice-view"),
+  firstSyncMergeBtn: document.getElementById("first-sync-merge-btn"),
+  firstSyncReplaceBtn: document.getElementById("first-sync-replace-btn"),
+
   forgotPasswordView: document.getElementById("forgot-password-view"),
   forgotEmailInput: document.getElementById("forgot-email"),
   forgotPassphraseInput: document.getElementById("forgot-passphrase"),
@@ -40,7 +44,9 @@ const el = {
 };
 
 wireConnectForm(el, (session) => {
-  for (const view of [el.form, el.savePassphraseView, el.deviceSetupView, el.forgotPasswordView]) view.hidden = true;
+  for (const view of [el.form, el.savePassphraseView, el.deviceSetupView, el.firstSyncChoiceView, el.forgotPasswordView]) {
+    view.hidden = true;
+  }
   document.getElementById("connected-view").hidden = false;
   document.getElementById("connected-email").textContent = session.accountEmail;
   chrome.runtime.sendMessage({ type: "refresh-alarm" });

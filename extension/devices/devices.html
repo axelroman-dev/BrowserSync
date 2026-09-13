@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Linked devices - BrowserSync</title>
+<link rel="stylesheet" href="devices.css" />
+</head>
+<body>
+  <header>
+    <span class="brand">BrowserSync — Linked devices</span>
+    <span id="account-label" class="account-label"></span>
+  </header>
+
+  <main>
+    <section id="not-connected-view" hidden>
+      <p>Not connected. Open the BrowserSync toolbar icon to log in first.</p>
+    </section>
+
+    <section id="devices-view" hidden>
+      <p class="hint">
+        Every device currently signed into this account. Revoking a device signs it out - it won't be able to sync
+        again until someone logs back in on it.
+      </p>
+      <p id="devices-error" class="error" hidden></p>
+      <div id="devices-list" class="list"></div>
+    </section>
+  </main>
+
+  <script type="module" src="devices.js"></script>
+</body>
+</html>

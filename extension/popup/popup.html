@@ -71,6 +71,17 @@
         <button type="button" id="device-setup-submit-btn" class="primary-button">Set up this device</button>
       </section>
 
+      <!-- Shown once per device, only when it already has local bookmarks AND the account already has bookmarks synced elsewhere -->
+      <section id="first-sync-choice-view" hidden>
+        <p><strong>This device already has bookmarks</strong></p>
+        <p class="hint">
+          Keep them and merge with what's already synced (bookmarks on both sides may end up duplicated), or replace
+          this device's bookmarks with the synced ones.
+        </p>
+        <button type="button" id="first-sync-merge-btn" class="secondary-button">Keep both, merge them</button>
+        <button type="button" id="first-sync-replace-btn" class="danger-button">Replace with synced bookmarks</button>
+      </section>
+
       <!-- Forgot-password flow -->
       <section id="forgot-password-view" hidden>
         <p><strong>Reset your password</strong></p>
@@ -138,6 +149,8 @@
         <input type="number" id="sync-interval" min="5" max="1440" />
 
         <button id="save-settings-btn" class="secondary-button">Save settings</button>
+
+        <a href="#" id="manage-devices-link" class="link">Manage linked devices</a>
 
         <details class="danger-zone">
           <summary>Delete account and all synced data</summary>

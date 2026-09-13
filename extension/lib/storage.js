@@ -27,6 +27,11 @@ const LOCAL_DEFAULTS = {
   accountEmail: null,
   accessToken: null,
   refreshToken: null,
+  // This device's own row id in the server's refresh_tokens table (returned
+  // by register/login), so the "linked devices" list can mark which entry is
+  // "this device" - see lib/devicesList.js.
+  currentDeviceId: null,
+  bookmarksInitializedAt: null,
   historyDays: DEFAULT_HISTORY_DAYS,
   syncIntervalMinutes: DEFAULT_SYNC_INTERVAL_MINUTES,
   historyEnabled: false,
@@ -67,6 +72,7 @@ export async function clearAccountLocal() {
     "accountEmail",
     "accessToken",
     "refreshToken",
+    "currentDeviceId",
     "dekEnvelopePasswordCiphertext",
     "dekEnvelopePasswordIv",
     "lastSyncAt",
@@ -76,6 +82,7 @@ export async function clearAccountLocal() {
     "bookmarkTimestamps",
     "bookmarkTombstones",
     "bookmarkBlobVersion",
+    "bookmarksInitializedAt",
     "historyBlobVersion",
     "extensionsBlobVersion",
   ]);
