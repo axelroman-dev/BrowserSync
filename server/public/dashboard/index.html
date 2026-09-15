@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BrowserSync Dashboard</title>
+<link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <div class="page">
+    <header>
+      <span class="brand">BrowserSync</span>
+      <div id="account-bar" class="account-bar" hidden>
+        <span id="account-email"></span>
+        <button id="logout-btn" class="link-button">Log out</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Login -->
+      <section id="login-view" class="card">
+        <h1>Log in to your account</h1>
+        <p class="hint">
+          This only shows account status - server-side metadata like sync versions and linked devices. Your actual
+          bookmarks/history stay end-to-end encrypted and are never visible here or to the server.
+        </p>
+        <form id="login-form" novalidate>
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" autocomplete="username" required />
+
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" autocomplete="current-password" required />
+
+          <p id="login-error" class="error" hidden></p>
+
+          <button type="submit" id="login-submit" class="primary-button">Log in</button>
+        </form>
+      </section>
+
+      <!-- Dashboard -->
+      <section id="dashboard-view" hidden>
+        <div class="card">
+          <h1>Account</h1>
+          <dl class="kv">
+            <dt>Email</dt>
+            <dd id="account-email-detail"></dd>
+            <dt>Created</dt>
+            <dd id="account-created"></dd>
+          </dl>
+        </div>
+
+        <div class="card">
+          <h1>Sync status</h1>
+          <p class="hint">
+            Whether each data type has ever synced from any device, and the version/size/timestamp of what's
+            currently stored - the quickest way to check "did my last sync actually save?" without opening the
+            extension.
+          </p>
+          <p id="status-error" class="error" hidden></p>
+          <div id="status-list" class="status-list"></div>
+        </div>
+
+        <div class="card">
+          <h1>Linked devices</h1>
+          <p class="hint">Every device currently signed into this account. Revoke anything you don't recognize.</p>
+          <p id="devices-error" class="error" hidden></p>
+          <div id="devices-list" class="devices-list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>

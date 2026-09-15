@@ -133,6 +133,21 @@ authRouter.post("/login", async (req, res) => {
   res.json({ ...tokens, dekEnvelope: { ciphertext: user.dekEnvelopeCiphertext, iv: user.dekEnvelopeIv } });
 });
 
+// Account identity for surfaces that just need "who is this" - the account
+// dashboard's header, primarily. Never returns anything password/DEK-related.
+authRouter.get("/me", requireAuth, async (req, res) => {
+  const [user] = await db
+    .select({ email: users.email, createdAt: users.createdAt })
+    .from(users)
+    .where(eq(users.id, req.userId!))
+    .limit(1);
+  if (!user) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+  res.json(user);
+});
+
 // Lets an already-authenticated device re-fetch its account's wrapped DEK on
 // demand - used when a device's local password-wrapped copy is missing or
 // corrupted, without forcing a full re-login.

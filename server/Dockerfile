@@ -18,6 +18,7 @@ RUN npm install --omit=dev
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/src/db/migrations ./src/db/migrations
 COPY drizzle.config.ts ./
+COPY public ./public
 
 # Run as the unprivileged "node" user the base image already ships with,
 # rather than root - if the app is ever compromised (a dependency RCE, say),

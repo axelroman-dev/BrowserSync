@@ -1,10 +1,34 @@
 import { Router } from "express";
 import { z } from "zod";
 import { requireAuth } from "../middleware/requireAuth.js";
-import { getBlob, putBlob, BlobTooLargeError, VersionConflictError, type DataType } from "../services/syncService.js";
+import { getBlob, getBlobMeta, putBlob, BlobTooLargeError, VersionConflictError, type DataType } from "../services/syncService.js";
 
 export const syncRouter = Router();
 syncRouter.use(requireAuth);
+
+const ALL_DATA_TYPES: DataType[] = ["bookmarks", "history", "extensions"];
+
+/**
+ * Metadata-only summary of every data type at once - what the account
+ * dashboard (server/public/dashboard) polls to answer "did my last sync
+ * actually save?" without fetching (let alone being able to decrypt) any
+ * ciphertext. `null` for a data type means nothing has been synced yet.
+ */
+syncRouter.get("/status", async (req, res) => {
+  const blobs = await Promise.all(ALL_DATA_TYPES.map((dataType) => getBlobMeta(req.userId!, dataType)));
+  res.json({
+    blobs: ALL_DATA_TYPES.map((dataType, i) => {
+      const blob = blobs[i];
+      return {
+        dataType,
+        version: blob?.version ?? null,
+        sizeBytes: blob?.sizeBytes ?? null,
+        clientUpdatedAt: blob?.clientUpdatedAt ?? null,
+        updatedAt: blob?.updatedAt ?? null,
+      };
+    }),
+  });
+});
 
 const putBodySchema = z.object({
   ciphertext: z.string().min(1),

@@ -21,6 +21,31 @@ export async function getBlob(userId: string, dataType: DataType): Promise<SyncB
   return row ?? null;
 }
 
+export type SyncBlobMeta = Omit<SyncBlob, "ciphertext" | "iv">;
+
+/**
+ * Same lookup as getBlob(), but selects everything except ciphertext/iv -
+ * for surfaces like the account dashboard that only need to answer "did the
+ * last sync actually land, and when" without ever pulling encrypted payload
+ * bytes across the wire for a page that has no key to decrypt them with.
+ */
+export async function getBlobMeta(userId: string, dataType: DataType): Promise<SyncBlobMeta | null> {
+  const [row] = await db
+    .select({
+      id: syncBlobs.id,
+      userId: syncBlobs.userId,
+      dataType: syncBlobs.dataType,
+      version: syncBlobs.version,
+      clientUpdatedAt: syncBlobs.clientUpdatedAt,
+      sizeBytes: syncBlobs.sizeBytes,
+      updatedAt: syncBlobs.updatedAt,
+    })
+    .from(syncBlobs)
+    .where(and(eq(syncBlobs.userId, userId), eq(syncBlobs.dataType, dataType)))
+    .limit(1);
+  return row ?? null;
+}
+
 export interface PutBlobInput {
   userId: string;
   dataType: DataType;
