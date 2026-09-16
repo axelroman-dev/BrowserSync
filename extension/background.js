@@ -16,7 +16,12 @@ import { initI18n } from "./lib/i18n.js";
 // this worker often (it's killed after ~30s idle), so this naturally
 // re-reads the language preference on close to every wake-up rather than
 // ever going stale for long.
-await initI18n();
+//
+// Started here (not awaited) so the fetch kicks off immediately - top-level
+// await is disallowed in service workers by spec, and stricter Chromium
+// builds (e.g. Helium) enforce it, unlike some Chrome versions. Every path
+// below that can reach t() awaits this promise first instead.
+const i18nReady = initI18n();
 
 const SYNC_ALARM_NAME = "browsersync-periodic-sync";
 
@@ -29,6 +34,7 @@ async function ensureAlarm() {
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
+  await i18nReady;
   await ensureAlarm();
   const session = await getSession();
   if (!session.isLoggedIn) {
@@ -40,7 +46,7 @@ chrome.runtime.onStartup.addListener(ensureAlarm);
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === SYNC_ALARM_NAME) {
-    runSyncCycle();
+    i18nReady.then(() => runSyncCycle());
   }
 });
 
@@ -60,7 +66,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   // survives the popup closing (losing focus closes it, and it isn't
   // reopened just because a promise inside it is still pending).
   if (message?.type === "run-sync") {
-    runSyncCycle().then(sendResponse);
+    i18nReady.then(() => runSyncCycle()).then(sendResponse);
     return true;
   }
   // Resolves the merge/replace choice, then runs a sync cycle immediately
@@ -68,7 +74,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   // manual "restore from server" button, which re-asks the same choice
   // outside the first-run flow.
   if (message?.type === "apply-first-sync-choice") {
-    applyFirstSyncChoice(message.choice)
+    i18nReady
+      .then(() => applyFirstSyncChoice(message.choice))
       .then(() => runSyncCycle())
       .then(sendResponse);
     return true;
