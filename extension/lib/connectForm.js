@@ -134,6 +134,7 @@ export function wireConnectForm(el, onConnected) {
       el.savePassphraseView.hidden = true;
       el.deviceSetupView.hidden = true;
       el.forgotPasswordView.hidden = true;
+      if (el.firstSyncError) el.firstSyncError.hidden = true;
       el.firstSyncChoiceView.hidden = false;
       return;
     }
@@ -156,6 +157,30 @@ export function wireConnectForm(el, onConnected) {
       onConnected(await auth.getSession());
     } finally {
       el.firstSyncReplaceBtn.disabled = false;
+    }
+  });
+
+  const confirmKeepLocal =
+    el.firstSyncKeepLocalBtn && armConfirm(el.firstSyncKeepLocalBtn, "Click again to confirm - can't be undone");
+  el.firstSyncKeepLocalBtn?.addEventListener("click", async () => {
+    if (!confirmKeepLocal()) return;
+    el.firstSyncKeepLocalBtn.disabled = true;
+    if (el.firstSyncError) el.firstSyncError.hidden = true;
+    try {
+      await applyFirstSyncChoice("keep-local");
+      onConnected(await auth.getSession());
+    } catch (err) {
+      // Unlike merge/replace, this needs the DEK to read what's currently
+      // synced (see bookmarksSync.js's tombstoneRemoteOnlyNodes) and can
+      // genuinely fail (e.g. decrypt_failed). el.errorMessage lives inside
+      // el.form, which is hidden while this view shows - a real, visible
+      // error element for this view specifically.
+      if (el.firstSyncError) {
+        el.firstSyncError.textContent = describeConnectError(err);
+        el.firstSyncError.hidden = false;
+      }
+    } finally {
+      el.firstSyncKeepLocalBtn.disabled = false;
     }
   });
 

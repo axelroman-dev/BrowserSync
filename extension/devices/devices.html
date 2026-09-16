@@ -17,10 +17,14 @@
     </section>
 
     <section id="devices-view" hidden>
-      <p class="hint">
-        Every device currently signed into this account. Revoking a device signs it out - it won't be able to sync
-        again until someone logs back in on it.
-      </p>
+      <div class="devices-header">
+        <p class="hint">
+          Every device currently signed into this account. Revoking a device signs it out - it won't be able to
+          sync again until someone logs back in on it. A "never used" badge usually means a leftover from
+          reinstalling the extension rather than a device someone's actually using.
+        </p>
+        <button type="button" id="revoke-others-btn" class="link-button" hidden>Clean up other devices</button>
+      </div>
       <p id="devices-error" class="error" hidden></p>
       <div id="devices-list" class="list"></div>
     </section>

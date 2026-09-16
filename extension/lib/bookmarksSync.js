@@ -68,6 +68,39 @@ function pruneOldTombstones(tombstones) {
   return pruned;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// A big restore can mean hundreds of chrome.bookmarks.create/move/update
+// calls back to back (e.g. right after "replace with synced bookmarks"
+// wipes everything and recreates it all at once), which is enough to trip
+// Chrome's own internal write-rate limiting on the bookmarks store -
+// confirmed in practice, though the exact thresholds aren't documented.
+// Two defenses, used together on every mutating call in applyMergeToBrowser:
+//  - WRITE_PACING_MS: a small forced gap between consecutive writes, to
+//    avoid bursting into the limit in the first place.
+//  - withBookmarkWriteRetry: if a write still fails (this device is
+//    catching up on a LOT of changes, or the limit is tighter than
+//    expected), back off and retry a few times before giving up on that
+//    node - riding out a transient throttle instead of treating it as a
+//    permanent per-node failure.
+const WRITE_PACING_MS = 20;
+const WRITE_RETRY_DELAYS_MS = [300, 800, 2000];
+
+async function withBookmarkWriteRetry(fn) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const result = await fn();
+      await sleep(WRITE_PACING_MS);
+      return result;
+    } catch (err) {
+      if (attempt >= WRITE_RETRY_DELAYS_MS.length) throw err;
+      await sleep(WRITE_RETRY_DELAYS_MS[attempt]);
+    }
+  }
+}
+
 function nodeSignature(node) {
   return JSON.stringify([node.parentSyncId, node.kind, node.title, node.url ?? null, node.index]);
 }
@@ -163,25 +196,28 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
   const syncIdMap = { ...local.syncIdMap };
   const timestamps = { ...local.timestamps };
   const localNodes = local.nodesBySyncId;
-  // chrome.bookmarks.create()/move()/update() can and does fail mid-batch -
-  // most commonly Chrome's own bookmark write-rate quota
-  // (MAX_WRITE_OPERATIONS_PER_HOUR / MAX_SUSTAINED_WRITE_OPERATIONS_PER_MINUTE)
-  // kicking in during a big restore (many creates in a row - e.g. right
-  // after "replace with synced bookmarks" wipes everything and recreates it
-  // all at once). The catch blocks below used to only console.warn and carry
-  // on as if that node had been handled, which silently produced an
-  // incomplete/reshuffled tree (a failed folder's children still get filed
-  // under "Other Bookmarks" by the fallback pass further down, since their
-  // real parent never got created - flattening them) while runSyncCycle()
-  // reported a clean "ok". Collecting failures here lets syncBookmarks()
-  // report a real error instead of lying about success.
+  // chrome.bookmarks.create()/move()/update() can still fail even through
+  // withBookmarkWriteRetry's pacing+backoff (e.g. a genuinely huge restore
+  // that outlasts the retry budget). The catch blocks below used to only
+  // console.warn and carry on as if that node had been handled, which
+  // silently produced an incomplete/reshuffled tree (a failed folder's
+  // children still get filed under "Other Bookmarks" by the fallback pass
+  // further down, since their real parent never got created - flattening
+  // them) while runSyncCycle() reported a clean "ok". Collecting failures
+  // here lets syncBookmarks() report a real error instead of lying about
+  // success.
   const failures = [];
+  // Nodes whose position still needs fixing once every sibling in their
+  // folder actually exists - see the final reorder pass below for why
+  // ordering is handled separately from creating/re-parenting instead of
+  // via the `index` given directly to create()/move().
+  const reorderCandidates = [];
 
   // 1. Deletions: anything tombstoned that still exists locally goes away.
   for (const [syncId, deletedAt] of Object.entries(combinedTombstones)) {
     const existing = localNodes.get(syncId);
     if (existing) {
-      await chrome.bookmarks.remove(existing.chromeId).catch(() => {});
+      await withBookmarkWriteRetry(() => chrome.bookmarks.remove(existing.chromeId)).catch(() => {});
       localNodes.delete(syncId);
       delete timestamps[syncId];
       for (const [chromeId, sid] of Object.entries(syncIdMap)) {
@@ -209,11 +245,22 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
           const parentLocal = remoteNode.parentSyncId ? localNodes.get(remoteNode.parentSyncId) : null;
           if (remoteNode.parentSyncId && !parentLocal) continue; // parent not created yet, retry next pass
           try {
-            if (parentLocal && (localNode.parentSyncId !== remoteNode.parentSyncId || localNode.index !== remoteNode.index)) {
-              await chrome.bookmarks.move(localNode.chromeId, { parentId: parentLocal.chromeId, index: remoteNode.index });
+            // Re-parent only here, deliberately without also asking for a
+            // specific index in the same call - see the final reorder pass
+            // below for why (mid-merge, the destination folder may not yet
+            // have enough children for that index to be valid, and
+            // chrome.bookmarks.move() rejects it with "Index out of
+            // bounds" rather than clamping).
+            if (parentLocal && localNode.parentSyncId !== remoteNode.parentSyncId) {
+              await withBookmarkWriteRetry(() => chrome.bookmarks.move(localNode.chromeId, { parentId: parentLocal.chromeId }));
             }
             if (localNode.title !== remoteNode.title || localNode.url !== remoteNode.url) {
-              await chrome.bookmarks.update(localNode.chromeId, { title: remoteNode.title, url: remoteNode.url ?? undefined });
+              await withBookmarkWriteRetry(() =>
+                chrome.bookmarks.update(localNode.chromeId, { title: remoteNode.title, url: remoteNode.url ?? undefined }),
+              );
+            }
+            if (remoteNode.parentSyncId) {
+              reorderCandidates.push({ parentSyncId: remoteNode.parentSyncId, targetIndex: remoteNode.index, chromeId: localNode.chromeId });
             }
           } catch (err) {
             console.warn("BrowserSync: failed to apply remote update", remoteNode.syncId, err);
@@ -235,15 +282,32 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
       if (remoteNode.parentSyncId && !parentLocal) continue; // wait for a future pass
 
       try {
-        const created = await chrome.bookmarks.create({
-          parentId: parentLocal ? parentLocal.chromeId : undefined,
-          title: remoteNode.title,
-          url: remoteNode.kind === "bookmark" ? remoteNode.url ?? undefined : undefined,
-          index: remoteNode.index,
-        });
+        // Deliberately no `index` here - see the final reorder pass below.
+        // Nodes get created in dependency order (parents before children,
+        // via the pending/skipped worklist) but NOT in each folder's own
+        // sibling order, so a later sibling routinely gets created before
+        // an earlier one and would be asking for a position beyond however
+        // many children that folder happens to have at that exact moment -
+        // chrome.bookmarks.create() rejects that ("Index out of bounds")
+        // instead of clamping it, which used to fail exactly the nodes
+        // whose target index was ahead of creation order, then flatten
+        // their children into "Other Bookmarks" via the orphan fallback
+        // once their parent failed to create. Appending (omitting index)
+        // is always valid regardless of order; the final pass fixes
+        // position afterward, once every sibling actually exists.
+        const created = await withBookmarkWriteRetry(() =>
+          chrome.bookmarks.create({
+            parentId: parentLocal ? parentLocal.chromeId : undefined,
+            title: remoteNode.title,
+            url: remoteNode.kind === "bookmark" ? remoteNode.url ?? undefined : undefined,
+          }),
+        );
         syncIdMap[created.id] = remoteNode.syncId;
         localNodes.set(remoteNode.syncId, { ...remoteNode, chromeId: created.id });
         timestamps[remoteNode.syncId] = { lastModified: remoteNode.lastModified, signature: nodeSignature(remoteNode) };
+        if (remoteNode.parentSyncId) {
+          reorderCandidates.push({ parentSyncId: remoteNode.parentSyncId, targetIndex: remoteNode.index, chromeId: created.id });
+        }
       } catch (err) {
         console.warn("BrowserSync: failed to create bookmark from remote", remoteNode.syncId, err);
         failures.push({ syncId: remoteNode.syncId, title: remoteNode.title, err });
@@ -264,17 +328,46 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
   for (const remoteNode of skipped) {
     const fallbackParent = localNodes.get(FALLBACK_PARENT_SYNC_ID);
     try {
-      const created = await chrome.bookmarks.create({
-        parentId: fallbackParent?.chromeId,
-        title: remoteNode.title,
-        url: remoteNode.kind === "bookmark" ? remoteNode.url ?? undefined : undefined,
-      });
+      const created = await withBookmarkWriteRetry(() =>
+        chrome.bookmarks.create({
+          parentId: fallbackParent?.chromeId,
+          title: remoteNode.title,
+          url: remoteNode.kind === "bookmark" ? remoteNode.url ?? undefined : undefined,
+        }),
+      );
       syncIdMap[created.id] = remoteNode.syncId;
       timestamps[remoteNode.syncId] = { lastModified: remoteNode.lastModified, signature: nodeSignature(remoteNode) };
       failures.push({ syncId: remoteNode.syncId, title: remoteNode.title, err: new Error("parent could not be resolved - filed under Other Bookmarks instead") });
     } catch (err) {
       console.warn("BrowserSync: could not recover orphaned node", remoteNode.syncId, err);
       failures.push({ syncId: remoteNode.syncId, title: remoteNode.title, err });
+    }
+  }
+
+  // 3. Final reorder pass: every node created or re-parented above landed
+  // wherever chrome.bookmarks happened to append/leave it, not necessarily
+  // at its target index (see the comments above for why that's handled
+  // separately). Now that every sibling collected in reorderCandidates
+  // actually exists, move each into its real position - grouped by parent
+  // and applied in ascending target-index order so each move settles into
+  // its final spot (index 0, then 1, then 2...) without disturbing ones
+  // already placed. A failure here only means wrong order within a folder,
+  // not a missing or misfiled node, so it doesn't add to `failures`.
+  const byParent = new Map();
+  for (const candidate of reorderCandidates) {
+    if (!byParent.has(candidate.parentSyncId)) byParent.set(candidate.parentSyncId, []);
+    byParent.get(candidate.parentSyncId).push(candidate);
+  }
+  for (const [parentSyncId, siblings] of byParent) {
+    const parentLocal = localNodes.get(parentSyncId);
+    if (!parentLocal) continue; // parent itself never resolved - nothing to order within
+    siblings.sort((a, b) => a.targetIndex - b.targetIndex);
+    for (const { chromeId, targetIndex } of siblings) {
+      try {
+        await withBookmarkWriteRetry(() => chrome.bookmarks.move(chromeId, { parentId: parentLocal.chromeId, index: targetIndex }));
+      } catch (err) {
+        console.warn("BrowserSync: failed to reorder bookmark", chromeId, err);
+      }
     }
   }
 
@@ -450,4 +543,44 @@ export async function wipeLocalBookmarksForFreshStart() {
     }
   }
   await setLocal({ bookmarkSyncIds: {}, bookmarkTimestamps: {}, bookmarkTombstones: {} });
+}
+
+/**
+ * The mirror image of wipeLocalBookmarksForFreshStart(): leaves this
+ * device's local bookmarks untouched and instead tombstones every node
+ * that's currently synced remotely but doesn't exist locally. The very next
+ * sync then (a) never pulls those nodes back in locally, since a tombstoned
+ * syncId is filtered out of the merge worklist before anything gets
+ * created, and (b) uploads those tombstones alongside this device's own
+ * content, so every OTHER device that syncs afterward deletes them too -
+ * this device's current bookmarks become the account's bookmarks
+ * everywhere, not just here. Used when neither of the first-sync prompt's
+ * two built-in choices fits: "merge" risks duplicates, "replace" discards
+ * exactly the local bookmarks the user wants to keep - e.g. the account
+ * only has leftover test/default data and this device's own bookmarks
+ * should become the real ones. Needs the active DEK to read what's
+ * currently synced; throws (like syncBookmarks) if it can't be decrypted.
+ */
+export async function tombstoneRemoteOnlyNodes(key) {
+  const local = await buildLocalSnapshot();
+  const remoteBlob = await getSyncBlob("bookmarks");
+  if (!remoteBlob) return; // nothing synced yet to discard
+
+  let remotePayload;
+  try {
+    remotePayload = await decryptJSON(key, remoteBlob.ciphertext, remoteBlob.iv);
+  } catch {
+    throw Object.assign(new Error("Could not decrypt remote bookmarks. Your local data key may be out of date - try unlocking again."), {
+      code: "decrypt_failed",
+    });
+  }
+
+  const now = Date.now();
+  const tombstones = { ...local.tombstones };
+  for (const node of remotePayload.nodes ?? []) {
+    if (!local.nodesBySyncId.has(node.syncId) && !tombstones[node.syncId]) {
+      tombstones[node.syncId] = now;
+    }
+  }
+  await setLocal({ bookmarkTombstones: tombstones });
 }

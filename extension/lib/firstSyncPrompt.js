@@ -11,12 +11,15 @@
 // every synced bookmark as a new local one even when "the same" bookmark
 // already exists locally - producing duplicates - while contributing every
 // pre-existing local bookmark to the synced set too. Asking once, up front,
-// whether to keep both (merge, accepting possible duplicates) or start fresh
-// from what's already synced (replace, discarding this device's pre-existing
-// bookmarks) avoids that surprise without changing the merge engine itself.
+// gives three ways out: keep both (merge, accepting possible duplicates),
+// start fresh from what's already synced (replace, discarding this
+// device's pre-existing bookmarks), or the reverse - keep this device's
+// bookmarks and discard what's synced (keep-local) - without changing the
+// merge engine itself.
 import { getAllLocal, setLocal } from "./storage.js";
-import { hasLocalBookmarkContent, wipeLocalBookmarksForFreshStart } from "./bookmarksSync.js";
+import { hasLocalBookmarkContent, wipeLocalBookmarksForFreshStart, tombstoneRemoteOnlyNodes } from "./bookmarksSync.js";
 import { getSyncBlob } from "./api.js";
+import { getActiveKey } from "./auth.js";
 
 export async function needsFirstSyncChoice() {
   const { bookmarksInitializedAt, serverUrl, accountEmail, lastSyncedAccountKey } = await getAllLocal();
@@ -44,6 +47,7 @@ export async function needsFirstSyncChoice() {
 
 export async function applyFirstSyncChoice(choice) {
   if (choice === "replace") await wipeLocalBookmarksForFreshStart();
+  else if (choice === "keep-local") await tombstoneRemoteOnlyNodes(await getActiveKey());
   const { serverUrl, accountEmail } = await getAllLocal();
   // Marks the question as answered right away, independently of whether the
   // sync that follows actually succeeds - otherwise a failed/deferred first

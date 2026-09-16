@@ -161,6 +161,19 @@ input[type="email"], input[type="password"] {
   padding: 1px 5px;
 }
 
+.never-used-badge {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.devices-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.devices-header h1 { margin: 0; }
+
 .empty-hint { color: var(--muted); font-size: 13px; }
 
 input[type="password"] { margin-top: 4px; }

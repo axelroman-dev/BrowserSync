@@ -86,10 +86,13 @@
       <h2>This device already has bookmarks</h2>
       <p class="hint">
         Keep them and merge with what's already synced (bookmarks that exist on both sides may end up duplicated),
-        or start fresh and replace this device's bookmarks with the synced ones.
+        start fresh and replace this device's bookmarks with the synced ones, or discard what's synced and use this
+        device's bookmarks instead.
       </p>
+      <p id="first-sync-error" class="error" hidden></p>
       <button type="button" id="first-sync-merge-btn" class="secondary-button">Keep both, merge them</button>
       <button type="button" id="first-sync-replace-btn" class="danger-button">Replace with synced bookmarks</button>
+      <button type="button" id="first-sync-keep-local-btn" class="danger-button">Discard synced bookmarks, use mine</button>
     </section>
 
     <!-- Forgot-password flow -->

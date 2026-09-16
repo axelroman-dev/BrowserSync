@@ -76,11 +76,14 @@
       <section id="first-sync-choice-view" hidden>
         <p><strong>This device already has bookmarks</strong></p>
         <p class="hint">
-          Keep them and merge with what's already synced (bookmarks on both sides may end up duplicated), or replace
-          this device's bookmarks with the synced ones.
+          Keep them and merge with what's already synced (bookmarks on both sides may end up duplicated), replace
+          this device's bookmarks with the synced ones, or discard what's synced and use this device's bookmarks
+          instead.
         </p>
+        <p id="first-sync-error" class="error" hidden></p>
         <button type="button" id="first-sync-merge-btn" class="secondary-button">Keep both, merge them</button>
         <button type="button" id="first-sync-replace-btn" class="danger-button">Replace with synced bookmarks</button>
+        <button type="button" id="first-sync-keep-local-btn" class="danger-button">Discard synced bookmarks, use mine</button>
       </section>
 
       <!-- Forgot-password flow -->
@@ -162,6 +165,18 @@
           <button type="button" id="force-restore-btn" class="danger-button">Restore now</button>
           <p id="force-restore-status" class="hint" hidden></p>
           <p id="force-restore-error" class="error" hidden></p>
+        </details>
+
+        <details class="danger-zone">
+          <summary>Push this device's bookmarks to the server</summary>
+          <p class="hint">
+            The reverse of restoring: discards whatever's currently synced and replaces it with this device's
+            bookmarks instead. Use this if the server ended up with the wrong bookmarks and this device has the
+            ones you actually want.
+          </p>
+          <button type="button" id="force-push-btn" class="danger-button">Push now</button>
+          <p id="force-push-status" class="hint" hidden></p>
+          <p id="force-push-error" class="error" hidden></p>
         </details>
 
         <details class="danger-zone">

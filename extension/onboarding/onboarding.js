@@ -34,6 +34,8 @@ const el = {
   firstSyncChoiceView: document.getElementById("first-sync-choice-view"),
   firstSyncMergeBtn: document.getElementById("first-sync-merge-btn"),
   firstSyncReplaceBtn: document.getElementById("first-sync-replace-btn"),
+  firstSyncKeepLocalBtn: document.getElementById("first-sync-keep-local-btn"),
+  firstSyncError: document.getElementById("first-sync-error"),
 
   forgotPasswordView: document.getElementById("forgot-password-view"),
   forgotEmailInput: document.getElementById("forgot-email"),

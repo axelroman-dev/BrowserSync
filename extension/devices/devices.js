@@ -4,7 +4,7 @@
 // all, so unlike viewer.js this never needs the DEK/password - only the
 // access token, which a logged-in session always has.
 import * as auth from "../lib/auth.js";
-import { listDevices, revokeDevice, ApiError, NetworkError } from "../lib/api.js";
+import { listDevices, revokeDevice, revokeOtherDevices, ApiError, NetworkError } from "../lib/api.js";
 import { getAllLocal } from "../lib/storage.js";
 
 const views = {
@@ -35,13 +35,16 @@ async function renderDevices() {
   const errorEl = document.getElementById("devices-error");
   errorEl.hidden = true;
   const container = document.getElementById("devices-list");
+  const bulkRevokeBtn = document.getElementById("revoke-others-btn");
   clear(container);
 
   let devices;
+  let currentDeviceId;
   try {
-    const { currentDeviceId } = await getAllLocal();
+    ({ currentDeviceId } = await getAllLocal());
     devices = await listDevices();
     devices.sort((a, b) => new Date(b.lastUsedAt ?? b.createdAt) - new Date(a.lastUsedAt ?? a.createdAt));
+    bulkRevokeBtn.hidden = devices.length <= 1;
     if (!devices.length) {
       const empty = document.createElement("p");
       empty.className = "empty-hint";
@@ -57,6 +60,28 @@ async function renderDevices() {
     errorEl.hidden = false;
   }
 }
+
+// Ghost devices from reinstalling the extension pile up because nothing in
+// an extension's own storage survives a full uninstall - there's no
+// reliable way to detect "this is the same device as before" and update
+// its row instead of creating a new one. This is the one-click cleanup
+// instead of revoking a pile of them by hand.
+document.getElementById("revoke-others-btn").addEventListener("click", async () => {
+  const btn = document.getElementById("revoke-others-btn");
+  if (!confirm("Revoke every device except this one? Each one will need to log in again to sync.")) return;
+  btn.disabled = true;
+  try {
+    const { currentDeviceId } = await getAllLocal();
+    await revokeOtherDevices(currentDeviceId);
+    await renderDevices();
+  } catch (err) {
+    const errorEl = document.getElementById("devices-error");
+    errorEl.textContent = describeError(err);
+    errorEl.hidden = false;
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 function renderDeviceRow(device, isCurrent) {
   const row = document.createElement("div");
@@ -74,6 +99,13 @@ function renderDeviceRow(device, isCurrent) {
     const badge = document.createElement("span");
     badge.className = "badge-current";
     badge.textContent = "This device";
+    label.appendChild(badge);
+  } else if (!device.lastUsedAt) {
+    // Never refreshed a token since it was created - most likely a
+    // reinstall/incomplete setup ghost rather than a device in actual use.
+    const badge = document.createElement("span");
+    badge.className = "badge-never-used";
+    badge.textContent = "Never used";
     label.appendChild(badge);
   }
   info.appendChild(label);

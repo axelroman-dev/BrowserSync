@@ -106,6 +106,21 @@ export async function revokeDevice(deviceId) {
 }
 
 /**
+ * Revokes every OTHER linked device in one request - the practical answer
+ * to "ghost" devices piling up from reinstalling the extension: nothing in
+ * an extension's own storage survives a full uninstall, so there's no
+ * reliable way to detect "this is the same device as before" and update
+ * its row instead of creating a new one each time.
+ */
+export async function revokeOtherDevices(exceptDeviceId) {
+  const { serverUrl } = await getAllLocal();
+  const { revokedCount } = await withAuthRetry((accessToken) =>
+    request(serverUrl, "/api/auth/devices/revoke-others", { method: "POST", accessToken, body: { exceptDeviceId } }),
+  );
+  return revokedCount;
+}
+
+/**
  * Wraps an authenticated call with a single automatic retry after a token
  * refresh, so callers (bookmarksSync, historySync) don't each need to
  * reimplement "refresh once, then retry" logic.

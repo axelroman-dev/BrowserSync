@@ -126,6 +126,8 @@ wireConnectForm(
     firstSyncChoiceView: document.getElementById("first-sync-choice-view"),
     firstSyncMergeBtn: document.getElementById("first-sync-merge-btn"),
     firstSyncReplaceBtn: document.getElementById("first-sync-replace-btn"),
+    firstSyncKeepLocalBtn: document.getElementById("first-sync-keep-local-btn"),
+    firstSyncError: document.getElementById("first-sync-error"),
 
     forgotPasswordView: document.getElementById("forgot-password-view"),
     forgotEmailInput: document.getElementById("forgot-email"),
@@ -239,6 +241,32 @@ document.getElementById("force-restore-btn").addEventListener("click", async (e)
   } finally {
     btn.disabled = false;
     btn.textContent = "Restore now";
+  }
+});
+
+const confirmForcePush = armConfirm(document.getElementById("force-push-btn"), "Click again to confirm - synced bookmarks will be lost");
+document.getElementById("force-push-btn").addEventListener("click", async (e) => {
+  if (!confirmForcePush()) return;
+  const btn = e.currentTarget;
+  const statusEl = document.getElementById("force-push-status");
+  const errorEl = document.getElementById("force-push-error");
+  statusEl.hidden = true;
+  errorEl.hidden = true;
+  btn.disabled = true;
+  btn.textContent = "Pushing...";
+  try {
+    const result = await chrome.runtime.sendMessage({ type: "apply-first-sync-choice", choice: "keep-local" });
+    await renderStatusView();
+    if (result?.status === "error") {
+      errorEl.textContent = result.message || "Could not push bookmarks.";
+      errorEl.hidden = false;
+    } else {
+      statusEl.textContent = "This device's bookmarks are now what's synced.";
+      statusEl.hidden = false;
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Push now";
   }
 });
 

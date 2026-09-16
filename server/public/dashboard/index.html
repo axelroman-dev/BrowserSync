@@ -90,8 +90,15 @@
         </div>
 
         <div class="card">
-          <h1>Linked devices</h1>
-          <p class="hint">Every device currently signed into this account. Revoke anything you don't recognize.</p>
+          <div class="devices-header">
+            <h1>Linked devices</h1>
+            <button type="button" id="revoke-others-btn" class="link-button" hidden>Clean up other devices</button>
+          </div>
+          <p class="hint">
+            Every device currently signed into this account. Revoke anything you don't recognize - a
+            "never used" badge usually means a leftover from reinstalling the extension rather than a device
+            someone's actually using.
+          </p>
           <p id="devices-error" class="error" hidden></p>
           <div id="devices-list" class="devices-list"></div>
         </div>

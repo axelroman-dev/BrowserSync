@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull, ne } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { users, refreshTokens } from "../db/schema.js";
 import { config } from "../config.js";
@@ -256,6 +256,37 @@ authRouter.delete("/devices/:id", requireAuth, async (req, res) => {
 
   await db.update(refreshTokens).set({ revokedAt: new Date() }).where(eq(refreshTokens.id, row.id));
   res.status(204).send();
+});
+
+const revokeOthersSchema = z.object({ exceptDeviceId: z.string().uuid() });
+
+// Bulk cleanup for the "ghost devices" problem: reinstalling the extension
+// (or the dashboard logging in again) always issues a brand-new
+// refresh_tokens row - nothing in an extension's own storage survives a
+// full uninstall, so there's no reliable way to detect "this is the same
+// device as before" and update that row in place instead of inserting a
+// new one. Revoking one-by-one after a bunch of test reinstalls is
+// tedious; this does it in one request instead of N. Never touches another
+// user's rows - scoped to req.userId like every other /devices route.
+authRouter.post("/devices/revoke-others", requireAuth, async (req, res) => {
+  const parsed = revokeOthersSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_input", message: "exceptDeviceId is required" });
+    return;
+  }
+
+  const revoked = await db
+    .update(refreshTokens)
+    .set({ revokedAt: new Date() })
+    .where(
+      and(
+        eq(refreshTokens.userId, req.userId!),
+        isNull(refreshTokens.revokedAt),
+        ne(refreshTokens.id, parsed.data.exceptDeviceId),
+      ),
+    )
+    .returning({ id: refreshTokens.id });
+  res.json({ revokedCount: revoked.length });
 });
 
 const refreshSchema = z.object({ refreshToken: z.string().min(1) });

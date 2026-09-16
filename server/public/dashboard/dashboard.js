@@ -249,10 +249,12 @@ async function doLogout() {
 async function loadDevices() {
   const errorEl = document.getElementById("devices-error");
   const container = document.getElementById("devices-list");
+  const bulkRevokeBtn = document.getElementById("revoke-others-btn");
   errorEl.hidden = true;
   container.textContent = "";
   try {
     const { devices } = await authFetch("/api/auth/devices");
+    bulkRevokeBtn.hidden = devices.length <= 1;
     if (!devices.length) {
       const empty = document.createElement("p");
       empty.className = "empty-hint";
@@ -275,6 +277,14 @@ async function loadDevices() {
         badge.className = "this-device-badge";
         badge.textContent = "this session";
         title.appendChild(badge);
+      } else if (!device.lastUsedAt) {
+        // Never refreshed a token since it was created - most likely a
+        // reinstall/incomplete setup ghost (see the "Clean up" button's
+        // note) rather than a device someone's actually using.
+        const badge = document.createElement("span");
+        badge.className = "never-used-badge";
+        badge.textContent = "never used";
+        title.appendChild(badge);
       }
       main.appendChild(title);
 
@@ -285,37 +295,31 @@ async function loadDevices() {
 
       row.appendChild(main);
 
-      // "Revoke" on your own current session kills the token you're
-      // browsing with mid-request, with no confirmation dialog standing
-      // between you and a lockout - exactly what prompted this guard. "Log
-      // out" goes through the same doLogout() the header button uses, which
-      // revokes cleanly and returns you to the login form instead of
-      // leaving you holding a dead token.
-      const isCurrentSession = device.id === session.deviceId;
-      const actionBtn = document.createElement("button");
-      actionBtn.type = "button";
-      if (isCurrentSession) {
-        actionBtn.className = "secondary-button";
-        actionBtn.textContent = "Log out";
-        actionBtn.addEventListener("click", doLogout);
-      } else {
-        actionBtn.className = "danger-button";
-        actionBtn.textContent = "Revoke";
-        const confirmRevoke = armConfirm(actionBtn, "Click again to confirm");
-        actionBtn.addEventListener("click", async () => {
+      // Nothing to click for your own current session here - the header's
+      // "Log out" already covers it, and duplicating it in this row (as an
+      // earlier version of this page did) was just a second button doing
+      // the same thing. "Revoke" is still hard-blocked for it (revoking the
+      // token you're browsing with mid-request has no way back).
+      if (device.id !== session.deviceId) {
+        const revokeBtn = document.createElement("button");
+        revokeBtn.type = "button";
+        revokeBtn.className = "danger-button";
+        revokeBtn.textContent = "Revoke";
+        const confirmRevoke = armConfirm(revokeBtn, "Click again to confirm");
+        revokeBtn.addEventListener("click", async () => {
           if (!confirmRevoke()) return;
-          actionBtn.disabled = true;
+          revokeBtn.disabled = true;
           try {
             await authFetch(`/api/auth/devices/${device.id}`, { method: "DELETE" });
             await loadDevices();
           } catch (err) {
             errorEl.textContent = err.message || "Could not revoke device.";
             errorEl.hidden = false;
-            actionBtn.disabled = false;
+            revokeBtn.disabled = false;
           }
         });
+        row.appendChild(revokeBtn);
       }
-      row.appendChild(actionBtn);
 
       container.appendChild(row);
     }
@@ -441,6 +445,29 @@ document.getElementById("bookmarks-refresh-btn").addEventListener("click", async
   } catch (err) {
     document.getElementById("bookmarks-error").textContent = err.message || "Could not refresh bookmarks.";
     document.getElementById("bookmarks-error").hidden = false;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// Cleans up "ghost" devices from reinstalling the extension (or logging
+// into this dashboard again): nothing in an extension's own storage
+// survives a full uninstall, so there's no reliable way to detect "this is
+// the same device as before" and update its row instead of creating a new
+// one each time - this is the practical alternative, one click instead of
+// revoking a pile of them by hand.
+const confirmRevokeOthers = armConfirm(document.getElementById("revoke-others-btn"), "Click again to confirm");
+document.getElementById("revoke-others-btn").addEventListener("click", async () => {
+  if (!confirmRevokeOthers()) return;
+  const btn = document.getElementById("revoke-others-btn");
+  const errorEl = document.getElementById("devices-error");
+  btn.disabled = true;
+  try {
+    await authFetch("/api/auth/devices/revoke-others", { method: "POST", body: { exceptDeviceId: session.deviceId } });
+    await loadDevices();
+  } catch (err) {
+    errorEl.textContent = err.message || "Could not revoke other devices.";
+    errorEl.hidden = false;
   } finally {
     btn.disabled = false;
   }

@@ -91,6 +91,28 @@ section > p:first-child { margin-top: 0; }
   color: var(--badge-text);
 }
 
+.badge-never-used {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.devices-header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+
+.link-button {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+.link-button:hover { text-decoration: underline; }
+.link-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .revoke-button {
   flex-shrink: 0;
   background: transparent;
