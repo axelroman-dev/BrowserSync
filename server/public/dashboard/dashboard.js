@@ -2,6 +2,10 @@
 // no-framework style. Talks to the same-origin /api/auth and /api/sync
 // endpoints this server already exposes to the extension; this page is just
 // another client of that API, not a special back-channel.
+import { initI18n, t } from "./i18n.js";
+
+await initI18n();
+
 const STORAGE_KEY = "browsersync_dashboard_session";
 const DEVICE_LABEL = "Account dashboard";
 
@@ -131,7 +135,7 @@ async function rawRequest(path, { method = "GET", body, accessToken } = {}) {
 // about token expiry (the dashboard's access token is short-lived, same TTL
 // as a device's).
 async function authFetch(path, options = {}) {
-  if (!session) throw new ApiError(401, { message: "Not logged in." });
+  if (!session) throw new ApiError(401, { message: t("dashboard.notLoggedIn") });
   try {
     return await rawRequest(path, { ...options, accessToken: session.accessToken });
   } catch (err) {
@@ -162,10 +166,16 @@ function formatBytes(bytes) {
 }
 
 function formatDate(iso) {
-  return iso ? new Date(iso).toLocaleString() : "never";
+  return iso ? new Date(iso).toLocaleString() : t("common.never");
 }
 
-const DATA_TYPE_LABELS = { bookmarks: "Bookmarks", history: "History", extensions: "Extensions" };
+function dataTypeLabels() {
+  return {
+    bookmarks: t("dashboard.dataTypeBookmarks"),
+    history: t("dashboard.dataTypeHistory"),
+    extensions: t("dashboard.dataTypeExtensions"),
+  };
+}
 
 async function loadAccount() {
   const account = await authFetch("/api/auth/me");
@@ -193,21 +203,21 @@ async function loadStatus() {
       const dot = document.createElement("span");
       dot.className = "dot " + (blob.version ? "dot-ok" : "dot-empty");
       title.appendChild(dot);
-      title.appendChild(document.createTextNode(DATA_TYPE_LABELS[blob.dataType] ?? blob.dataType));
+      title.appendChild(document.createTextNode(dataTypeLabels()[blob.dataType] ?? blob.dataType));
       main.appendChild(title);
 
       const detail = document.createElement("span");
       detail.className = "status-row-detail";
       detail.textContent = blob.version
-        ? `Version ${blob.version} · ${formatBytes(blob.sizeBytes)} · saved ${formatDate(blob.updatedAt)}`
-        : "Never synced from any device";
+        ? t("dashboard.versionDetail", { version: blob.version, size: formatBytes(blob.sizeBytes), date: formatDate(blob.updatedAt) })
+        : t("dashboard.neverSyncedFromDevice");
       main.appendChild(detail);
 
       row.appendChild(main);
       container.appendChild(row);
     }
   } catch (err) {
-    errorEl.textContent = err.message || "Could not load sync status.";
+    errorEl.textContent = err.message || t("dashboard.couldNotLoadSyncStatus");
     errorEl.hidden = false;
   }
 }
@@ -258,7 +268,7 @@ async function loadDevices() {
     if (!devices.length) {
       const empty = document.createElement("p");
       empty.className = "empty-hint";
-      empty.textContent = "No devices linked.";
+      empty.textContent = t("dashboard.noDevicesLinked");
       container.appendChild(empty);
       return;
     }
@@ -271,11 +281,11 @@ async function loadDevices() {
 
       const title = document.createElement("span");
       title.className = "device-row-title";
-      title.textContent = device.deviceLabel || "Unnamed device";
+      title.textContent = device.deviceLabel || t("dashboard.unnamedDevice");
       if (device.id === session.deviceId) {
         const badge = document.createElement("span");
         badge.className = "this-device-badge";
-        badge.textContent = "this session";
+        badge.textContent = t("dashboard.thisSession");
         title.appendChild(badge);
       } else if (!device.lastUsedAt) {
         // Never refreshed a token since it was created - most likely a
@@ -283,14 +293,14 @@ async function loadDevices() {
         // note) rather than a device someone's actually using.
         const badge = document.createElement("span");
         badge.className = "never-used-badge";
-        badge.textContent = "never used";
+        badge.textContent = t("dashboard.neverUsedBadge");
         title.appendChild(badge);
       }
       main.appendChild(title);
 
       const detail = document.createElement("span");
       detail.className = "device-row-detail";
-      detail.textContent = `Linked ${formatDate(device.createdAt)} · last used ${formatDate(device.lastUsedAt)}`;
+      detail.textContent = t("dashboard.linkedMeta", { created: formatDate(device.createdAt), lastUsed: formatDate(device.lastUsedAt) });
       main.appendChild(detail);
 
       row.appendChild(main);
@@ -304,8 +314,8 @@ async function loadDevices() {
         const revokeBtn = document.createElement("button");
         revokeBtn.type = "button";
         revokeBtn.className = "danger-button";
-        revokeBtn.textContent = "Revoke";
-        const confirmRevoke = armConfirm(revokeBtn, "Click again to confirm");
+        revokeBtn.textContent = t("dashboard.revoke");
+        const confirmRevoke = armConfirm(revokeBtn, t("common.confirmClickAgain"));
         revokeBtn.addEventListener("click", async () => {
           if (!confirmRevoke()) return;
           revokeBtn.disabled = true;
@@ -313,7 +323,7 @@ async function loadDevices() {
             await authFetch(`/api/auth/devices/${device.id}`, { method: "DELETE" });
             await loadDevices();
           } catch (err) {
-            errorEl.textContent = err.message || "Could not revoke device.";
+            errorEl.textContent = err.message || t("dashboard.couldNotRevokeDevice");
             errorEl.hidden = false;
             revokeBtn.disabled = false;
           }
@@ -324,7 +334,7 @@ async function loadDevices() {
       container.appendChild(row);
     }
   } catch (err) {
-    errorEl.textContent = err.message || "Could not load devices.";
+    errorEl.textContent = err.message || t("dashboard.couldNotLoadDevices");
     errorEl.hidden = false;
   }
 }
@@ -350,7 +360,7 @@ function renderBookmarkNode(node) {
   } else {
     const label = document.createElement("span");
     label.className = "folder-label";
-    label.textContent = node.title || "(untitled folder)";
+    label.textContent = node.title || t("dashboard.untitledFolder");
     row.appendChild(label);
   }
   li.appendChild(row);
@@ -377,16 +387,16 @@ async function renderBookmarksTree(key) {
   const container = document.getElementById("bookmarks-tree");
   container.textContent = "";
   if (!blob) {
-    document.getElementById("bookmarks-meta").textContent = "No bookmarks have been synced yet.";
+    document.getElementById("bookmarks-meta").textContent = t("dashboard.noBookmarksSynced");
     return;
   }
   const payload = await decryptJSON(key, blob.ciphertext, blob.iv);
   const tree = buildDisplayTree(payload.nodes ?? []);
-  document.getElementById("bookmarks-meta").textContent = `Last synced: ${formatDate(blob.updatedAt)}`;
+  document.getElementById("bookmarks-meta").textContent = t("dashboard.lastSynced", { date: formatDate(blob.updatedAt) });
   if (!tree.length) {
     const empty = document.createElement("p");
     empty.className = "empty-hint";
-    empty.textContent = "No bookmarks have been synced yet.";
+    empty.textContent = t("dashboard.noBookmarksSynced");
     container.appendChild(empty);
   } else {
     const ul = document.createElement("ul");
@@ -402,12 +412,12 @@ document.getElementById("bookmarks-unlock-btn").addEventListener("click", async 
   const btn = document.getElementById("bookmarks-unlock-btn");
   errorEl.hidden = true;
   if (!passphrase) {
-    errorEl.textContent = "Enter your recovery passphrase.";
+    errorEl.textContent = t("dashboard.enterRecoveryPassphrase");
     errorEl.hidden = false;
     return;
   }
   btn.disabled = true;
-  btn.textContent = "Unlocking...";
+  btn.textContent = t("common.unlocking");
   try {
     const { dekEnvelope } = await authFetch("/api/auth/dek-envelope");
     const email = document.getElementById("account-email").textContent;
@@ -416,18 +426,18 @@ document.getElementById("bookmarks-unlock-btn").addEventListener("click", async 
     try {
       key = await unwrapDEK(kek, dekEnvelope);
     } catch {
-      throw new Error("Wrong recovery passphrase - could not unlock.");
+      throw new Error(t("dashboard.wrongPassphrase"));
     }
     await renderBookmarksTree(key);
     unlockedKey = key;
     document.getElementById("bookmarks-locked").hidden = true;
     document.getElementById("bookmarks-unlocked").hidden = false;
   } catch (err) {
-    errorEl.textContent = err.message || "Could not decrypt bookmarks.";
+    errorEl.textContent = err.message || t("dashboard.couldNotDecryptBookmarks");
     errorEl.hidden = false;
   } finally {
     btn.disabled = false;
-    btn.textContent = "Unlock";
+    btn.textContent = t("common.unlock");
   }
 });
 
@@ -443,7 +453,7 @@ document.getElementById("bookmarks-refresh-btn").addEventListener("click", async
   try {
     await renderBookmarksTree(unlockedKey);
   } catch (err) {
-    document.getElementById("bookmarks-error").textContent = err.message || "Could not refresh bookmarks.";
+    document.getElementById("bookmarks-error").textContent = err.message || t("dashboard.couldNotRefreshBookmarks");
     document.getElementById("bookmarks-error").hidden = false;
   } finally {
     btn.disabled = false;
@@ -456,7 +466,7 @@ document.getElementById("bookmarks-refresh-btn").addEventListener("click", async
 // the same device as before" and update its row instead of creating a new
 // one each time - this is the practical alternative, one click instead of
 // revoking a pile of them by hand.
-const confirmRevokeOthers = armConfirm(document.getElementById("revoke-others-btn"), "Click again to confirm");
+const confirmRevokeOthers = armConfirm(document.getElementById("revoke-others-btn"), t("common.confirmClickAgain"));
 document.getElementById("revoke-others-btn").addEventListener("click", async () => {
   if (!confirmRevokeOthers()) return;
   const btn = document.getElementById("revoke-others-btn");
@@ -466,7 +476,7 @@ document.getElementById("revoke-others-btn").addEventListener("click", async () 
     await authFetch("/api/auth/devices/revoke-others", { method: "POST", body: { exceptDeviceId: session.deviceId } });
     await loadDevices();
   } catch (err) {
-    errorEl.textContent = err.message || "Could not revoke other devices.";
+    errorEl.textContent = err.message || t("dashboard.couldNotRevokeOtherDevices");
     errorEl.hidden = false;
   } finally {
     btn.disabled = false;
@@ -487,7 +497,7 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
   const submitBtn = document.getElementById("login-submit");
   errorEl.hidden = true;
   submitBtn.disabled = true;
-  submitBtn.textContent = "Logging in...";
+  submitBtn.textContent = t("dashboard.loggingIn");
   try {
     const result = await rawRequest("/api/auth/login", {
       method: "POST",
@@ -497,11 +507,11 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
     saveSession(session);
     await loadDashboard();
   } catch (err) {
-    errorEl.textContent = err.message || "Could not log in.";
+    errorEl.textContent = err.message || t("dashboard.couldNotLogIn");
     errorEl.hidden = false;
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = "Log in";
+    submitBtn.textContent = t("dashboard.logIn");
   }
 });
 

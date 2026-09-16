@@ -26,6 +26,7 @@ import {
   getEncryptionKeyRaw,
   setEncryptionKeyRaw,
 } from "./storage.js";
+import { t } from "./i18n.js";
 
 export { generatePassphrase };
 
@@ -160,7 +161,7 @@ export async function completeDeviceSetup({ email, password, passphrase, dekEnve
   try {
     dek = await unwrapDEK(kekPassphrase, dekEnvelope);
   } catch {
-    throw new WrongSecretError("That recovery passphrase doesn't match this account.");
+    throw new WrongSecretError(t("errors.wrongRecoveryPassphrase"));
   }
   await storeDeviceEnvelope(dek, password, email);
   await activateDEK(dek);
@@ -182,7 +183,7 @@ export async function unlock(password) {
   try {
     dek = await unwrapDEK(kekPassword, { ciphertext: dekEnvelopePasswordCiphertext, iv: dekEnvelopePasswordIv });
   } catch {
-    throw new WrongSecretError("Wrong password.");
+    throw new WrongSecretError(t("errors.wrongPassword"));
   }
   await activateDEK(dek);
 }

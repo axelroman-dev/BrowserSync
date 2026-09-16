@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "BrowserSync",
+  "name": "__MSG_extName__",
   "version": "1.0.0",
-  "description": "Sync bookmarks and history between your own devices via a self-hosted server, with client-side end-to-end encryption.",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {

@@ -10,6 +10,9 @@ import * as auth from "../lib/auth.js";
 import { fetchRemoteBookmarksTree } from "../lib/bookmarksSync.js";
 import { fetchRemoteHistory } from "../lib/historySync.js";
 import { fetchRemoteExtensions } from "../lib/extensionsList.js";
+import { initI18n, t } from "../lib/i18n.js";
+
+await initI18n();
 
 const views = {
   notConnected: document.getElementById("not-connected-view"),
@@ -23,7 +26,7 @@ function showView(name) {
 }
 
 function formatDate(iso) {
-  if (!iso) return "never";
+  if (!iso) return t("common.never");
   return new Date(iso).toLocaleString();
 }
 
@@ -52,7 +55,7 @@ function renderBookmarkNode(node) {
   } else {
     const label = document.createElement("span");
     label.className = "folder-label";
-    label.textContent = node.title || "(untitled folder)";
+    label.textContent = node.title || t("viewer.untitledFolder");
     row.appendChild(label);
   }
   li.appendChild(row);
@@ -67,13 +70,13 @@ function renderBookmarkNode(node) {
 
 async function loadBookmarks(key) {
   const { tree, updatedAt } = await fetchRemoteBookmarksTree(key);
-  document.getElementById("bookmarks-meta").textContent = `Last synced: ${formatDate(updatedAt)}`;
+  document.getElementById("bookmarks-meta").textContent = t("viewer.lastSynced", { date: formatDate(updatedAt) });
   const container = document.getElementById("bookmarks-tree");
   clear(container);
   if (!tree.length) {
     const empty = document.createElement("p");
     empty.className = "hint";
-    empty.textContent = "No bookmarks have been synced yet.";
+    empty.textContent = t("viewer.noBookmarksSynced");
     container.appendChild(empty);
     return;
   }
@@ -91,7 +94,7 @@ function renderHistoryEntries(entries) {
   if (!entries.length) {
     const empty = document.createElement("p");
     empty.className = "hint";
-    empty.textContent = "No matching history entries.";
+    empty.textContent = t("viewer.noMatchingHistory");
     container.appendChild(empty);
     return;
   }
@@ -120,7 +123,7 @@ async function loadHistory(key) {
   const { entries, updatedAt } = await fetchRemoteHistory(key);
   allHistoryEntries = entries;
   document.getElementById("history-meta").textContent =
-    `Last synced: ${formatDate(updatedAt)} - ${entries.length} entries`;
+    t("viewer.lastSyncedWithCount", { date: formatDate(updatedAt), count: entries.length });
   renderHistoryEntries(allHistoryEntries);
 }
 
@@ -134,13 +137,13 @@ document.getElementById("history-filter").addEventListener("input", (e) => {
 
 async function loadExtensions(key) {
   const { extensions, updatedAt } = await fetchRemoteExtensions(key);
-  document.getElementById("extensions-meta").textContent = `Last synced: ${formatDate(updatedAt)}`;
+  document.getElementById("extensions-meta").textContent = t("viewer.lastSynced", { date: formatDate(updatedAt) });
   const container = document.getElementById("extensions-list");
   clear(container);
   if (!extensions.length) {
     const empty = document.createElement("p");
     empty.className = "hint";
-    empty.textContent = "No extension list has been synced yet.";
+    empty.textContent = t("viewer.noExtensionsSynced");
     container.appendChild(empty);
     return;
   }
@@ -154,7 +157,7 @@ async function loadExtensions(key) {
 
     const badge = document.createElement("span");
     badge.className = "badge " + (ext.enabled ? "badge-on" : "badge-off");
-    badge.textContent = ext.enabled ? "enabled" : "disabled";
+    badge.textContent = ext.enabled ? t("viewer.enabled") : t("viewer.disabled");
     row.appendChild(badge);
 
     container.appendChild(row);
@@ -180,9 +183,7 @@ async function loadAllData() {
   } catch (err) {
     // Most likely cause: the passphrase just entered doesn't match the one
     // this data was encrypted with (AES-GCM's auth tag fails to verify).
-    dataError.textContent =
-      "Could not decrypt your synced data - this usually means the passphrase is wrong. " +
-      (err.message || "");
+    dataError.textContent = `${t("viewer.decryptErrorPrefix")} ${err.message || ""}`;
     dataError.hidden = false;
   }
 }
@@ -208,7 +209,7 @@ document.getElementById("unlock-btn").addEventListener("click", async () => {
   const password = document.getElementById("unlock-password").value;
   const errorEl = document.getElementById("unlock-error");
   if (!password) {
-    errorEl.textContent = "Enter your password.";
+    errorEl.textContent = t("common.enterPassword");
     errorEl.hidden = false;
     return;
   }
@@ -220,7 +221,7 @@ document.getElementById("unlock-btn").addEventListener("click", async () => {
       showView("needsRepair");
       return;
     }
-    errorEl.textContent = err.message || "Could not unlock.";
+    errorEl.textContent = err.message || t("common.couldNotUnlock");
     errorEl.hidden = false;
     return;
   }

@@ -6,6 +6,17 @@ import { getAllLocal } from "./lib/storage.js";
 import { getSession } from "./lib/auth.js";
 import { runSyncCycle } from "./lib/syncOrchestrator.js";
 import { applyFirstSyncChoice } from "./lib/firstSyncPrompt.js";
+import { initI18n } from "./lib/i18n.js";
+
+// So t() (used by a handful of translated error messages deep in
+// bookmarksSync.js/historySync.js/auth.js) resolves correctly for sync
+// failures that happen here rather than in a page - this service worker has
+// no `document`, so initI18n() only loads the dictionary here, it doesn't
+// try to translate any markup (see the guard in lib/i18n.js). MV3 restarts
+// this worker often (it's killed after ~30s idle), so this naturally
+// re-reads the language preference on close to every wake-up rather than
+// ever going stale for long.
+await initI18n();
 
 const SYNC_ALARM_NAME = "browsersync-periodic-sync";
 

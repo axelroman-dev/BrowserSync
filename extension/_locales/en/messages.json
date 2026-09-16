@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "BrowserSync"
+  },
+  "extDescription": {
+    "message": "Sync bookmarks and history between your own devices via a self-hosted server, with client-side end-to-end encryption."
+  }
+}

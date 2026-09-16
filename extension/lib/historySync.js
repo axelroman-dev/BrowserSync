@@ -18,6 +18,7 @@ import { SYNC_PAYLOAD_VERSION } from "../config.js";
 import { getAllLocal, setLocal } from "./storage.js";
 import { encryptJSON, decryptJSON } from "./crypto.js";
 import { getSyncBlob, putSyncBlob } from "./api.js";
+import { t } from "./i18n.js";
 
 async function collectLocalEntries(sinceMs) {
   const items = await chrome.history.search({ text: "", startTime: sinceMs, maxResults: 100000 });
@@ -56,7 +57,7 @@ export async function syncHistory(key) {
     try {
       remotePayload = await decryptJSON(key, remoteBlob.ciphertext, remoteBlob.iv);
     } catch {
-      throw Object.assign(new Error("Could not decrypt remote history. Your local data key may be out of date - try unlocking again."), {
+      throw Object.assign(new Error(t("errors.decryptFailedHistory")), {
         code: "decrypt_failed",
       });
     }

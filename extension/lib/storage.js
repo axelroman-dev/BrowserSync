@@ -48,6 +48,9 @@ const LOCAL_DEFAULTS = {
   historyDays: DEFAULT_HISTORY_DAYS,
   syncIntervalMinutes: DEFAULT_SYNC_INTERVAL_MINUTES,
   historyEnabled: true,
+  // UI language: "auto" (follow chrome.i18n.getUILanguage()) or a specific
+  // supported code ("en", "es") — see lib/i18n.js.
+  language: "auto",
   // This device's own copy of the DEK, wrapped under a password-derived key.
   // Never sent to the server - see the module comment above.
   dekEnvelopePasswordCiphertext: null,

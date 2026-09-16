@@ -55,6 +55,18 @@ body {
 header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .brand { font-weight: 700; font-size: 15px; }
 
+.header-actions { display: flex; align-items: center; gap: 8px; }
+
+.language-select {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
 .connect-title { margin: 0 0 4px; font-size: 14px; font-weight: 700; }
 
 .icon-button {

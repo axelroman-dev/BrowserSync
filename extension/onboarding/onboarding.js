@@ -1,5 +1,8 @@
 import { wireConnectForm } from "../lib/connectForm.js";
 import { PRIVACY_POLICY_URL } from "../config.js";
+import { initI18n, t } from "../lib/i18n.js";
+
+await initI18n();
 
 document.getElementById("privacy-link").href = PRIVACY_POLICY_URL;
 
@@ -64,13 +67,13 @@ wireConnectForm(el, async (session) => {
   const errorEl = document.getElementById("connected-sync-error");
   const result = await chrome.runtime.sendMessage({ type: "run-sync" });
   if (result?.status === "ok") {
-    statusEl.textContent = "Your bookmarks are synced.";
+    statusEl.textContent = t("onboarding.syncedOk");
   } else if (result?.status === "error") {
     statusEl.hidden = true;
-    errorEl.textContent = result.message || "Could not sync - open the BrowserSync icon in the toolbar to retry.";
+    errorEl.textContent = result.message || t("onboarding.syncFailedFallback");
     errorEl.hidden = false;
   } else if (result?.status === "skipped" && result?.reason === "needs_first_sync_choice") {
-    statusEl.textContent = "Open the BrowserSync icon in the toolbar to finish setting up this device's bookmarks.";
+    statusEl.textContent = t("onboarding.syncNeedsChoice");
   } else {
     statusEl.hidden = true;
   }

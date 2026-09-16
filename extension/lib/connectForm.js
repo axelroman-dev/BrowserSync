@@ -20,18 +20,19 @@ import * as auth from "./auth.js";
 import { checkHealth, ApiError, NetworkError } from "./api.js";
 import { needsFirstSyncChoice, applyFirstSyncChoice } from "./firstSyncPrompt.js";
 import { armConfirm } from "./uiConfirm.js";
+import { t } from "./i18n.js";
 
 function describeConnectError(err) {
   if (err instanceof ApiError) {
-    if (err.code === "email_taken") return "An account with this email already exists. Try logging in instead.";
-    if (err.code === "invalid_credentials") return "Email, password, or recovery passphrase is incorrect.";
-    if (err.code === "registration_disabled") return "This server isn't accepting new accounts right now. Ask your admin.";
-    if (err.code === "rate_limited") return "Too many attempts. Wait a few minutes and try again.";
+    if (err.code === "email_taken") return t("connectForm.errEmailTaken");
+    if (err.code === "invalid_credentials") return t("connectForm.errInvalidCredentials");
+    if (err.code === "registration_disabled") return t("connectForm.errRegistrationDisabled");
+    if (err.code === "rate_limited") return t("connectForm.errRateLimited");
     return err.message;
   }
-  if (err instanceof NetworkError) return "Could not reach that server. Check the URL and your connection.";
+  if (err instanceof NetworkError) return t("connectForm.errNetworkServer");
   if (err instanceof auth.WrongSecretError) return err.message;
-  return err.message || "Something went wrong.";
+  return err.message || t("common.somethingWentWrong");
 }
 
 /**
@@ -54,10 +55,10 @@ export function wireConnectForm(el, onConnected) {
   let pendingDeviceSetup = null; // { email, password, dekEnvelope }
 
   function applyMode() {
-    if (el.formTitle) el.formTitle.textContent = mode === "register" ? "Create your account" : "Log in";
-    el.submitBtn.textContent = mode === "register" ? "Create account" : "Log in";
+    if (el.formTitle) el.formTitle.textContent = mode === "register" ? t("connectForm.createAccountTitle") : t("connectForm.logInTitle");
+    el.submitBtn.textContent = mode === "register" ? t("connectForm.createAccountBtn") : t("connectForm.logInBtn");
     el.modeSwitchLink.textContent =
-      mode === "register" ? "Already have an account? Log in" : "New here? Create an account";
+      mode === "register" ? t("connectForm.switchToLogin") : t("connectForm.switchToRegister");
     el.forgotPasswordLink.hidden = mode !== "login";
   }
 
@@ -74,18 +75,18 @@ export function wireConnectForm(el, onConnected) {
     el.serverSection.hidden = !willShow;
     if (willShow) {
       el.serverUrlInput.value = currentServerUrl;
-      el.serverToggleLink.textContent = "Use the default server instead";
+      el.serverToggleLink.textContent = t("connectForm.useDefaultServer");
     } else {
       currentServerUrl = OFFICIAL_SERVER_URL;
       serverVerified = true;
-      el.serverToggleLink.textContent = "Using a self-hosted server?";
+      el.serverToggleLink.textContent = t("connectForm.usingSelfHosted");
       updateSubmitEnabled();
     }
   });
 
   el.serverUrlInput.addEventListener("input", () => {
     serverVerified = false;
-    el.testStatus.textContent = "not tested";
+    el.testStatus.textContent = t("connectForm.testStatusNotTested");
     el.testStatus.className = "test-status";
     updateSubmitEnabled();
   });
@@ -93,21 +94,21 @@ export function wireConnectForm(el, onConnected) {
   el.testConnectionBtn.addEventListener("click", async () => {
     const url = el.serverUrlInput.value.trim();
     if (!isValidUrl(url)) {
-      el.testStatus.textContent = "invalid URL";
+      el.testStatus.textContent = t("connectForm.testStatusInvalidUrl");
       el.testStatus.className = "test-status test-status-error";
       return;
     }
-    el.testStatus.textContent = "testing...";
+    el.testStatus.textContent = t("connectForm.testStatusTesting");
     el.testStatus.className = "test-status";
     const ok = await checkHealth(url);
     if (ok) {
       currentServerUrl = url;
       serverVerified = true;
-      el.testStatus.textContent = "connected";
+      el.testStatus.textContent = t("connectForm.testStatusConnected");
       el.testStatus.className = "test-status test-status-ok";
     } else {
       serverVerified = false;
-      el.testStatus.textContent = "could not connect";
+      el.testStatus.textContent = t("connectForm.testStatusCouldNotConnect");
       el.testStatus.className = "test-status test-status-error";
     }
     updateSubmitEnabled();
@@ -148,7 +149,7 @@ export function wireConnectForm(el, onConnected) {
 
   // window.confirm() renders clipped to the popup's small window frame
   // (text and buttons cut off against its edges) - see uiConfirm.js.
-  const confirmReplace = el.firstSyncReplaceBtn && armConfirm(el.firstSyncReplaceBtn, "Click again to confirm - can't be undone");
+  const confirmReplace = el.firstSyncReplaceBtn && armConfirm(el.firstSyncReplaceBtn, t("connectForm.confirmCantBeUndone"));
   el.firstSyncReplaceBtn?.addEventListener("click", async () => {
     if (!confirmReplace()) return;
     el.firstSyncReplaceBtn.disabled = true;
@@ -161,7 +162,7 @@ export function wireConnectForm(el, onConnected) {
   });
 
   const confirmKeepLocal =
-    el.firstSyncKeepLocalBtn && armConfirm(el.firstSyncKeepLocalBtn, "Click again to confirm - can't be undone");
+    el.firstSyncKeepLocalBtn && armConfirm(el.firstSyncKeepLocalBtn, t("connectForm.confirmCantBeUndone"));
   el.firstSyncKeepLocalBtn?.addEventListener("click", async () => {
     if (!confirmKeepLocal()) return;
     el.firstSyncKeepLocalBtn.disabled = true;
@@ -192,16 +193,16 @@ export function wireConnectForm(el, onConnected) {
     const email = el.emailInput.value.trim();
     const password = el.passwordInput.value;
     if (!email || !password) {
-      showError("Please fill in both fields.");
+      showError(t("connectForm.errFillBothFields"));
       return;
     }
     if (password.length < 8) {
-      showError("Password must be at least 8 characters.");
+      showError(t("connectForm.errPasswordTooShort"));
       return;
     }
 
     el.submitBtn.disabled = true;
-    el.submitBtn.textContent = mode === "register" ? "Creating account..." : "Logging in...";
+    el.submitBtn.textContent = mode === "register" ? t("connectForm.creatingAccount") : t("connectForm.loggingIn");
     try {
       if (mode === "register") {
         const { passphrase } = await auth.register({ serverUrl: currentServerUrl, email, password });
@@ -239,8 +240,8 @@ export function wireConnectForm(el, onConnected) {
   el.copyPassphraseBtn.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(el.generatedPassphraseDisplay.textContent);
-      el.copyPassphraseBtn.textContent = "Copied!";
-      setTimeout(() => (el.copyPassphraseBtn.textContent = "Copy"), 1500);
+      el.copyPassphraseBtn.textContent = t("common.copied");
+      setTimeout(() => (el.copyPassphraseBtn.textContent = t("common.copy")), 1500);
     } catch {
       // Clipboard permission denied or unavailable - the text is still selectable manually.
     }
@@ -261,7 +262,7 @@ export function wireConnectForm(el, onConnected) {
   el.deviceSetupSubmitBtn.addEventListener("click", async () => {
     const passphrase = el.deviceSetupPassphraseInput.value;
     if (!passphrase) {
-      el.deviceSetupError.textContent = "Enter your recovery passphrase.";
+      el.deviceSetupError.textContent = t("connectForm.enterRecoveryPassphrase");
       el.deviceSetupError.hidden = false;
       return;
     }
@@ -299,17 +300,17 @@ export function wireConnectForm(el, onConnected) {
     const passphrase = el.forgotPassphraseInput.value;
     const newPassword = el.forgotNewPasswordInput.value;
     if (!email || !passphrase || !newPassword) {
-      el.forgotError.textContent = "Please fill in every field.";
+      el.forgotError.textContent = t("connectForm.errFillEveryField");
       el.forgotError.hidden = false;
       return;
     }
     if (newPassword.length < 8) {
-      el.forgotError.textContent = "New password must be at least 8 characters.";
+      el.forgotError.textContent = t("connectForm.errNewPasswordTooShort");
       el.forgotError.hidden = false;
       return;
     }
     el.forgotSubmitBtn.disabled = true;
-    el.forgotSubmitBtn.textContent = "Resetting...";
+    el.forgotSubmitBtn.textContent = t("connectForm.resettingBtn");
     try {
       await auth.resetPassword({ serverUrl: currentServerUrl, email, passphrase, newPassword });
       await proceedToConnected();
@@ -318,7 +319,7 @@ export function wireConnectForm(el, onConnected) {
       el.forgotError.hidden = false;
     } finally {
       el.forgotSubmitBtn.disabled = false;
-      el.forgotSubmitBtn.textContent = "Reset password";
+      el.forgotSubmitBtn.textContent = t("connectForm.resetPasswordBtn");
     }
   });
 

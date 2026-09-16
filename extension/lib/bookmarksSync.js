@@ -47,6 +47,7 @@ import { SYNC_PAYLOAD_VERSION } from "../config.js";
 import { getAllLocal, setLocal } from "./storage.js";
 import { encryptJSON, decryptJSON } from "./crypto.js";
 import { getSyncBlob, putSyncBlob } from "./api.js";
+import { t } from "./i18n.js";
 
 const WELL_KNOWN_ROOTS = { 1: "root-toolbar", 2: "root-other", 3: "root-mobile" };
 const FALLBACK_PARENT_SYNC_ID = "root-other";
@@ -391,7 +392,7 @@ export async function syncBookmarks(key) {
     try {
       remotePayload = await decryptJSON(key, remoteBlob.ciphertext, remoteBlob.iv);
     } catch {
-      throw Object.assign(new Error("Could not decrypt remote bookmarks. Your local data key may be out of date - try unlocking again."), {
+      throw Object.assign(new Error(t("errors.decryptFailedBookmarks")), {
         code: "decrypt_failed",
       });
     }
@@ -453,7 +454,7 @@ export async function syncBookmarks(key) {
       // sync thought it had just saved - silent data loss from the user's
       // point of view. Throw instead so runSyncCycle() reports a real error
       // and the next sync (scheduled or manual) retries from scratch.
-      throw Object.assign(new Error("Could not save bookmarks - another device synced at the same moment. Try syncing again."), {
+      throw Object.assign(new Error(t("errors.syncConflict")), {
         code: "sync_conflict",
       });
     }
@@ -472,9 +473,7 @@ export async function syncBookmarks(key) {
     // of trusting a green "just synced" that isn't the whole picture.
     console.warn("BrowserSync: sync completed with failures", failures);
     throw Object.assign(
-      new Error(
-        `Synced, but ${failures.length} bookmark(s) could not be applied (often a temporary Chrome bookmark rate limit) - try syncing again in a minute.`,
-      ),
+      new Error(t("errors.partialSyncFailure", { count: failures.length })),
       { code: "partial_sync_failure" },
     );
   }
@@ -570,7 +569,7 @@ export async function tombstoneRemoteOnlyNodes(key) {
   try {
     remotePayload = await decryptJSON(key, remoteBlob.ciphertext, remoteBlob.iv);
   } catch {
-    throw Object.assign(new Error("Could not decrypt remote bookmarks. Your local data key may be out of date - try unlocking again."), {
+    throw Object.assign(new Error(t("errors.decryptFailedBookmarks")), {
       code: "decrypt_failed",
     });
   }

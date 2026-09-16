@@ -9,36 +9,43 @@
   <main class="popup">
     <header>
       <span class="brand">BrowserSync</span>
-      <button id="settings-toggle" class="icon-button" title="Settings" hidden>⚙</button>
+      <div class="header-actions">
+        <select id="language-select" class="language-select">
+          <option value="auto" data-i18n="language.auto">Auto</option>
+          <option value="en" data-i18n="language.en">English</option>
+          <option value="es" data-i18n="language.es">Español</option>
+        </select>
+        <button id="settings-toggle" class="icon-button" data-i18n-title="popup.settingsTitle" title="Settings" hidden>⚙</button>
+      </div>
     </header>
 
     <!-- Shown when there's no account connected at all. -->
     <section id="connect-view" hidden>
       <form id="connect-form" novalidate>
-        <h2 id="connect-title" class="connect-title">Create your account</h2>
-        <label for="email">Email</label>
+        <h2 id="connect-title" class="connect-title" data-i18n="connectForm.createAccountTitle">Create your account</h2>
+        <label for="email" data-i18n="common.email">Email</label>
         <input id="email" type="email" autocomplete="username" required />
 
-        <label for="password">Password</label>
+        <label for="password" data-i18n="common.password">Password</label>
         <input id="password" type="password" autocomplete="current-password" required />
 
         <p id="error-message" class="error" hidden></p>
 
-        <button type="submit" id="submit-btn" class="primary-button">Create account</button>
-        <a href="#" id="mode-switch-link" class="link">Already have an account? Log in</a>
-        <a href="#" id="forgot-password-link" class="link" hidden>Forgot your password?</a>
+        <button type="submit" id="submit-btn" class="primary-button" data-i18n="connectForm.createAccountBtn">Create account</button>
+        <a href="#" id="mode-switch-link" class="link" data-i18n="connectForm.switchToLogin">Already have an account? Log in</a>
+        <a href="#" id="forgot-password-link" class="link" data-i18n="connectForm.forgotPassword" hidden>Forgot your password?</a>
 
         <div class="server-block">
-          <a href="#" id="server-toggle-link" class="link discreet">Using a self-hosted server?</a>
-          <p id="server-required-hint" class="hint" hidden>
+          <a href="#" id="server-toggle-link" class="link discreet" data-i18n="connectForm.usingSelfHosted">Using a self-hosted server?</a>
+          <p id="server-required-hint" class="hint" data-i18n="popup.serverRequiredHint" hidden>
             No official hosted server is available yet - enter your own server's URL and test the connection.
           </p>
           <div id="server-section" hidden>
-            <label for="server-url">Server URL</label>
-            <input id="server-url" type="text" placeholder="https://sync.yourcompany.com" />
+            <label for="server-url" data-i18n="connectForm.serverUrlLabel">Server URL</label>
+            <input id="server-url" type="text" data-i18n-placeholder="connectForm.serverUrlPlaceholder" placeholder="https://sync.yourcompany.com" />
             <div class="test-row">
-              <button type="button" id="test-connection" class="secondary-button">Test connection</button>
-              <span id="test-status" class="test-status">not tested</span>
+              <button type="button" id="test-connection" class="secondary-button" data-i18n="connectForm.testConnection">Test connection</button>
+              <span id="test-status" class="test-status" data-i18n="connectForm.testStatusNotTested">not tested</span>
             </div>
           </div>
         </div>
@@ -46,144 +53,144 @@
 
       <!-- Shown once, right after creating an account -->
       <section id="save-passphrase-view" hidden>
-        <p><strong>Save your recovery passphrase</strong></p>
-        <p class="hint">
+        <p><strong data-i18n="connectForm.savePassphraseTitle">Save your recovery passphrase</strong></p>
+        <p class="hint" data-i18n="popup.savePassphraseHint">
           The only way to set up other devices or reset your password. Save it in a password manager - if lost,
           nobody can recover your data.
         </p>
         <div class="passphrase-display-row">
           <code id="generated-passphrase" class="passphrase-display"></code>
-          <button type="button" id="copy-passphrase" class="secondary-button">Copy</button>
+          <button type="button" id="copy-passphrase" class="secondary-button" data-i18n="common.copy">Copy</button>
         </div>
         <label class="checkbox-row">
           <input type="checkbox" id="saved-confirm-checkbox" />
-          I've saved this passphrase somewhere safe
+          <span data-i18n="connectForm.savedConfirmLabel">I've saved this passphrase somewhere safe</span>
         </label>
-        <button type="button" id="continue-after-save-btn" class="primary-button" disabled>Continue</button>
+        <button type="button" id="continue-after-save-btn" class="primary-button" data-i18n="connectForm.continueBtn" disabled>Continue</button>
       </section>
 
       <!-- Shown once per new device, on first login -->
       <section id="device-setup-view" hidden>
-        <p><strong>Set up this device</strong></p>
-        <p class="hint">Enter your recovery passphrase once - after this, your password alone unlocks BrowserSync here.</p>
-        <label for="device-setup-passphrase">Recovery passphrase</label>
+        <p><strong data-i18n="connectForm.deviceSetupTitle">Set up this device</strong></p>
+        <p class="hint" data-i18n="popup.deviceSetupHint">Enter your recovery passphrase once - after this, your password alone unlocks BrowserSync here.</p>
+        <label for="device-setup-passphrase" data-i18n="connectForm.recoveryPassphraseLabel">Recovery passphrase</label>
         <input id="device-setup-passphrase" type="password" autocomplete="off" />
         <p id="device-setup-error" class="error" hidden></p>
-        <button type="button" id="device-setup-submit-btn" class="primary-button">Set up this device</button>
+        <button type="button" id="device-setup-submit-btn" class="primary-button" data-i18n="connectForm.deviceSetupSubmit">Set up this device</button>
       </section>
 
       <!-- Shown once per device, only when it already has local bookmarks AND the account already has bookmarks synced elsewhere -->
       <section id="first-sync-choice-view" hidden>
-        <p><strong>This device already has bookmarks</strong></p>
-        <p class="hint">
+        <p><strong data-i18n="connectForm.firstSyncChoiceTitle">This device already has bookmarks</strong></p>
+        <p class="hint" data-i18n="popup.firstSyncChoiceHint">
           Keep them and merge with what's already synced (bookmarks on both sides may end up duplicated), replace
           this device's bookmarks with the synced ones, or discard what's synced and use this device's bookmarks
           instead.
         </p>
         <p id="first-sync-error" class="error" hidden></p>
-        <button type="button" id="first-sync-merge-btn" class="secondary-button">Keep both, merge them</button>
-        <button type="button" id="first-sync-replace-btn" class="danger-button">Replace with synced bookmarks</button>
-        <button type="button" id="first-sync-keep-local-btn" class="danger-button">Discard synced bookmarks, use mine</button>
+        <button type="button" id="first-sync-merge-btn" class="secondary-button" data-i18n="connectForm.firstSyncMerge">Keep both, merge them</button>
+        <button type="button" id="first-sync-replace-btn" class="danger-button" data-i18n="connectForm.firstSyncReplace">Replace with synced bookmarks</button>
+        <button type="button" id="first-sync-keep-local-btn" class="danger-button" data-i18n="connectForm.firstSyncKeepLocal">Discard synced bookmarks, use mine</button>
       </section>
 
       <!-- Forgot-password flow -->
       <section id="forgot-password-view" hidden>
-        <p><strong>Reset your password</strong></p>
-        <label for="forgot-email">Email</label>
+        <p><strong data-i18n="connectForm.resetPasswordTitle">Reset your password</strong></p>
+        <label for="forgot-email" data-i18n="common.email">Email</label>
         <input id="forgot-email" type="email" autocomplete="username" />
-        <label for="forgot-passphrase">Recovery passphrase</label>
+        <label for="forgot-passphrase" data-i18n="connectForm.recoveryPassphraseLabel">Recovery passphrase</label>
         <input id="forgot-passphrase" type="password" autocomplete="off" />
-        <label for="forgot-new-password">New password</label>
+        <label for="forgot-new-password" data-i18n="connectForm.newPasswordLabel">New password</label>
         <input id="forgot-new-password" type="password" autocomplete="new-password" />
         <p id="forgot-error" class="error" hidden></p>
-        <button type="button" id="forgot-submit-btn" class="primary-button">Reset password</button>
-        <a href="#" id="forgot-cancel-link" class="link">Cancel</a>
+        <button type="button" id="forgot-submit-btn" class="primary-button" data-i18n="connectForm.resetPasswordBtn">Reset password</button>
+        <a href="#" id="forgot-cancel-link" class="link" data-i18n="common.cancel">Cancel</a>
       </section>
     </section>
 
     <!-- Shown when logged in but the data key needs re-entering (e.g. after a browser restart). -->
     <section id="unlock-view" hidden>
-      <p>Enter your password to resume syncing <strong id="unlock-email"></strong>.</p>
-      <input id="unlock-password" type="password" placeholder="Password" />
+      <p><span data-i18n="popup.unlockPromptPrefix">Enter your password to resume syncing</span> <strong id="unlock-email"></strong>.</p>
+      <input id="unlock-password" type="password" data-i18n-placeholder="common.passwordPlaceholder" placeholder="Password" />
       <p id="unlock-error" class="error" hidden></p>
-      <button id="unlock-btn" class="primary-button">Unlock</button>
-      <a href="#" id="unlock-repair-link" class="link">This device needs setting up again</a>
-      <a href="#" id="unlock-switch-account-link" class="link">Not you? Log out</a>
+      <button id="unlock-btn" class="primary-button" data-i18n="common.unlock">Unlock</button>
+      <a href="#" id="unlock-repair-link" class="link" data-i18n="popup.deviceNeedsRepair">This device needs setting up again</a>
+      <a href="#" id="unlock-switch-account-link" class="link" data-i18n="popup.notYouLogout">Not you? Log out</a>
     </section>
 
     <!-- Shown when this device's local envelope is missing/stale (repair path). -->
     <section id="repair-view" hidden>
-      <p>This device needs to be reconnected. Enter your password and recovery passphrase.</p>
-      <input id="repair-password" type="password" placeholder="Password" />
-      <input id="repair-passphrase" type="password" placeholder="Recovery passphrase" />
+      <p data-i18n="popup.repairPrompt">This device needs to be reconnected. Enter your password and recovery passphrase.</p>
+      <input id="repair-password" type="password" data-i18n-placeholder="common.passwordPlaceholder" placeholder="Password" />
+      <input id="repair-passphrase" type="password" data-i18n-placeholder="common.recoveryPassphrasePlaceholder" placeholder="Recovery passphrase" />
       <p id="repair-error" class="error" hidden></p>
-      <button id="repair-btn" class="primary-button">Reconnect this device</button>
-      <a href="#" id="repair-cancel-link" class="link">Cancel</a>
+      <button id="repair-btn" class="primary-button" data-i18n="popup.reconnectDevice">Reconnect this device</button>
+      <a href="#" id="repair-cancel-link" class="link" data-i18n="common.cancel">Cancel</a>
     </section>
 
     <!-- Normal connected + unlocked view. -->
     <section id="status-view" hidden>
       <dl class="status-grid">
-        <dt>Server</dt>
+        <dt data-i18n="popup.serverLabel">Server</dt>
         <dd id="status-server"></dd>
-        <dt>Account</dt>
+        <dt data-i18n="popup.accountLabel">Account</dt>
         <dd id="status-account"></dd>
       </dl>
 
       <div id="sync-status" class="sync-status">
         <span id="sync-indicator" class="dot"></span>
-        <span id="sync-text">Never synced</span>
+        <span id="sync-text" data-i18n="common.neverSynced">Never synced</span>
       </div>
       <p id="sync-error" class="error" hidden></p>
 
-      <button id="sync-now-btn" class="primary-button">Sync now</button>
-      <a href="#" id="view-data-link" class="link">View synced data</a>
-      <a href="#" id="logout-link" class="link">Log out / switch account</a>
+      <button id="sync-now-btn" class="primary-button" data-i18n="popup.syncNow">Sync now</button>
+      <a href="#" id="view-data-link" class="link" data-i18n="popup.viewSyncedData">View synced data</a>
+      <a href="#" id="logout-link" class="link" data-i18n="popup.logoutSwitch">Log out / switch account</a>
 
       <div id="settings-panel" hidden>
         <hr />
         <label class="checkbox-row">
           <input type="checkbox" id="history-enabled" />
-          Sync browsing history
+          <span data-i18n="popup.syncBrowsingHistory">Sync browsing history</span>
         </label>
-        <label for="history-days">History retention (days)</label>
+        <label for="history-days" data-i18n="popup.historyRetentionLabel">History retention (days)</label>
         <input type="number" id="history-days" min="1" max="3650" />
 
-        <label for="sync-interval">Sync every (minutes)</label>
+        <label for="sync-interval" data-i18n="popup.syncEveryLabel">Sync every (minutes)</label>
         <input type="number" id="sync-interval" min="5" max="1440" />
 
-        <button id="save-settings-btn" class="secondary-button">Save settings</button>
+        <button id="save-settings-btn" class="secondary-button" data-i18n="popup.saveSettings">Save settings</button>
 
-        <a href="#" id="manage-devices-link" class="link">Manage linked devices</a>
+        <a href="#" id="manage-devices-link" class="link" data-i18n="popup.manageDevices">Manage linked devices</a>
 
         <details class="danger-zone">
-          <summary>Restore bookmarks from server</summary>
-          <p class="hint">
+          <summary data-i18n="popup.restoreBookmarksSummary">Restore bookmarks from server</summary>
+          <p class="hint" data-i18n="popup.restoreBookmarksHint">
             Replaces this device's bookmarks with whatever's currently synced on the server. Use this if this
             device's bookmarks ever end up wrong or out of sync.
           </p>
-          <button type="button" id="force-restore-btn" class="danger-button">Restore now</button>
+          <button type="button" id="force-restore-btn" class="danger-button" data-i18n="popup.restoreNow">Restore now</button>
           <p id="force-restore-status" class="hint" hidden></p>
           <p id="force-restore-error" class="error" hidden></p>
         </details>
 
         <details class="danger-zone">
-          <summary>Push this device's bookmarks to the server</summary>
-          <p class="hint">
+          <summary data-i18n="popup.pushBookmarksSummary">Push this device's bookmarks to the server</summary>
+          <p class="hint" data-i18n="popup.pushBookmarksHint">
             The reverse of restoring: discards whatever's currently synced and replaces it with this device's
             bookmarks instead. Use this if the server ended up with the wrong bookmarks and this device has the
             ones you actually want.
           </p>
-          <button type="button" id="force-push-btn" class="danger-button">Push now</button>
+          <button type="button" id="force-push-btn" class="danger-button" data-i18n="popup.pushNow">Push now</button>
           <p id="force-push-status" class="hint" hidden></p>
           <p id="force-push-error" class="error" hidden></p>
         </details>
 
         <details class="danger-zone">
-          <summary>Delete account and all synced data</summary>
-          <p class="hint">This permanently deletes your account and every synced blob from the server. It cannot be undone.</p>
-          <input id="delete-password" type="password" placeholder="Confirm your password" />
-          <button id="delete-account-btn" class="danger-button">Delete my account</button>
+          <summary data-i18n="popup.deleteAccountSummary">Delete account and all synced data</summary>
+          <p class="hint" data-i18n="popup.deleteAccountHint">This permanently deletes your account and every synced blob from the server. It cannot be undone.</p>
+          <input id="delete-password" type="password" data-i18n-placeholder="popup.confirmPasswordPlaceholder" placeholder="Confirm your password" />
+          <button id="delete-account-btn" class="danger-button" data-i18n="popup.deleteMyAccount">Delete my account</button>
           <p id="delete-error" class="error" hidden></p>
         </details>
       </div>

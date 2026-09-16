@@ -3,6 +3,13 @@ import * as auth from "../lib/auth.js";
 import * as api from "../lib/api.js";
 import { getAllLocal, setLocal } from "../lib/storage.js";
 import { armConfirm } from "../lib/uiConfirm.js";
+import { initI18n, t } from "../lib/i18n.js";
+
+// Resolves the language and translates every data-i18n* element already in
+// the popup's DOM before anything below runs - top-level await pauses the
+// rest of this module until it's done, so nothing here can read a stale
+// English string from t() or flash untranslated text.
+await initI18n();
 
 // True right after a sync reports it's blocked on the merge/replace choice
 // (normally already resolved by connectForm.js's themed dialog right after
@@ -39,15 +46,15 @@ function showView(name) {
 }
 
 function formatRelativeTime(ms) {
-  if (!ms) return "Never synced";
+  if (!ms) return t("common.neverSynced");
   const seconds = Math.round((Date.now() - ms) / 1000);
-  if (seconds < 60) return "Last sync: just now";
+  if (seconds < 60) return t("popup.lastSyncJustNow");
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `Last sync: ${minutes} min ago`;
+  if (minutes < 60) return t("popup.lastSyncMinutes", { minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `Last sync: ${hours}h ago`;
+  if (hours < 24) return t("popup.lastSyncHours", { hours });
   const days = Math.round(hours / 24);
-  return `Last sync: ${days}d ago`;
+  return t("popup.lastSyncDays", { days });
 }
 
 async function renderStatusView() {
@@ -65,8 +72,7 @@ async function renderStatusView() {
     errorEl.textContent = session.lastSyncError;
     errorEl.hidden = false;
   } else if (firstSyncChoicePending) {
-    errorEl.textContent =
-      'This device has bookmarks that were never synced with this account. Open Settings and use "Restore bookmarks from server", or log out and back in, to resolve this.';
+    errorEl.textContent = t("popup.firstSyncChoicePending");
     errorEl.hidden = false;
   } else {
     errorEl.hidden = true;
@@ -149,7 +155,7 @@ document.getElementById("unlock-btn").addEventListener("click", async () => {
   const password = document.getElementById("unlock-password").value;
   const errorEl = document.getElementById("unlock-error");
   if (!password) {
-    errorEl.textContent = "Enter your password.";
+    errorEl.textContent = t("common.enterPassword");
     errorEl.hidden = false;
     return;
   }
@@ -163,7 +169,7 @@ document.getElementById("unlock-btn").addEventListener("click", async () => {
       showView("repair");
       return;
     }
-    errorEl.textContent = err.message || "Could not unlock.";
+    errorEl.textContent = err.message || t("common.couldNotUnlock");
     errorEl.hidden = false;
   }
 });
@@ -185,7 +191,7 @@ document.getElementById("repair-btn").addEventListener("click", async () => {
   const passphrase = document.getElementById("repair-passphrase").value;
   const errorEl = document.getElementById("repair-error");
   if (!password || !passphrase) {
-    errorEl.textContent = "Enter both your password and recovery passphrase.";
+    errorEl.textContent = t("popup.enterBothCredentials");
     errorEl.hidden = false;
     return;
   }
@@ -197,7 +203,7 @@ document.getElementById("repair-btn").addEventListener("click", async () => {
     await render();
     syncNowInteractive().then(renderStatusView);
   } catch (err) {
-    errorEl.textContent = err.message || "Could not reconnect this device.";
+    errorEl.textContent = err.message || t("popup.couldNotReconnect");
     errorEl.hidden = false;
   }
 });
@@ -211,14 +217,14 @@ document.getElementById("repair-cancel-link").addEventListener("click", (e) => {
 document.getElementById("sync-now-btn").addEventListener("click", async (e) => {
   const btn = e.currentTarget;
   btn.disabled = true;
-  btn.textContent = "Syncing...";
+  btn.textContent = t("popup.syncing");
   await syncNowInteractive();
   await renderStatusView();
   btn.disabled = false;
-  btn.textContent = "Sync now";
+  btn.textContent = t("popup.syncNow");
 });
 
-const confirmForceRestore = armConfirm(document.getElementById("force-restore-btn"), "Click again to confirm - local bookmarks will be lost");
+const confirmForceRestore = armConfirm(document.getElementById("force-restore-btn"), t("popup.confirmForceRestore"));
 document.getElementById("force-restore-btn").addEventListener("click", async (e) => {
   if (!confirmForceRestore()) return;
   const btn = e.currentTarget;
@@ -227,24 +233,24 @@ document.getElementById("force-restore-btn").addEventListener("click", async (e)
   statusEl.hidden = true;
   errorEl.hidden = true;
   btn.disabled = true;
-  btn.textContent = "Restoring...";
+  btn.textContent = t("popup.restoring");
   try {
     const result = await chrome.runtime.sendMessage({ type: "apply-first-sync-choice", choice: "replace" });
     await renderStatusView();
     if (result?.status === "error") {
-      errorEl.textContent = result.message || "Could not restore bookmarks.";
+      errorEl.textContent = result.message || t("popup.couldNotRestore");
       errorEl.hidden = false;
     } else {
-      statusEl.textContent = "Bookmarks restored from server.";
+      statusEl.textContent = t("popup.restoredStatus");
       statusEl.hidden = false;
     }
   } finally {
     btn.disabled = false;
-    btn.textContent = "Restore now";
+    btn.textContent = t("popup.restoreNow");
   }
 });
 
-const confirmForcePush = armConfirm(document.getElementById("force-push-btn"), "Click again to confirm - synced bookmarks will be lost");
+const confirmForcePush = armConfirm(document.getElementById("force-push-btn"), t("popup.confirmForcePush"));
 document.getElementById("force-push-btn").addEventListener("click", async (e) => {
   if (!confirmForcePush()) return;
   const btn = e.currentTarget;
@@ -253,20 +259,20 @@ document.getElementById("force-push-btn").addEventListener("click", async (e) =>
   statusEl.hidden = true;
   errorEl.hidden = true;
   btn.disabled = true;
-  btn.textContent = "Pushing...";
+  btn.textContent = t("popup.pushing");
   try {
     const result = await chrome.runtime.sendMessage({ type: "apply-first-sync-choice", choice: "keep-local" });
     await renderStatusView();
     if (result?.status === "error") {
-      errorEl.textContent = result.message || "Could not push bookmarks.";
+      errorEl.textContent = result.message || t("popup.couldNotPush");
       errorEl.hidden = false;
     } else {
-      statusEl.textContent = "This device's bookmarks are now what's synced.";
+      statusEl.textContent = t("popup.pushedStatus");
       statusEl.hidden = false;
     }
   } finally {
     btn.disabled = false;
-    btn.textContent = "Push now";
+    btn.textContent = t("popup.pushNow");
   }
 });
 
@@ -299,12 +305,12 @@ document.getElementById("save-settings-btn").addEventListener("click", async () 
   await chrome.runtime.sendMessage({ type: "refresh-alarm" });
 });
 
-const confirmDeleteAccount = armConfirm(document.getElementById("delete-account-btn"), "Click again to confirm - can't be undone");
+const confirmDeleteAccount = armConfirm(document.getElementById("delete-account-btn"), t("connectForm.confirmCantBeUndone"));
 document.getElementById("delete-account-btn").addEventListener("click", async () => {
   const password = document.getElementById("delete-password").value;
   const errorEl = document.getElementById("delete-error");
   if (!password) {
-    errorEl.textContent = "Enter your password to confirm.";
+    errorEl.textContent = t("popup.enterPasswordToConfirm");
     errorEl.hidden = false;
     return;
   }
@@ -313,7 +319,7 @@ document.getElementById("delete-account-btn").addEventListener("click", async ()
     await auth.deleteAccount(password);
     await render();
   } catch (err) {
-    errorEl.textContent = err.message || "Could not delete account.";
+    errorEl.textContent = err.message || t("popup.couldNotDeleteAccount");
     errorEl.hidden = false;
   }
 });

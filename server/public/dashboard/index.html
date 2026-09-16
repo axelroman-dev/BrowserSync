@@ -9,50 +9,57 @@
 <body>
   <div class="page">
     <header>
-      <span class="brand">BrowserSync</span>
-      <div id="account-bar" class="account-bar" hidden>
-        <span id="account-email"></span>
-        <button id="logout-btn" class="link-button">Log out</button>
+      <span class="brand" data-i18n="dashboard.brand">BrowserSync</span>
+      <div class="header-actions">
+        <select id="language-select" class="language-select">
+          <option value="auto" data-i18n="language.auto">Auto</option>
+          <option value="en" data-i18n="language.en">English</option>
+          <option value="es" data-i18n="language.es">Español</option>
+        </select>
+        <div id="account-bar" class="account-bar" hidden>
+          <span id="account-email"></span>
+          <button id="logout-btn" class="link-button" data-i18n="dashboard.logOut">Log out</button>
+        </div>
       </div>
     </header>
 
     <main>
       <!-- Login -->
       <section id="login-view" class="card">
-        <h1>Log in to your account</h1>
-        <p class="hint">
+        <h1 data-i18n="dashboard.loginTitle">Log in to your account</h1>
+        <p class="hint" data-i18n="dashboard.loginHint">
           Account status (linked devices, sync versions) is visible right away. Bookmarks stay end-to-end
           encrypted and are never visible to the server - you can optionally decrypt them right here in your
           browser with your recovery passphrase, to compare against what's in your browser.
         </p>
         <form id="login-form" novalidate>
-          <label for="login-email">Email</label>
+          <label for="login-email" data-i18n="common.email">Email</label>
           <input id="login-email" type="email" autocomplete="username" required />
 
-          <label for="login-password">Password</label>
+          <label for="login-password" data-i18n="common.password">Password</label>
           <input id="login-password" type="password" autocomplete="current-password" required />
 
           <p id="login-error" class="error" hidden></p>
 
-          <button type="submit" id="login-submit" class="primary-button">Log in</button>
+          <button type="submit" id="login-submit" class="primary-button" data-i18n="dashboard.logIn">Log in</button>
         </form>
       </section>
 
       <!-- Dashboard -->
       <section id="dashboard-view" hidden>
         <div class="card">
-          <h1>Account</h1>
+          <h1 data-i18n="dashboard.accountTitle">Account</h1>
           <dl class="kv">
-            <dt>Email</dt>
+            <dt data-i18n="common.email">Email</dt>
             <dd id="account-email-detail"></dd>
-            <dt>Created</dt>
+            <dt data-i18n="dashboard.createdLabel">Created</dt>
             <dd id="account-created"></dd>
           </dl>
         </div>
 
         <div class="card">
-          <h1>Sync status</h1>
-          <p class="hint">
+          <h1 data-i18n="dashboard.syncStatusTitle">Sync status</h1>
+          <p class="hint" data-i18n="dashboard.syncStatusHint">
             Whether each data type has ever synced from any device, and the version/size/timestamp of what's
             currently stored - the quickest way to check "did my last sync actually save?" without opening the
             extension.
@@ -62,8 +69,8 @@
         </div>
 
         <div class="card">
-          <h1>Bookmarks</h1>
-          <p class="hint">
+          <h1 data-i18n="dashboard.bookmarksTitle">Bookmarks</h1>
+          <p class="hint" data-i18n="dashboard.bookmarksHint">
             Decrypted entirely in this browser tab using your recovery passphrase - the passphrase and the
             decrypted bookmarks never leave your device or reach the server. Useful for comparing what's actually
             saved against what's in your browser.
@@ -72,17 +79,17 @@
           <p id="bookmarks-error" class="error" hidden></p>
 
           <div id="bookmarks-locked">
-            <label for="bookmarks-passphrase">Recovery passphrase</label>
+            <label for="bookmarks-passphrase" data-i18n="dashboard.recoveryPassphraseLabel">Recovery passphrase</label>
             <input id="bookmarks-passphrase" type="password" autocomplete="off" />
-            <button type="button" id="bookmarks-unlock-btn" class="secondary-button">Unlock</button>
+            <button type="button" id="bookmarks-unlock-btn" class="secondary-button" data-i18n="common.unlock">Unlock</button>
           </div>
 
           <div id="bookmarks-unlocked" hidden>
             <div class="bookmarks-toolbar">
               <span id="bookmarks-meta" class="status-row-detail"></span>
               <div class="bookmarks-toolbar-actions">
-                <button type="button" id="bookmarks-refresh-btn" class="link-button">Refresh</button>
-                <button type="button" id="bookmarks-lock-btn" class="link-button">Lock</button>
+                <button type="button" id="bookmarks-refresh-btn" class="link-button" data-i18n="common.refresh">Refresh</button>
+                <button type="button" id="bookmarks-lock-btn" class="link-button" data-i18n="common.lock">Lock</button>
               </div>
             </div>
             <div id="bookmarks-tree" class="tree"></div>
@@ -91,10 +98,10 @@
 
         <div class="card">
           <div class="devices-header">
-            <h1>Linked devices</h1>
-            <button type="button" id="revoke-others-btn" class="link-button" hidden>Clean up other devices</button>
+            <h1 data-i18n="dashboard.linkedDevicesTitle">Linked devices</h1>
+            <button type="button" id="revoke-others-btn" class="link-button" data-i18n="dashboard.cleanUpOtherDevices" hidden>Clean up other devices</button>
           </div>
-          <p class="hint">
+          <p class="hint" data-i18n="dashboard.devicesHint">
             Every device currently signed into this account. Revoke anything you don't recognize - a
             "never used" badge usually means a leftover from reinstalling the extension rather than a device
             someone's actually using.
@@ -106,6 +113,6 @@
     </main>
   </div>
 
-  <script src="dashboard.js"></script>
+  <script type="module" src="dashboard.js"></script>
 </body>
 </html>

@@ -6,6 +6,9 @@
 import * as auth from "../lib/auth.js";
 import { listDevices, revokeDevice, revokeOtherDevices, ApiError, NetworkError } from "../lib/api.js";
 import { getAllLocal } from "../lib/storage.js";
+import { initI18n, t } from "../lib/i18n.js";
+
+await initI18n();
 
 const views = {
   notConnected: document.getElementById("not-connected-view"),
@@ -17,7 +20,7 @@ function showView(name) {
 }
 
 function formatDate(value) {
-  if (!value) return "never";
+  if (!value) return t("common.never");
   return new Date(value).toLocaleString();
 }
 
@@ -26,9 +29,9 @@ function clear(el) {
 }
 
 function describeError(err) {
-  if (err instanceof NetworkError) return "Could not reach the server. Check your connection.";
-  if (err instanceof ApiError) return err.message || "The server rejected the request.";
-  return err?.message || "Something went wrong.";
+  if (err instanceof NetworkError) return t("devices.networkError");
+  if (err instanceof ApiError) return err.message || t("devices.serverRejected");
+  return err?.message || t("common.somethingWentWrong");
 }
 
 async function renderDevices() {
@@ -48,7 +51,7 @@ async function renderDevices() {
     if (!devices.length) {
       const empty = document.createElement("p");
       empty.className = "empty-hint";
-      empty.textContent = "No linked devices found.";
+      empty.textContent = t("devices.noLinkedDevices");
       container.appendChild(empty);
       return;
     }
@@ -68,7 +71,7 @@ async function renderDevices() {
 // instead of revoking a pile of them by hand.
 document.getElementById("revoke-others-btn").addEventListener("click", async () => {
   const btn = document.getElementById("revoke-others-btn");
-  if (!confirm("Revoke every device except this one? Each one will need to log in again to sync.")) return;
+  if (!confirm(t("devices.confirmRevokeOthers"))) return;
   btn.disabled = true;
   try {
     const { currentDeviceId } = await getAllLocal();
@@ -93,40 +96,40 @@ function renderDeviceRow(device, isCurrent) {
   const label = document.createElement("div");
   label.className = "device-label";
   const labelText = document.createElement("span");
-  labelText.textContent = device.deviceLabel || "Unnamed device";
+  labelText.textContent = device.deviceLabel || t("devices.unnamedDevice");
   label.appendChild(labelText);
   if (isCurrent) {
     const badge = document.createElement("span");
     badge.className = "badge-current";
-    badge.textContent = "This device";
+    badge.textContent = t("devices.thisDevice");
     label.appendChild(badge);
   } else if (!device.lastUsedAt) {
     // Never refreshed a token since it was created - most likely a
     // reinstall/incomplete setup ghost rather than a device in actual use.
     const badge = document.createElement("span");
     badge.className = "badge-never-used";
-    badge.textContent = "Never used";
+    badge.textContent = t("devices.neverUsed");
     label.appendChild(badge);
   }
   info.appendChild(label);
 
   const meta = document.createElement("div");
   meta.className = "device-meta";
-  meta.textContent = `Linked ${formatDate(device.createdAt)} · Last used ${formatDate(device.lastUsedAt)}`;
+  meta.textContent = t("devices.linkedMeta", { created: formatDate(device.createdAt), lastUsed: formatDate(device.lastUsedAt) });
   info.appendChild(meta);
 
   row.appendChild(info);
 
   const revokeBtn = document.createElement("button");
   revokeBtn.className = "revoke-button";
-  revokeBtn.textContent = "Revoke";
+  revokeBtn.textContent = t("devices.revoke");
   revokeBtn.addEventListener("click", async () => {
     const message = isCurrent
-      ? "This is the device you're using right now. Revoking it signs it out too. Continue?"
-      : `Sign out "${device.deviceLabel || "this device"}"? It will need to log in again to sync.`;
+      ? t("devices.confirmRevokeThisDevice")
+      : t("devices.confirmRevokeDeviceNamed", { label: device.deviceLabel || t("devices.unnamedDevice") });
     if (!confirm(message)) return;
     revokeBtn.disabled = true;
-    revokeBtn.textContent = "Revoking...";
+    revokeBtn.textContent = t("devices.revoking");
     try {
       await revokeDevice(device.id);
       await renderDevices();
@@ -135,7 +138,7 @@ function renderDeviceRow(device, isCurrent) {
       errorEl.textContent = describeError(err);
       errorEl.hidden = false;
       revokeBtn.disabled = false;
-      revokeBtn.textContent = "Revoke";
+      revokeBtn.textContent = t("devices.revoke");
     }
   });
   row.appendChild(revokeBtn);

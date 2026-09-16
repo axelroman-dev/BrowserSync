@@ -7,43 +7,50 @@
 </head>
 <body>
   <main class="card">
-    <h1>BrowserSync</h1>
-    <p class="subtitle">Sync your bookmarks across devices, end-to-end encrypted.</p>
+    <div class="onboarding-header">
+      <h1>BrowserSync</h1>
+      <select id="language-select" class="language-select">
+        <option value="auto" data-i18n="language.auto">Auto</option>
+        <option value="en" data-i18n="language.en">English</option>
+        <option value="es" data-i18n="language.es">Español</option>
+      </select>
+    </div>
+    <p class="subtitle" data-i18n="onboarding.subtitle">Sync your bookmarks across devices, end-to-end encrypted.</p>
 
     <div id="connected-view" hidden>
-      <p>You're connected as <strong id="connected-email"></strong>.</p>
-      <p id="connected-sync-status" class="hint">Syncing your bookmarks...</p>
+      <p><span data-i18n="onboarding.connectedAsPrefix">You're connected as</span> <strong id="connected-email"></strong>.</p>
+      <p id="connected-sync-status" class="hint" data-i18n="onboarding.syncingBookmarks">Syncing your bookmarks...</p>
       <p id="connected-sync-error" class="error" hidden></p>
-      <p>You can close this tab - open the BrowserSync icon in the toolbar any time to check sync status.</p>
+      <p data-i18n="onboarding.closeTabHint">You can close this tab - open the BrowserSync icon in the toolbar any time to check sync status.</p>
     </div>
 
     <!-- Main email/password form -->
     <form id="connect-form" novalidate>
-      <h2 id="connect-title" class="connect-title">Create your account</h2>
-      <label for="email">Email</label>
+      <h2 id="connect-title" class="connect-title" data-i18n="connectForm.createAccountTitle">Create your account</h2>
+      <label for="email" data-i18n="common.email">Email</label>
       <input id="email" type="email" autocomplete="username" required />
 
-      <label for="password">Password</label>
+      <label for="password" data-i18n="common.password">Password</label>
       <input id="password" type="password" autocomplete="current-password" required />
 
       <p id="error-message" class="error" hidden></p>
 
-      <button type="submit" id="submit-btn" class="primary-button">Create account</button>
-      <a href="#" id="mode-switch-link" class="link">Already have an account? Log in</a>
-      <a href="#" id="forgot-password-link" class="link" hidden>Forgot your password?</a>
+      <button type="submit" id="submit-btn" class="primary-button" data-i18n="connectForm.createAccountBtn">Create account</button>
+      <a href="#" id="mode-switch-link" class="link" data-i18n="connectForm.switchToLogin">Already have an account? Log in</a>
+      <a href="#" id="forgot-password-link" class="link" data-i18n="connectForm.forgotPassword" hidden>Forgot your password?</a>
 
       <div class="server-block">
-        <a href="#" id="server-toggle-link" class="link discreet">Using a self-hosted server?</a>
-        <p id="server-required-hint" class="hint" hidden>
+        <a href="#" id="server-toggle-link" class="link discreet" data-i18n="connectForm.usingSelfHosted">Using a self-hosted server?</a>
+        <p id="server-required-hint" class="hint" data-i18n="onboarding.serverRequiredHint" hidden>
           BrowserSync needs a self-hosted server - there's no official hosted one (yet). Enter the URL of the
           server you or your team is running below, and test the connection before continuing.
         </p>
         <div id="server-section" hidden>
-          <label for="server-url">Server URL</label>
-          <input id="server-url" type="text" placeholder="https://sync.yourcompany.com" />
+          <label for="server-url" data-i18n="connectForm.serverUrlLabel">Server URL</label>
+          <input id="server-url" type="text" data-i18n-placeholder="connectForm.serverUrlPlaceholder" placeholder="https://sync.yourcompany.com" />
           <div class="test-row">
-            <button type="button" id="test-connection" class="secondary-button">Test connection</button>
-            <span id="test-status" class="test-status">not tested</span>
+            <button type="button" id="test-connection" class="secondary-button" data-i18n="connectForm.testConnection">Test connection</button>
+            <span id="test-status" class="test-status" data-i18n="connectForm.testStatusNotTested">not tested</span>
           </div>
         </div>
       </div>
@@ -51,69 +58,69 @@
 
     <!-- Shown once, right after creating an account -->
     <section id="save-passphrase-view" hidden>
-      <h2>Save your recovery passphrase</h2>
-      <p class="hint">
+      <h2 data-i18n="connectForm.savePassphraseTitle">Save your recovery passphrase</h2>
+      <p class="hint" data-i18n="onboarding.savePassphraseHint">
         This is the <strong>only</strong> way to set up additional devices or reset your password if you forget it.
         Save it in a password manager (Bitwarden, 1Password, KeePass, etc.) right now - if you lose it, nobody,
         not even the server admin, can recover your synced data.
       </p>
       <div class="passphrase-display-row">
         <code id="generated-passphrase" class="passphrase-display"></code>
-        <button type="button" id="copy-passphrase" class="secondary-button">Copy</button>
+        <button type="button" id="copy-passphrase" class="secondary-button" data-i18n="common.copy">Copy</button>
       </div>
       <label class="checkbox-row">
         <input type="checkbox" id="saved-confirm-checkbox" />
-        I've saved this passphrase somewhere safe
+        <span data-i18n="connectForm.savedConfirmLabel">I've saved this passphrase somewhere safe</span>
       </label>
-      <button type="button" id="continue-after-save-btn" class="primary-button" disabled>Continue</button>
+      <button type="button" id="continue-after-save-btn" class="primary-button" data-i18n="connectForm.continueBtn" disabled>Continue</button>
     </section>
 
     <!-- Shown once per new device, on first login -->
     <section id="device-setup-view" hidden>
-      <h2>Set up this device</h2>
-      <p class="hint">
+      <h2 data-i18n="connectForm.deviceSetupTitle">Set up this device</h2>
+      <p class="hint" data-i18n="onboarding.deviceSetupHint">
         This is a new device for this account. Enter your recovery passphrase once to finish connecting it - after
         this, your password alone will unlock BrowserSync here.
       </p>
-      <label for="device-setup-passphrase">Recovery passphrase</label>
+      <label for="device-setup-passphrase" data-i18n="connectForm.recoveryPassphraseLabel">Recovery passphrase</label>
       <input id="device-setup-passphrase" type="password" autocomplete="off" />
       <p id="device-setup-error" class="error" hidden></p>
-      <button type="button" id="device-setup-submit-btn" class="primary-button">Set up this device</button>
+      <button type="button" id="device-setup-submit-btn" class="primary-button" data-i18n="connectForm.deviceSetupSubmit">Set up this device</button>
     </section>
 
     <!-- Shown once per device, only when it already has local bookmarks AND the account already has bookmarks synced elsewhere -->
     <section id="first-sync-choice-view" hidden>
-      <h2>This device already has bookmarks</h2>
-      <p class="hint">
+      <h2 data-i18n="connectForm.firstSyncChoiceTitle">This device already has bookmarks</h2>
+      <p class="hint" data-i18n="onboarding.firstSyncChoiceHint">
         Keep them and merge with what's already synced (bookmarks that exist on both sides may end up duplicated),
         start fresh and replace this device's bookmarks with the synced ones, or discard what's synced and use this
         device's bookmarks instead.
       </p>
       <p id="first-sync-error" class="error" hidden></p>
-      <button type="button" id="first-sync-merge-btn" class="secondary-button">Keep both, merge them</button>
-      <button type="button" id="first-sync-replace-btn" class="danger-button">Replace with synced bookmarks</button>
-      <button type="button" id="first-sync-keep-local-btn" class="danger-button">Discard synced bookmarks, use mine</button>
+      <button type="button" id="first-sync-merge-btn" class="secondary-button" data-i18n="connectForm.firstSyncMerge">Keep both, merge them</button>
+      <button type="button" id="first-sync-replace-btn" class="danger-button" data-i18n="connectForm.firstSyncReplace">Replace with synced bookmarks</button>
+      <button type="button" id="first-sync-keep-local-btn" class="danger-button" data-i18n="connectForm.firstSyncKeepLocal">Discard synced bookmarks, use mine</button>
     </section>
 
     <!-- Forgot-password flow -->
     <section id="forgot-password-view" hidden>
-      <h2>Reset your password</h2>
-      <p class="hint">Enter your recovery passphrase to prove it's you, and choose a new password.</p>
-      <label for="forgot-email">Email</label>
+      <h2 data-i18n="connectForm.resetPasswordTitle">Reset your password</h2>
+      <p class="hint" data-i18n="onboarding.resetPasswordHint">Enter your recovery passphrase to prove it's you, and choose a new password.</p>
+      <label for="forgot-email" data-i18n="common.email">Email</label>
       <input id="forgot-email" type="email" autocomplete="username" />
-      <label for="forgot-passphrase">Recovery passphrase</label>
+      <label for="forgot-passphrase" data-i18n="connectForm.recoveryPassphraseLabel">Recovery passphrase</label>
       <input id="forgot-passphrase" type="password" autocomplete="off" />
-      <label for="forgot-new-password">New password</label>
+      <label for="forgot-new-password" data-i18n="connectForm.newPasswordLabel">New password</label>
       <input id="forgot-new-password" type="password" autocomplete="new-password" />
       <p id="forgot-error" class="error" hidden></p>
-      <button type="button" id="forgot-submit-btn" class="primary-button">Reset password</button>
-      <a href="#" id="forgot-cancel-link" class="link">Cancel</a>
+      <button type="button" id="forgot-submit-btn" class="primary-button" data-i18n="connectForm.resetPasswordBtn">Reset password</button>
+      <a href="#" id="forgot-cancel-link" class="link" data-i18n="common.cancel">Cancel</a>
     </section>
 
     <p class="footer-note">
-      By creating an account you agree to how this service handles your data - see
-      <a id="privacy-link" href="#" target="_blank" rel="noopener">the privacy policy</a> (ask whoever gave you the
-      server URL if this link doesn't open).
+      <span data-i18n="onboarding.footerNotePrefix">By creating an account you agree to how this service handles your data - see</span>
+      <a id="privacy-link" href="#" target="_blank" rel="noopener" data-i18n="onboarding.privacyLinkText">the privacy policy</a>
+      <span data-i18n="onboarding.footerNoteSuffix">(ask whoever gave you the server URL if this link doesn't open).</span>
     </p>
   </main>
 

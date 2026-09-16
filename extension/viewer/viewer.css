@@ -56,6 +56,18 @@ header {
 .brand { font-weight: 700; }
 .account-label { color: var(--muted); font-size: 13px; }
 
+.header-actions { display: flex; align-items: center; gap: 12px; }
+
+.language-select {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 3px 5px;
+  cursor: pointer;
+}
+
 main { max-width: 720px; margin: 0 auto; padding: 24px; }
 
 section > p:first-child { margin-top: 0; }

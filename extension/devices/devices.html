@@ -7,23 +7,30 @@
 </head>
 <body>
   <header>
-    <span class="brand">BrowserSync — Linked devices</span>
-    <span id="account-label" class="account-label"></span>
+    <span class="brand" data-i18n="devices.brand">BrowserSync — Linked devices</span>
+    <div class="header-actions">
+      <span id="account-label" class="account-label"></span>
+      <select id="language-select" class="language-select">
+        <option value="auto" data-i18n="language.auto">Auto</option>
+        <option value="en" data-i18n="language.en">English</option>
+        <option value="es" data-i18n="language.es">Español</option>
+      </select>
+    </div>
   </header>
 
   <main>
     <section id="not-connected-view" hidden>
-      <p>Not connected. Open the BrowserSync toolbar icon to log in first.</p>
+      <p data-i18n="common.notConnected">Not connected. Open the BrowserSync toolbar icon to log in first.</p>
     </section>
 
     <section id="devices-view" hidden>
       <div class="devices-header">
-        <p class="hint">
+        <p class="hint" data-i18n="devices.devicesHint">
           Every device currently signed into this account. Revoking a device signs it out - it won't be able to
           sync again until someone logs back in on it. A "never used" badge usually means a leftover from
           reinstalling the extension rather than a device someone's actually using.
         </p>
-        <button type="button" id="revoke-others-btn" class="link-button" hidden>Clean up other devices</button>
+        <button type="button" id="revoke-others-btn" class="link-button" data-i18n="devices.cleanUpOtherDevices" hidden>Clean up other devices</button>
       </div>
       <p id="devices-error" class="error" hidden></p>
       <div id="devices-list" class="list"></div>
