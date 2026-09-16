@@ -15,6 +15,7 @@
     <!-- Shown when there's no account connected at all. -->
     <section id="connect-view" hidden>
       <form id="connect-form" novalidate>
+        <h2 id="connect-title" class="connect-title">Create your account</h2>
         <label for="email">Email</label>
         <input id="email" type="email" autocomplete="username" required />
 
@@ -151,6 +152,17 @@
         <button id="save-settings-btn" class="secondary-button">Save settings</button>
 
         <a href="#" id="manage-devices-link" class="link">Manage linked devices</a>
+
+        <details class="danger-zone">
+          <summary>Restore bookmarks from server</summary>
+          <p class="hint">
+            Replaces this device's bookmarks with whatever's currently synced on the server. Use this if this
+            device's bookmarks ever end up wrong or out of sync.
+          </p>
+          <button type="button" id="force-restore-btn" class="danger-button">Restore now</button>
+          <p id="force-restore-status" class="hint" hidden></p>
+          <p id="force-restore-error" class="error" hidden></p>
+        </details>
 
         <details class="danger-zone">
           <summary>Delete account and all synced data</summary>

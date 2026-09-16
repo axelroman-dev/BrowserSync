@@ -2,7 +2,29 @@ import { wireConnectForm } from "../lib/connectForm.js";
 import * as auth from "../lib/auth.js";
 import * as api from "../lib/api.js";
 import { getAllLocal, setLocal } from "../lib/storage.js";
-import { runSyncCycleInteractive } from "../lib/syncOrchestrator.js";
+import { armConfirm } from "../lib/uiConfirm.js";
+
+// True right after a sync reports it's blocked on the merge/replace choice
+// (normally already resolved by connectForm.js's themed dialog right after
+// login - this only fires for the rare case of an unresolved device hitting
+// "Sync now"/unlock/repair instead). There's no good way to ask "merge or
+// replace?" here without a real modal - window.confirm() renders clipped to
+// the popup's small window frame (see uiConfirm.js) and can't fit a 3-way
+// choice into an "arm this button" pattern - so this just points the user at
+// the two UIs that CAN ask properly: logging out and back in, or Settings ->
+// "Restore bookmarks from server". Read by renderStatusView().
+let firstSyncChoicePending = false;
+
+// Runs a sync cycle via the background service worker instead of importing
+// syncOrchestrator directly - unlike this popup document, the service
+// worker isn't torn down when the popup closes (which happens easily: any
+// click outside it), so a sync kicked off from a button click keeps running
+// to completion instead of silently getting cut off partway through.
+async function syncNowInteractive() {
+  const result = await chrome.runtime.sendMessage({ type: "run-sync" });
+  firstSyncChoicePending = result?.status === "skipped" && result?.reason === "needs_first_sync_choice";
+  return result;
+}
 
 const views = {
   connect: document.getElementById("connect-view"),
@@ -42,6 +64,10 @@ async function renderStatusView() {
   if (session.lastSyncStatus === "error" && session.lastSyncError) {
     errorEl.textContent = session.lastSyncError;
     errorEl.hidden = false;
+  } else if (firstSyncChoicePending) {
+    errorEl.textContent =
+      'This device has bookmarks that were never synced with this account. Open Settings and use "Restore bookmarks from server", or log out and back in, to resolve this.';
+    errorEl.hidden = false;
   } else {
     errorEl.hidden = true;
   }
@@ -71,6 +97,7 @@ async function render() {
 wireConnectForm(
   {
     form: document.getElementById("connect-form"),
+    formTitle: document.getElementById("connect-title"),
     emailInput: document.getElementById("email"),
     passwordInput: document.getElementById("password"),
     submitBtn: document.getElementById("submit-btn"),
@@ -111,7 +138,7 @@ wireConnectForm(
   async () => {
     await chrome.runtime.sendMessage({ type: "refresh-alarm" });
     await render();
-    runSyncCycleInteractive().then(renderStatusView);
+    syncNowInteractive().then(renderStatusView);
   },
 );
 
@@ -128,7 +155,7 @@ document.getElementById("unlock-btn").addEventListener("click", async () => {
     await auth.unlock(password);
     errorEl.hidden = true;
     await render();
-    runSyncCycleInteractive().then(renderStatusView);
+    syncNowInteractive().then(renderStatusView);
   } catch (err) {
     if (err.code === "no_local_envelope") {
       showView("repair");
@@ -166,7 +193,7 @@ document.getElementById("repair-btn").addEventListener("click", async () => {
     await auth.completeDeviceSetup({ email: accountEmail, password, passphrase, dekEnvelope });
     errorEl.hidden = true;
     await render();
-    runSyncCycleInteractive().then(renderStatusView);
+    syncNowInteractive().then(renderStatusView);
   } catch (err) {
     errorEl.textContent = err.message || "Could not reconnect this device.";
     errorEl.hidden = false;
@@ -183,10 +210,36 @@ document.getElementById("sync-now-btn").addEventListener("click", async (e) => {
   const btn = e.currentTarget;
   btn.disabled = true;
   btn.textContent = "Syncing...";
-  await runSyncCycleInteractive();
+  await syncNowInteractive();
   await renderStatusView();
   btn.disabled = false;
   btn.textContent = "Sync now";
+});
+
+const confirmForceRestore = armConfirm(document.getElementById("force-restore-btn"), "Click again to confirm - local bookmarks will be lost");
+document.getElementById("force-restore-btn").addEventListener("click", async (e) => {
+  if (!confirmForceRestore()) return;
+  const btn = e.currentTarget;
+  const statusEl = document.getElementById("force-restore-status");
+  const errorEl = document.getElementById("force-restore-error");
+  statusEl.hidden = true;
+  errorEl.hidden = true;
+  btn.disabled = true;
+  btn.textContent = "Restoring...";
+  try {
+    const result = await chrome.runtime.sendMessage({ type: "apply-first-sync-choice", choice: "replace" });
+    await renderStatusView();
+    if (result?.status === "error") {
+      errorEl.textContent = result.message || "Could not restore bookmarks.";
+      errorEl.hidden = false;
+    } else {
+      statusEl.textContent = "Bookmarks restored from server.";
+      statusEl.hidden = false;
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Restore now";
+  }
 });
 
 document.getElementById("view-data-link").addEventListener("click", (e) => {
@@ -218,6 +271,7 @@ document.getElementById("save-settings-btn").addEventListener("click", async () 
   await chrome.runtime.sendMessage({ type: "refresh-alarm" });
 });
 
+const confirmDeleteAccount = armConfirm(document.getElementById("delete-account-btn"), "Click again to confirm - can't be undone");
 document.getElementById("delete-account-btn").addEventListener("click", async () => {
   const password = document.getElementById("delete-password").value;
   const errorEl = document.getElementById("delete-error");
@@ -226,7 +280,7 @@ document.getElementById("delete-account-btn").addEventListener("click", async ()
     errorEl.hidden = false;
     return;
   }
-  if (!confirm("This permanently deletes your account and all synced data. Continue?")) return;
+  if (!confirmDeleteAccount()) return;
   try {
     await auth.deleteAccount(password);
     await render();

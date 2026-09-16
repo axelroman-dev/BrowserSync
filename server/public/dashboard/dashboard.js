@@ -5,6 +5,82 @@
 const STORAGE_KEY = "browsersync_dashboard_session";
 const DEVICE_LABEL = "Account dashboard";
 
+// --- Crypto: a direct port of extension/lib/crypto.js's passphrase-side
+// derivation (deriveKekFromPassphrase/unwrapDEK/decryptJSON), using the same
+// browser-native Web Crypto API the extension uses - nothing here is
+// server-specific. Only the passphrase-wrapped path is needed (not the
+// password-wrapped one): unlike a browser extension, this page has no local
+// storage of its own worth trusting with a device envelope, so every unlock
+// goes through the recovery passphrase, exactly like setting up a brand new
+// device would. The derived DEK lives only in the `unlockedKey` module
+// variable below - never localStorage, never sent anywhere - and is dropped
+// on Lock, logout, or page reload.
+const PBKDF2_ITERATIONS = 600_000;
+
+async function deriveSalt(purpose, email) {
+  const encoder = new TextEncoder();
+  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(`browsersync-${purpose}:${email.toLowerCase()}`));
+  return new Uint8Array(digest);
+}
+
+async function deriveKekFromPassphrase(passphrase, email) {
+  const encoder = new TextEncoder();
+  const salt = await deriveSalt("kek-passphrase", email);
+  const baseKey = await crypto.subtle.importKey("raw", encoder.encode(passphrase), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
+    baseKey,
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt", "decrypt"],
+  );
+}
+
+function base64ToBuffer(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+async function decryptJSON(key, ciphertextBase64, ivBase64) {
+  const iv = base64ToBuffer(ivBase64);
+  const ciphertext = base64ToBuffer(ciphertextBase64);
+  const plaintextBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+  return JSON.parse(new TextDecoder().decode(plaintextBuffer));
+}
+
+async function importKeyRaw(base64Key) {
+  const raw = base64ToBuffer(base64Key);
+  return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, true, ["encrypt", "decrypt"]);
+}
+
+async function unwrapDEK(kek, envelope) {
+  const { dek } = await decryptJSON(kek, envelope.ciphertext, envelope.iv);
+  return importKeyRaw(dek);
+}
+
+/**
+ * Same shape-building as extension/lib/bookmarksSync.js's buildDisplayTree():
+ * turns the flat `nodes` array of a decrypted bookmarks payload into a
+ * nested tree for rendering. Pure function, no side effects.
+ */
+function buildDisplayTree(nodes) {
+  const bySyncId = new Map(nodes.map((n) => [n.syncId, { ...n, children: [] }]));
+  const roots = [];
+  for (const node of bySyncId.values()) {
+    if (node.parentSyncId && bySyncId.has(node.parentSyncId)) {
+      bySyncId.get(node.parentSyncId).children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+  const sortByIndex = (a, b) => a.index - b.index;
+  for (const node of bySyncId.values()) node.children.sort(sortByIndex);
+  roots.sort(sortByIndex);
+  return roots;
+}
+
 function loadSession() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -23,6 +99,9 @@ function clearSession() {
 }
 
 let session = loadSession();
+// The unwrapped DEK for the current unlock, kept only in memory - see the
+// crypto section's comment above for why it never touches localStorage.
+let unlockedKey = null;
 
 class ApiError extends Error {
   constructor(status, body) {
@@ -154,6 +233,19 @@ function armConfirm(btn, warningLabel, armedMs = 4000) {
   };
 }
 
+async function doLogout() {
+  if (session) {
+    await rawRequest("/api/auth/logout", { method: "POST", body: { refreshToken: session.refreshToken } }).catch(() => {
+      // Best-effort - the token gets cleared locally either way.
+    });
+  }
+  session = null;
+  clearSession();
+  lockBookmarks();
+  document.getElementById("login-form").reset();
+  showView(false);
+}
+
 async function loadDevices() {
   const errorEl = document.getElementById("devices-error");
   const container = document.getElementById("devices-list");
@@ -193,24 +285,37 @@ async function loadDevices() {
 
       row.appendChild(main);
 
-      const revokeBtn = document.createElement("button");
-      revokeBtn.type = "button";
-      revokeBtn.className = "danger-button";
-      revokeBtn.textContent = "Revoke";
-      const confirmRevoke = armConfirm(revokeBtn, "Click again to confirm");
-      revokeBtn.addEventListener("click", async () => {
-        if (!confirmRevoke()) return;
-        revokeBtn.disabled = true;
-        try {
-          await authFetch(`/api/auth/devices/${device.id}`, { method: "DELETE" });
-          await loadDevices();
-        } catch (err) {
-          errorEl.textContent = err.message || "Could not revoke device.";
-          errorEl.hidden = false;
-          revokeBtn.disabled = false;
-        }
-      });
-      row.appendChild(revokeBtn);
+      // "Revoke" on your own current session kills the token you're
+      // browsing with mid-request, with no confirmation dialog standing
+      // between you and a lockout - exactly what prompted this guard. "Log
+      // out" goes through the same doLogout() the header button uses, which
+      // revokes cleanly and returns you to the login form instead of
+      // leaving you holding a dead token.
+      const isCurrentSession = device.id === session.deviceId;
+      const actionBtn = document.createElement("button");
+      actionBtn.type = "button";
+      if (isCurrentSession) {
+        actionBtn.className = "secondary-button";
+        actionBtn.textContent = "Log out";
+        actionBtn.addEventListener("click", doLogout);
+      } else {
+        actionBtn.className = "danger-button";
+        actionBtn.textContent = "Revoke";
+        const confirmRevoke = armConfirm(actionBtn, "Click again to confirm");
+        actionBtn.addEventListener("click", async () => {
+          if (!confirmRevoke()) return;
+          actionBtn.disabled = true;
+          try {
+            await authFetch(`/api/auth/devices/${device.id}`, { method: "DELETE" });
+            await loadDevices();
+          } catch (err) {
+            errorEl.textContent = err.message || "Could not revoke device.";
+            errorEl.hidden = false;
+            actionBtn.disabled = false;
+          }
+        });
+      }
+      row.appendChild(actionBtn);
 
       container.appendChild(row);
     }
@@ -220,8 +325,130 @@ async function loadDevices() {
   }
 }
 
+function renderBookmarkNode(node) {
+  const li = document.createElement("li");
+  const row = document.createElement("div");
+  row.className = "tree-row";
+
+  const icon = document.createElement("span");
+  icon.className = "tree-icon";
+  icon.textContent = node.kind === "folder" ? "📁" : "🔖";
+  row.appendChild(icon);
+
+  if (node.kind === "bookmark" && node.url) {
+    const link = document.createElement("a");
+    link.href = node.url;
+    link.textContent = node.title || node.url;
+    link.title = node.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    row.appendChild(link);
+  } else {
+    const label = document.createElement("span");
+    label.className = "folder-label";
+    label.textContent = node.title || "(untitled folder)";
+    row.appendChild(label);
+  }
+  li.appendChild(row);
+
+  if (node.children?.length) {
+    const ul = document.createElement("ul");
+    for (const child of node.children) ul.appendChild(renderBookmarkNode(child));
+    li.appendChild(ul);
+  }
+  return li;
+}
+
+function lockBookmarks() {
+  unlockedKey = null;
+  document.getElementById("bookmarks-passphrase").value = "";
+  document.getElementById("bookmarks-error").hidden = true;
+  document.getElementById("bookmarks-locked").hidden = false;
+  document.getElementById("bookmarks-unlocked").hidden = true;
+}
+
+/** Fetches the current bookmarks blob and renders it with an already-unwrapped key. */
+async function renderBookmarksTree(key) {
+  const blob = await authFetch("/api/sync/bookmarks");
+  const container = document.getElementById("bookmarks-tree");
+  container.textContent = "";
+  if (!blob) {
+    document.getElementById("bookmarks-meta").textContent = "No bookmarks have been synced yet.";
+    return;
+  }
+  const payload = await decryptJSON(key, blob.ciphertext, blob.iv);
+  const tree = buildDisplayTree(payload.nodes ?? []);
+  document.getElementById("bookmarks-meta").textContent = `Last synced: ${formatDate(blob.updatedAt)}`;
+  if (!tree.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-hint";
+    empty.textContent = "No bookmarks have been synced yet.";
+    container.appendChild(empty);
+  } else {
+    const ul = document.createElement("ul");
+    ul.className = "tree-root";
+    for (const node of tree) ul.appendChild(renderBookmarkNode(node));
+    container.appendChild(ul);
+  }
+}
+
+document.getElementById("bookmarks-unlock-btn").addEventListener("click", async () => {
+  const passphrase = document.getElementById("bookmarks-passphrase").value;
+  const errorEl = document.getElementById("bookmarks-error");
+  const btn = document.getElementById("bookmarks-unlock-btn");
+  errorEl.hidden = true;
+  if (!passphrase) {
+    errorEl.textContent = "Enter your recovery passphrase.";
+    errorEl.hidden = false;
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = "Unlocking...";
+  try {
+    const { dekEnvelope } = await authFetch("/api/auth/dek-envelope");
+    const email = document.getElementById("account-email").textContent;
+    const kek = await deriveKekFromPassphrase(passphrase, email);
+    let key;
+    try {
+      key = await unwrapDEK(kek, dekEnvelope);
+    } catch {
+      throw new Error("Wrong recovery passphrase - could not unlock.");
+    }
+    await renderBookmarksTree(key);
+    unlockedKey = key;
+    document.getElementById("bookmarks-locked").hidden = true;
+    document.getElementById("bookmarks-unlocked").hidden = false;
+  } catch (err) {
+    errorEl.textContent = err.message || "Could not decrypt bookmarks.";
+    errorEl.hidden = false;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Unlock";
+  }
+});
+
+document.getElementById("bookmarks-lock-btn").addEventListener("click", lockBookmarks);
+
+// Re-fetches and re-renders with the already-unwrapped key from this
+// unlock - handy after syncing from the extension/another device, without
+// having to re-type the recovery passphrase just to see the new state.
+document.getElementById("bookmarks-refresh-btn").addEventListener("click", async () => {
+  if (!unlockedKey) return;
+  const btn = document.getElementById("bookmarks-refresh-btn");
+  btn.disabled = true;
+  try {
+    await renderBookmarksTree(unlockedKey);
+  } catch (err) {
+    document.getElementById("bookmarks-error").textContent = err.message || "Could not refresh bookmarks.";
+    document.getElementById("bookmarks-error").hidden = false;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 async function loadDashboard() {
   showView(true);
+  lockBookmarks();
   await Promise.all([loadAccount(), loadStatus(), loadDevices()]);
 }
 
@@ -251,17 +478,7 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
   }
 });
 
-document.getElementById("logout-btn").addEventListener("click", async () => {
-  if (session) {
-    await rawRequest("/api/auth/logout", { method: "POST", body: { refreshToken: session.refreshToken } }).catch(() => {
-      // Best-effort - the token gets cleared locally either way.
-    });
-  }
-  session = null;
-  clearSession();
-  document.getElementById("login-form").reset();
-  showView(false);
-});
+document.getElementById("logout-btn").addEventListener("click", doLogout);
 
 async function init() {
   if (!session) {

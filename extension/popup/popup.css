@@ -35,6 +35,15 @@
 body {
   margin: 0;
   width: 320px;
+  /* Chrome doesn't always re-measure and grow/shrink the popup window when
+     JS swaps which section is visible (e.g. login form -> the merge/replace
+     choice) - when it doesn't, whatever's cut off past this height would
+     otherwise be completely unreachable. Capping height here and letting
+     the popup itself scroll means the worst case is a scrollbar, never
+     invisible buttons. 560px stays comfortably under Chrome's own ~600px
+     popup cap. */
+  max-height: 560px;
+  overflow-y: auto;
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -45,6 +54,8 @@ body {
 
 header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .brand { font-weight: 700; font-size: 15px; }
+
+.connect-title { margin: 0 0 4px; font-size: 14px; font-weight: 700; }
 
 .icon-button {
   background: none;

@@ -12,6 +12,7 @@ import {
   hashRefreshToken,
 } from "../services/authService.js";
 import { requireAuth } from "../middleware/requireAuth.js";
+import { authRateLimit } from "../middleware/rateLimit.js";
 
 export const authRouter = Router();
 
@@ -61,7 +62,7 @@ const registerSchema = z.object({
   deviceLabel: z.string().trim().max(120).optional(),
 });
 
-authRouter.post("/register", async (req, res) => {
+authRouter.post("/register", authRateLimit, async (req, res) => {
   if (!config.allowRegistration) {
     res.status(403).json({ error: "registration_disabled", message: "Registration is currently closed on this server." });
     return;
@@ -105,7 +106,7 @@ authRouter.post("/register", async (req, res) => {
   res.status(201).json(tokens);
 });
 
-authRouter.post("/login", async (req, res) => {
+authRouter.post("/login", authRateLimit, async (req, res) => {
   const parsed = credentialsSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "invalid_input", message: parsed.error.issues[0]?.message ?? "Invalid input" });
@@ -170,7 +171,7 @@ const resetPasswordSchema = z.object({
   newPassword: passwordSchema,
 });
 
-authRouter.post("/reset-password", async (req, res) => {
+authRouter.post("/reset-password", authRateLimit, async (req, res) => {
   const parsed = resetPasswordSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "invalid_input", message: parsed.error.issues[0]?.message ?? "Invalid input" });
@@ -259,7 +260,7 @@ authRouter.delete("/devices/:id", requireAuth, async (req, res) => {
 
 const refreshSchema = z.object({ refreshToken: z.string().min(1) });
 
-authRouter.post("/refresh", async (req, res) => {
+authRouter.post("/refresh", authRateLimit, async (req, res) => {
   const parsed = refreshSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "invalid_input", message: "refreshToken is required" });

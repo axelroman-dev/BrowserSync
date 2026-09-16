@@ -1,9 +1,11 @@
-// Service worker: owns the periodic sync alarm and the first-run onboarding
-// tab. Kept intentionally thin - all real logic lives in lib/, which is
-// also what the popup imports directly for its manual "Sync now" button.
+// Service worker: owns the periodic sync alarm, the first-run onboarding
+// tab, and (via onMessage below) running sync cycles on the popup's behalf
+// so they aren't tied to the popup document's short lifetime. Kept
+// intentionally thin - all real logic lives in lib/.
 import { getAllLocal } from "./lib/storage.js";
 import { getSession } from "./lib/auth.js";
 import { runSyncCycle } from "./lib/syncOrchestrator.js";
+import { applyFirstSyncChoice } from "./lib/firstSyncPrompt.js";
 
 const SYNC_ALARM_NAME = "browsersync-periodic-sync";
 
@@ -32,10 +34,32 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 // Lets popup.js ask the (potentially not-yet-running) service worker to
-// re-read the sync interval after the user changes it in settings.
+// re-read the sync interval after the user changes it in settings, and lets
+// it delegate the actual sync work here too (see below) - unlike a popup
+// document, the service worker doesn't get torn down just because the user
+// clicked away, so a sync kicked off from the popup keeps running to
+// completion even if the popup closes mid-request.
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "refresh-alarm") {
     ensureAlarm().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+  // Runs one plain sync cycle and reports back what happened. Used by the
+  // popup instead of importing syncOrchestrator directly, so the request
+  // survives the popup closing (losing focus closes it, and it isn't
+  // reopened just because a promise inside it is still pending).
+  if (message?.type === "run-sync") {
+    runSyncCycle().then(sendResponse);
+    return true;
+  }
+  // Resolves the merge/replace choice, then runs a sync cycle immediately
+  // after - used both by the first-sync-choice buttons and by the popup's
+  // manual "restore from server" button, which re-asks the same choice
+  // outside the first-run flow.
+  if (message?.type === "apply-first-sync-choice") {
+    applyFirstSyncChoice(message.choice)
+      .then(() => runSyncCycle())
+      .then(sendResponse);
     return true;
   }
   return false;

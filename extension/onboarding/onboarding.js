@@ -5,6 +5,7 @@ document.getElementById("privacy-link").href = PRIVACY_POLICY_URL;
 
 const el = {
   form: document.getElementById("connect-form"),
+  formTitle: document.getElementById("connect-title"),
   emailInput: document.getElementById("email"),
   passwordInput: document.getElementById("password"),
   submitBtn: document.getElementById("submit-btn"),
@@ -43,11 +44,32 @@ const el = {
   forgotCancelLink: document.getElementById("forgot-cancel-link"),
 };
 
-wireConnectForm(el, (session) => {
+wireConnectForm(el, async (session) => {
   for (const view of [el.form, el.savePassphraseView, el.deviceSetupView, el.firstSyncChoiceView, el.forgotPasswordView]) {
     view.hidden = true;
   }
   document.getElementById("connected-view").hidden = false;
   document.getElementById("connected-email").textContent = session.accountEmail;
-  chrome.runtime.sendMessage({ type: "refresh-alarm" });
+  await chrome.runtime.sendMessage({ type: "refresh-alarm" });
+
+  // Unlike popup.js, this used to just sit on "You're connected" and rely on
+  // the next background alarm tick (up to syncIntervalMinutes away) to
+  // actually sync - so picking "replace" here wiped this device's bookmarks
+  // immediately but could leave it looking empty for a long while instead of
+  // repopulating them from the server right away. Run it now instead, via
+  // the background service worker so it survives this tab closing.
+  const statusEl = document.getElementById("connected-sync-status");
+  const errorEl = document.getElementById("connected-sync-error");
+  const result = await chrome.runtime.sendMessage({ type: "run-sync" });
+  if (result?.status === "ok") {
+    statusEl.textContent = "Your bookmarks are synced.";
+  } else if (result?.status === "error") {
+    statusEl.hidden = true;
+    errorEl.textContent = result.message || "Could not sync - open the BrowserSync icon in the toolbar to retry.";
+    errorEl.hidden = false;
+  } else if (result?.status === "skipped" && result?.reason === "needs_first_sync_choice") {
+    statusEl.textContent = "Open the BrowserSync icon in the toolbar to finish setting up this device's bookmarks.";
+  } else {
+    statusEl.hidden = true;
+  }
 });

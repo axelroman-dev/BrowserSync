@@ -31,10 +31,14 @@
 //    a final order that's whichever side's snapshot happened to look newer
 //    to the algorithm - not necessarily either side's intended order.
 //  - Deletions are permanent tombstones with no undo other than re-adding
-//    the bookmark (which creates a fresh syncId). Tombstones accumulate in
-//    the payload forever in this v1 - fine at personal/small-team scale and
-//    payload sizes, but would need pruning for a much larger bookmark
-//    churn rate than this is designed for.
+//    the bookmark (which creates a fresh syncId). Tombstones older than
+//    TOMBSTONE_RETENTION_MS are pruned on every successful sync (see
+//    pruneOldTombstones) rather than kept forever - safe as long as no
+//    device goes without syncing for longer than the retention window,
+//    since a tombstone dropped before every device has applied it could let
+//    a device that never saw the deletion resurrect the node next time it
+//    reappears in its own live tree (its own next buildLocalSnapshot() would
+//    just treat it as a normal existing bookmark again).
 //  - A node whose parent was deleted on one device while being edited on
 //    another can end up re-parented under "Other Bookmarks" as a fallback
 //    rather than disappearing - see `reparentOrphans` below.
@@ -46,6 +50,23 @@ import { getSyncBlob, putSyncBlob } from "./api.js";
 
 const WELL_KNOWN_ROOTS = { 1: "root-toolbar", 2: "root-other", 3: "root-mobile" };
 const FALLBACK_PARENT_SYNC_ID = "root-other";
+// How long a deletion tombstone is kept before being dropped from the
+// payload. 90 days mirrors the server's default refresh-token TTL (see
+// server/.env.example REFRESH_TOKEN_TTL_DAYS) - a device that hasn't synced
+// in longer than that has already been signed out and has to fully
+// reconcile via the merge/replace prompt anyway, so it was never going to
+// benefit from an older tombstone still being around.
+const TOMBSTONE_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
+/** Drops tombstones older than TOMBSTONE_RETENTION_MS from a {syncId: deletedAt} map. */
+function pruneOldTombstones(tombstones) {
+  const cutoff = Date.now() - TOMBSTONE_RETENTION_MS;
+  const pruned = {};
+  for (const [syncId, deletedAt] of Object.entries(tombstones)) {
+    if (deletedAt >= cutoff) pruned[syncId] = deletedAt;
+  }
+  return pruned;
+}
 
 function nodeSignature(node) {
   return JSON.stringify([node.parentSyncId, node.kind, node.title, node.url ?? null, node.index]);
@@ -142,6 +163,19 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
   const syncIdMap = { ...local.syncIdMap };
   const timestamps = { ...local.timestamps };
   const localNodes = local.nodesBySyncId;
+  // chrome.bookmarks.create()/move()/update() can and does fail mid-batch -
+  // most commonly Chrome's own bookmark write-rate quota
+  // (MAX_WRITE_OPERATIONS_PER_HOUR / MAX_SUSTAINED_WRITE_OPERATIONS_PER_MINUTE)
+  // kicking in during a big restore (many creates in a row - e.g. right
+  // after "replace with synced bookmarks" wipes everything and recreates it
+  // all at once). The catch blocks below used to only console.warn and carry
+  // on as if that node had been handled, which silently produced an
+  // incomplete/reshuffled tree (a failed folder's children still get filed
+  // under "Other Bookmarks" by the fallback pass further down, since their
+  // real parent never got created - flattening them) while runSyncCycle()
+  // reported a clean "ok". Collecting failures here lets syncBookmarks()
+  // report a real error instead of lying about success.
+  const failures = [];
 
   // 1. Deletions: anything tombstoned that still exists locally goes away.
   for (const [syncId, deletedAt] of Object.entries(combinedTombstones)) {
@@ -183,6 +217,7 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
             }
           } catch (err) {
             console.warn("BrowserSync: failed to apply remote update", remoteNode.syncId, err);
+            failures.push({ syncId: remoteNode.syncId, title: remoteNode.title, err });
           }
           localNode.parentSyncId = remoteNode.parentSyncId;
           localNode.title = remoteNode.title;
@@ -211,6 +246,7 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
         timestamps[remoteNode.syncId] = { lastModified: remoteNode.lastModified, signature: nodeSignature(remoteNode) };
       } catch (err) {
         console.warn("BrowserSync: failed to create bookmark from remote", remoteNode.syncId, err);
+        failures.push({ syncId: remoteNode.syncId, title: remoteNode.title, err });
       }
       pending.splice(i, 1);
       progress = true;
@@ -220,8 +256,11 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
   }
 
   // Anything left has a parent that will never resolve (e.g. the parent was
-  // deleted elsewhere while this node was edited concurrently) - fall back
-  // to filing it under "Other Bookmarks" rather than silently dropping it.
+  // deleted elsewhere while this node was edited concurrently, OR its
+  // parent's own create() failed above - see the failures tracking note) -
+  // fall back to filing it under "Other Bookmarks" rather than silently
+  // dropping it. Still counts as a failure: silently reparenting a node out
+  // of its real folder is not the same as actually restoring it correctly.
   for (const remoteNode of skipped) {
     const fallbackParent = localNodes.get(FALLBACK_PARENT_SYNC_ID);
     try {
@@ -232,12 +271,14 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
       });
       syncIdMap[created.id] = remoteNode.syncId;
       timestamps[remoteNode.syncId] = { lastModified: remoteNode.lastModified, signature: nodeSignature(remoteNode) };
+      failures.push({ syncId: remoteNode.syncId, title: remoteNode.title, err: new Error("parent could not be resolved - filed under Other Bookmarks instead") });
     } catch (err) {
       console.warn("BrowserSync: could not recover orphaned node", remoteNode.syncId, err);
+      failures.push({ syncId: remoteNode.syncId, title: remoteNode.title, err });
     }
   }
 
-  return { syncIdMap, timestamps };
+  return { syncIdMap, timestamps, failures };
 }
 
 /**
@@ -265,12 +306,13 @@ export async function syncBookmarks(key) {
   }
 
   const remoteNodesBySyncId = new Map(remotePayload.nodes.map((n) => [n.syncId, n]));
-  const combinedTombstones = { ...local.tombstones };
+  let combinedTombstones = { ...local.tombstones };
   for (const t of remotePayload.tombstones ?? []) {
     if (!combinedTombstones[t.syncId]) combinedTombstones[t.syncId] = t.deletedAt;
   }
+  combinedTombstones = pruneOldTombstones(combinedTombstones);
 
-  const { syncIdMap, timestamps } = await applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstones);
+  const { syncIdMap, timestamps, failures } = await applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstones);
 
   // Re-snapshot after applying remote changes so the upload reflects the
   // fully merged state (local edits the remote side didn't have, plus
@@ -289,15 +331,16 @@ export async function syncBookmarks(key) {
 
   if (result.conflict) {
     // Someone else wrote in between our GET and our POST. Merge their
-    // latest version in too and retry exactly once - if it conflicts again
-    // the user will simply get it on the next scheduled/manual sync.
+    // latest version in too and retry exactly once.
     const conflictPayload = await decryptJSON(key, result.conflict.ciphertext, result.conflict.iv);
     const conflictNodes = new Map(conflictPayload.nodes.map((n) => [n.syncId, n]));
-    const conflictTombstones = { ...merged.tombstones };
+    let conflictTombstones = { ...merged.tombstones };
     for (const t of conflictPayload.tombstones ?? []) {
       if (!conflictTombstones[t.syncId]) conflictTombstones[t.syncId] = t.deletedAt;
     }
+    conflictTombstones = pruneOldTombstones(conflictTombstones);
     const retryState = await applyMergeToBrowser(merged, conflictNodes, conflictTombstones);
+    failures.push(...retryState.failures);
     await setLocal({ bookmarkSyncIds: retryState.syncIdMap, bookmarkTimestamps: retryState.timestamps, bookmarkTombstones: conflictTombstones });
     const finalSnapshot = await buildLocalSnapshot();
     const finalPayload = toPayload(finalSnapshot);
@@ -308,9 +351,41 @@ export async function syncBookmarks(key) {
       clientUpdatedAt: new Date().toISOString(),
       expectedVersion: result.conflict.version,
     });
+    if (result.conflict) {
+      // Conflicted again right after merging the first conflict in - some
+      // other device is writing at the same time as us. Reporting success
+      // here (the old behavior) would be a lie: our upload never actually
+      // landed, `result.version` would be undefined, and the next restore
+      // would pull whatever that other device wrote instead of what this
+      // sync thought it had just saved - silent data loss from the user's
+      // point of view. Throw instead so runSyncCycle() reports a real error
+      // and the next sync (scheduled or manual) retries from scratch.
+      throw Object.assign(new Error("Could not save bookmarks - another device synced at the same moment. Try syncing again."), {
+        code: "sync_conflict",
+      });
+    }
   }
 
   await setLocal({ bookmarkBlobVersion: result.version });
+
+  if (failures.length > 0) {
+    // Whatever DID apply cleanly is already saved above (including to the
+    // server) - don't discard that progress. But reporting plain "ok" here
+    // (the old behavior) would hide that some bookmarks failed to apply -
+    // most commonly Chrome's own bookmark write-rate limit kicking in during
+    // a big restore - leaving a silently incomplete/reshuffled tree (see the
+    // failures-tracking note in applyMergeToBrowser above). Throwing makes
+    // runSyncCycle() report a real error so the user knows to retry instead
+    // of trusting a green "just synced" that isn't the whole picture.
+    console.warn("BrowserSync: sync completed with failures", failures);
+    throw Object.assign(
+      new Error(
+        `Synced, but ${failures.length} bookmark(s) could not be applied (often a temporary Chrome bookmark rate limit) - try syncing again in a minute.`,
+      ),
+      { code: "partial_sync_failure" },
+    );
+  }
+
   return { nodeCount: merged.nodesBySyncId.size };
 }
 

@@ -1,7 +1,7 @@
 // Thin fetch wrapper around the BrowserSync REST API. Knows nothing about
 // encryption - it only ever sees the opaque ciphertext/iv strings that
 // crypto.js produces, which is exactly what should cross the network.
-import { getAllLocal, setLocal } from "./storage.js";
+import { getAllLocal, setLocal, clearAccountLocal } from "./storage.js";
 
 export class ApiError extends Error {
   constructor(status, body) {
@@ -116,10 +116,30 @@ async function withAuthRetry(fn) {
     return await fn(accessToken);
   } catch (err) {
     if (err instanceof ApiError && err.status === 401 && refreshToken) {
-      const { accessToken: newAccessToken } = await request(serverUrl, "/api/auth/refresh", {
-        method: "POST",
-        body: { refreshToken },
-      });
+      let newAccessToken;
+      try {
+        ({ accessToken: newAccessToken } = await request(serverUrl, "/api/auth/refresh", {
+          method: "POST",
+          body: { refreshToken },
+        }));
+      } catch (refreshErr) {
+        if (refreshErr instanceof ApiError && refreshErr.status === 401) {
+          // The refresh token itself is dead, not just this access token -
+          // this device was signed out remotely (revoked from the account
+          // dashboard or devices.html, or it simply expired). There's no
+          // path back from this without a fresh login, so drop this
+          // device's local session now: without this, isLoggedIn stayed
+          // "true" locally forever (nothing ever clears accountEmail/
+          // accessToken/refreshToken on its own), so every sync attempt -
+          // scheduled or manual - kept failing the same way with only a red
+          // "Session expired" line to show for it, and the popup never fell
+          // back to the login screen on its own. Clearing it here means the
+          // very next time the popup opens, render() sees isLoggedIn:false
+          // and shows the login form instead.
+          await clearAccountLocal();
+        }
+        throw refreshErr;
+      }
       await setLocal({ accessToken: newAccessToken });
       return fn(newAccessToken);
     }

@@ -9,7 +9,6 @@ import { config } from "./config.js";
 import { authRouter } from "./routes/auth.js";
 import { syncRouter } from "./routes/sync.js";
 import { healthRouter } from "./routes/health.js";
-import { authRateLimit } from "./middleware/rateLimit.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -26,8 +25,19 @@ app.use(compression());
 app.use(express.json({ limit: config.maxBlobBytes + 1024 * 64 }));
 
 app.use("/api/health", healthRouter);
-app.use("/api/auth", authRateLimit, authRouter);
+// authRateLimit is applied per-route inside authRouter (only to
+// register/login/refresh/reset-password - the credential-guessing-sensitive
+// ones), not here router-wide - it used to cover every /api/auth/* route,
+// so routine authenticated calls like the dashboard's GET /me and GET
+// /devices silently burned the same 20-per-15-min budget as login attempts,
+// and a few dashboard page loads could lock someone out of their own
+// account with "Too many attempts."
+app.use("/api/auth", authRouter);
 app.use("/api/sync", syncRouter);
+
+// Visiting the server's bare URL is far more likely to be someone looking
+// for the dashboard than for a JSON 404, so send them straight there.
+app.get("/", (_req, res) => res.redirect("/dashboard/"));
 
 // Account dashboard: a static, no-build vanilla JS page (server/public/dashboard)
 // that logs in against the same /api/auth endpoints above and shows account

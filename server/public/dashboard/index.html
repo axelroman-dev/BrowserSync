@@ -21,8 +21,9 @@
       <section id="login-view" class="card">
         <h1>Log in to your account</h1>
         <p class="hint">
-          This only shows account status - server-side metadata like sync versions and linked devices. Your actual
-          bookmarks/history stay end-to-end encrypted and are never visible here or to the server.
+          Account status (linked devices, sync versions) is visible right away. Bookmarks stay end-to-end
+          encrypted and are never visible to the server - you can optionally decrypt them right here in your
+          browser with your recovery passphrase, to compare against what's in your browser.
         </p>
         <form id="login-form" novalidate>
           <label for="login-email">Email</label>
@@ -58,6 +59,34 @@
           </p>
           <p id="status-error" class="error" hidden></p>
           <div id="status-list" class="status-list"></div>
+        </div>
+
+        <div class="card">
+          <h1>Bookmarks</h1>
+          <p class="hint">
+            Decrypted entirely in this browser tab using your recovery passphrase - the passphrase and the
+            decrypted bookmarks never leave your device or reach the server. Useful for comparing what's actually
+            saved against what's in your browser.
+          </p>
+
+          <p id="bookmarks-error" class="error" hidden></p>
+
+          <div id="bookmarks-locked">
+            <label for="bookmarks-passphrase">Recovery passphrase</label>
+            <input id="bookmarks-passphrase" type="password" autocomplete="off" />
+            <button type="button" id="bookmarks-unlock-btn" class="secondary-button">Unlock</button>
+          </div>
+
+          <div id="bookmarks-unlocked" hidden>
+            <div class="bookmarks-toolbar">
+              <span id="bookmarks-meta" class="status-row-detail"></span>
+              <div class="bookmarks-toolbar-actions">
+                <button type="button" id="bookmarks-refresh-btn" class="link-button">Refresh</button>
+                <button type="button" id="bookmarks-lock-btn" class="link-button">Lock</button>
+              </div>
+            </div>
+            <div id="bookmarks-tree" class="tree"></div>
+          </div>
         </div>
 
         <div class="card">

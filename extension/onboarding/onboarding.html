@@ -12,11 +12,14 @@
 
     <div id="connected-view" hidden>
       <p>You're connected as <strong id="connected-email"></strong>.</p>
+      <p id="connected-sync-status" class="hint">Syncing your bookmarks...</p>
+      <p id="connected-sync-error" class="error" hidden></p>
       <p>You can close this tab - open the BrowserSync icon in the toolbar any time to check sync status.</p>
     </div>
 
     <!-- Main email/password form -->
     <form id="connect-form" novalidate>
+      <h2 id="connect-title" class="connect-title">Create your account</h2>
       <label for="email">Email</label>
       <input id="email" type="email" autocomplete="username" required />
 

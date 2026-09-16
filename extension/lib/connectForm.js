@@ -19,6 +19,7 @@ import { OFFICIAL_SERVER_URL } from "../config.js";
 import * as auth from "./auth.js";
 import { checkHealth, ApiError, NetworkError } from "./api.js";
 import { needsFirstSyncChoice, applyFirstSyncChoice } from "./firstSyncPrompt.js";
+import { armConfirm } from "./uiConfirm.js";
 
 function describeConnectError(err) {
   if (err instanceof ApiError) {
@@ -53,6 +54,7 @@ export function wireConnectForm(el, onConnected) {
   let pendingDeviceSetup = null; // { email, password, dekEnvelope }
 
   function applyMode() {
+    if (el.formTitle) el.formTitle.textContent = mode === "register" ? "Create your account" : "Log in";
     el.submitBtn.textContent = mode === "register" ? "Create account" : "Log in";
     el.modeSwitchLink.textContent =
       mode === "register" ? "Already have an account? Log in" : "New here? Create an account";
@@ -143,14 +145,11 @@ export function wireConnectForm(el, onConnected) {
     onConnected(await auth.getSession());
   });
 
+  // window.confirm() renders clipped to the popup's small window frame
+  // (text and buttons cut off against its edges) - see uiConfirm.js.
+  const confirmReplace = el.firstSyncReplaceBtn && armConfirm(el.firstSyncReplaceBtn, "Click again to confirm - can't be undone");
   el.firstSyncReplaceBtn?.addEventListener("click", async () => {
-    if (
-      !confirm(
-        "This permanently deletes the bookmarks currently on this device and replaces them with your synced bookmarks. Continue?",
-      )
-    ) {
-      return;
-    }
+    if (!confirmReplace()) return;
     el.firstSyncReplaceBtn.disabled = true;
     try {
       await applyFirstSyncChoice("replace");

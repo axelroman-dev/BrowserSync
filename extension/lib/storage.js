@@ -32,9 +32,22 @@ const LOCAL_DEFAULTS = {
   // "this device" - see lib/devicesList.js.
   currentDeviceId: null,
   bookmarksInitializedAt: null,
+  // "<serverUrl>::<accountEmail>" of whichever account this device's
+  // bookmarkSyncIds/bookmarkTimestamps/bookmarkTombstones bookkeeping was
+  // built for (server URL is part of the identity since the same email can
+  // be a different, unrelated account on a different self-hosted server).
+  // Deliberately NOT cleared on logout (see clearAccountLocal below) so
+  // that logging back into the SAME account resumes syncing without
+  // re-asking the merge/replace question or losing the syncId mapping -
+  // losing it would make every already-synced local bookmark look "new"
+  // again and get duplicated on the next merge. Compared against the
+  // current serverUrl+accountEmail by firstSyncPrompt.js to detect a
+  // genuinely different account signing in on this device, which still
+  // needs the bookkeeping reset.
+  lastSyncedAccountKey: null,
   historyDays: DEFAULT_HISTORY_DAYS,
   syncIntervalMinutes: DEFAULT_SYNC_INTERVAL_MINUTES,
-  historyEnabled: false,
+  historyEnabled: true,
   // This device's own copy of the DEK, wrapped under a password-derived key.
   // Never sent to the server - see the module comment above.
   dekEnvelopePasswordCiphertext: null,
@@ -68,6 +81,19 @@ export async function clearAccountLocal() {
   // Used on logout / server switch: clears account + tokens + sync
   // bookkeeping, but deliberately leaves serverUrl alone (caller sets it
   // explicitly) and leaves user preferences like syncIntervalMinutes intact.
+  //
+  // Deliberately does NOT clear bookmarkSyncIds/bookmarkTimestamps/
+  // bookmarkTombstones/bookmarksInitializedAt/bookmarkBlobVersion - that
+  // bookkeeping only correlates this device's own bookmark nodes with our
+  // syncIds, holds nothing sensitive, and logging back into the SAME
+  // account (the common case: logout then login again) needs it intact to
+  // resume syncing normally. Wiping it here used to make every re-login
+  // look like a brand-new device to firstSyncPrompt.js, re-asking the
+  // merge/replace question and - if "merge" was picked - re-uploading every
+  // already-synced local bookmark under a fresh syncId, duplicating the
+  // whole set. firstSyncPrompt.js's needsFirstSyncChoice() instead detects
+  // a genuinely different account signing in (via lastSyncedAccountKey)
+  // and resets this bookkeeping only then.
   await chrome.storage.local.remove([
     "accountEmail",
     "accessToken",
@@ -78,11 +104,6 @@ export async function clearAccountLocal() {
     "lastSyncAt",
     "lastSyncStatus",
     "lastSyncError",
-    "bookmarkSyncIds",
-    "bookmarkTimestamps",
-    "bookmarkTombstones",
-    "bookmarkBlobVersion",
-    "bookmarksInitializedAt",
     "historyBlobVersion",
     "extensionsBlobVersion",
   ]);

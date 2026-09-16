@@ -19,8 +19,20 @@ import { hasLocalBookmarkContent, wipeLocalBookmarksForFreshStart } from "./book
 import { getSyncBlob } from "./api.js";
 
 export async function needsFirstSyncChoice() {
-  const { bookmarksInitializedAt } = await getAllLocal();
-  if (bookmarksInitializedAt) return false;
+  const { bookmarksInitializedAt, serverUrl, accountEmail, lastSyncedAccountKey } = await getAllLocal();
+  const currentAccountKey = `${serverUrl}::${accountEmail}`;
+  if (lastSyncedAccountKey && lastSyncedAccountKey !== currentAccountKey) {
+    // This device's syncId bookkeeping was built for a different account
+    // (or the same email on a different self-hosted server) that used to be
+    // signed in here (storage.js's clearAccountLocal keeps it across a
+    // logout so re-logging into the SAME account can resume cleanly) - for
+    // a genuinely different account it's meaningless and would wrongly
+    // suppress this check, so drop it and fall through to a real
+    // first-sync evaluation for this account.
+    await setLocal({ bookmarkSyncIds: {}, bookmarkTimestamps: {}, bookmarkTombstones: {}, bookmarksInitializedAt: null });
+  } else if (bookmarksInitializedAt) {
+    return false;
+  }
   if (!(await hasLocalBookmarkContent())) return false;
   // Only worth asking if the account already has bookmarks synced from
   // elsewhere to choose between - a brand-new account (or one that's never
@@ -32,11 +44,15 @@ export async function needsFirstSyncChoice() {
 
 export async function applyFirstSyncChoice(choice) {
   if (choice === "replace") await wipeLocalBookmarksForFreshStart();
+  const { serverUrl, accountEmail } = await getAllLocal();
   // Marks the question as answered right away, independently of whether the
   // sync that follows actually succeeds - otherwise a failed/deferred first
   // sync (e.g. the alarm ticks before the user's next "Sync now") would see
   // bookmarksInitializedAt still unset and ask again, even though "merge" or
-  // "replace" was already decided. runSyncCycle() also re-sets this on every
-  // successful sync, which is harmless.
-  await setLocal({ bookmarksInitializedAt: Date.now() });
+  // "replace" was already decided. runSyncCycle() also re-sets both of these
+  // on every successful sync, which is harmless. lastSyncedAccountKey
+  // records which account the syncId bookkeeping now belongs to, so a later
+  // logout/login of this SAME account (which keeps the bookkeeping, see
+  // storage.js's clearAccountLocal) doesn't trip this question again.
+  await setLocal({ bookmarksInitializedAt: Date.now(), lastSyncedAccountKey: `${serverUrl}::${accountEmail}` });
 }
