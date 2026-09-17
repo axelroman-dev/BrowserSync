@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BrowserSync</title>
+<meta name="description" content="BrowserSync: sincroniza marcadores e historial entre navegadores Chromium usando una extensión y un servidor autoalojado con cifrado de extremo a extremo." />
+<link rel="icon" type="image/png" href="icon128.png" />
+<link rel="stylesheet" href="landing.css" />
+</head>
+<body>
+<div class="page">
+  <header>
+    <a class="brand" href="/">
+      <img src="icon128.png" alt="" width="32" height="32" />
+      <span>BrowserSync</span>
+    </a>
+    <nav>
+      <a href="/dashboard/">Iniciar sesión</a>
+      <a href="https://github.com/axelroman-dev/BrowserSync" rel="noopener" target="_blank">GitHub ↗</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h1>Sincroniza tus marcadores e historial en cualquier navegador Chromium</h1>
+      <p class="tagline">
+        Una <strong>extensión de navegador</strong> que cifra tus datos en tu dispositivo
+        y un <strong>servidor autoalojado</strong> que solo almacena blobs cifrados.
+        Sin servicios de terceros, sin telemetría.
+      </p>
+      <div class="cta">
+        <a class="button primary" href="https://github.com/axelroman-dev/BrowserSync#for-users" rel="noopener" target="_blank">Guía de instalación</a>
+        <a class="button" href="/dashboard/">Panel de cuenta</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>¿Qué es BrowserSync?</h2>
+      <p>
+        Es un sistema de sincronización de marcadores e historial pensado para navegadores
+        basados en Chromium (Chrome, Brave, Edge, Helium, ungoogled-chromium y similares).
+        Ideal si usas un fork sin Chrome Sync, o si simplemente prefieres mantener tus
+        datos de navegación en tu propio servidor en lugar de en la nube de Google,
+        Microsoft o Brave.
+      </p>
+      <p>
+        Los datos se cifran <strong>en tu navegador con una contraseña</strong> antes de
+        salir del dispositivo. El servidor solo ve ciphertext — nunca puede leer tus
+        marcadores ni tu historial.
+      </p>
+    </section>
+
+    <section class="card screenshot-card">
+      <h2>Cómo funciona</h2>
+      <p>Consta de dos piezas:</p>
+      <ul>
+        <li>
+          <strong>Extensión (Manifest V3).</strong> Se instala como una extensión
+          empaquetada ("Load unpacked") en cualquier navegador Chromium. Cifra los
+          datos localmente, los sube al servidor y los descarga en tus otros
+          dispositivos.
+        </li>
+        <li>
+          <strong>Servidor (Node.js + Express + PostgreSQL).</strong> Es este servidor
+          que estás visitando. Almacena cuentas, dispositivos vinculados y los blobs
+          cifrados, y los retransmite entre ellos. Tú lo autoalojas — corre en Docker,
+          es multiusuario y tú decides quién se registra.
+        </li>
+      </ul>
+      <img class="screenshot" src="screenshot.png" alt="Captura de pantalla de la extensión BrowserSync" />
+    </section>
+
+    <section class="card">
+      <h2>Privacidad</h2>
+      <p>
+        El servidor nunca recibe tus datos en texto plano: no tiene la clave para
+        descifrarlos. Toda la criptografía ocurre del lado del cliente, con una
+        contraseña y una frase de recuperación generadas al crear la cuenta.
+      </p>
+      <p>
+        Lee la <a href="https://github.com/axelroman-dev/BrowserSync/blob/main/PRIVACY.es.md" rel="noopener" target="_blank">explicación completa de privacidad</a>
+        para ver exactamente qué se almacena y qué no.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Código abierto</h2>
+      <p>
+        BrowserSync es software libre. El código de la extensión y del servidor vive en
+        el mismo repositorio:
+      </p>
+      <p>
+        <a href="https://github.com/axelroman-dev/BrowserSync" rel="noopener" target="_blank">
+          github.com/axelroman-dev/BrowserSync ↗
+        </a>
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <span>BrowserSync · autoalojado · cifrado de extremo a extremo</span>
+  </footer>
+</div>
+</body>
+</html>

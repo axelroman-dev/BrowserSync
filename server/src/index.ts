@@ -35,16 +35,14 @@ app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/sync", syncRouter);
 
-// Visiting the server's bare URL is far more likely to be someone looking
-// for the dashboard than for a JSON 404, so send them straight there.
-app.get("/", (_req, res) => res.redirect("/dashboard/"));
-
-// Account dashboard: a static, no-build vanilla JS page (server/public/dashboard)
-// that logs in against the same /api/auth endpoints above and shows account
-// email, linked devices, and per-data-type sync status (version/size/last
-// updated) - metadata only, since the server never holds the key to decrypt
-// the actual blobs. Served from this same origin/port so it can call the API
-// with same-origin fetch()es, no CORS configuration needed.
+// Static assets: the landing page (public/index.html, served automatically as
+// the directory index for "/") and the account dashboard (public/dashboard/).
+// The dashboard is a no-build vanilla JS page that logs in against the same
+// /api/auth endpoints above and shows account email, linked devices, and
+// per-data-type sync status (version/size/last updated) - metadata only,
+// since the server never holds the key to decrypt the actual blobs. Both
+// pages are served from this same origin/port so they can call the API with
+// same-origin fetch()es, no CORS configuration needed.
 app.use(express.static(path.join(__dirname, "../public")));
 
 // Centralized error handler so an unexpected exception never leaks a stack
