@@ -1,8 +1,8 @@
 {
-  "extName": {
-    "message": "BrowserSync"
-  },
-  "extDescription": {
-    "message": "Sincroniza marcadores e historial entre tus propios dispositivos a través de un servidor autoalojado, con cifrado de extremo a extremo del lado del cliente."
-  }
+    "extName": {
+        "message": "BrowserSync - Self-Hosted"
+    },
+    "extDescription": {
+        "message": "Sincroniza marcadores e historial entre tus propios dispositivos a través de un servidor autoalojado, con cifrado de extremo a extremo del lado del cliente."
+    }
 }
