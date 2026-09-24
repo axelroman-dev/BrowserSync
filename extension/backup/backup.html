@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Backup - BrowserSync</title>
+<link rel="stylesheet" href="backup.css" />
+</head>
+<body>
+  <header>
+    <span class="brand" data-i18n="backup.brand">BrowserSync — Backup</span>
+    <div class="header-actions">
+      <span id="account-label" class="account-label"></span>
+      <select id="language-select" class="language-select">
+        <option value="auto" data-i18n="language.auto">Auto</option>
+        <option value="en" data-i18n="language.en">English</option>
+        <option value="es" data-i18n="language.es">Español</option>
+      </select>
+    </div>
+  </header>
+
+  <main>
+    <section id="not-connected-view" hidden>
+      <p data-i18n="common.notConnected">Not connected. Open the BrowserSync toolbar icon to log in first.</p>
+    </section>
+
+    <section id="locked-view" hidden>
+      <p data-i18n="backup.lockedPrompt">Enter your password to export or restore a backup.</p>
+      <form id="unlock-form" class="unlock-row">
+        <input id="unlock-password" type="password" autocomplete="current-password" data-i18n-placeholder="common.passwordPlaceholder" placeholder="Password" />
+        <button type="submit" class="primary-button" data-i18n="common.unlock">Unlock</button>
+      </form>
+      <p id="unlock-error" class="error" hidden></p>
+    </section>
+
+    <section id="needs-repair-view" hidden>
+      <p data-i18n="passwords.needsRepairHint">This device needs to be reconnected. Open the BrowserSync toolbar icon.</p>
+    </section>
+
+    <section id="backup-view" hidden>
+      <!-- Export -->
+      <form id="export-form" class="panel" novalidate>
+        <h2 data-i18n="backup.exportTitle">Export a backup</h2>
+        <p class="hint" data-i18n="backup.exportHint">
+          Downloads one file with what you pick below, encrypted with a backup password you choose. Keep that
+          password safe: without it, nobody can open the file - not even you.
+        </p>
+
+        <fieldset class="parts">
+          <label class="checkbox-row"><input type="checkbox" name="passwords" checked /> <span data-i18n="backup.partPasswords">Passwords</span></label>
+          <label class="checkbox-row"><input type="checkbox" name="bookmarks" checked /> <span data-i18n="backup.partBookmarks">Bookmarks on this device</span></label>
+          <label class="checkbox-row"><input type="checkbox" name="settings" checked /> <span data-i18n="backup.partSettings">Settings</span></label>
+        </fieldset>
+
+        <label for="export-backup-password" data-i18n="backup.backupPasswordLabel">Backup password</label>
+        <input id="export-backup-password" type="password" autocomplete="new-password" />
+        <label for="export-backup-password-confirm" data-i18n="backup.backupPasswordConfirmLabel">Repeat backup password</label>
+        <input id="export-backup-password-confirm" type="password" autocomplete="new-password" />
+
+        <label for="export-account-password" data-i18n="backup.accountPasswordLabel">Your BrowserSync password</label>
+        <input id="export-account-password" type="password" autocomplete="current-password" />
+        <p class="hint field-hint" data-i18n="backup.accountPasswordHint">Asked every time, so an unlocked browser alone isn't enough to take your data.</p>
+
+        <p id="export-error" class="error" hidden></p>
+        <p id="export-notice" class="notice" hidden></p>
+        <button type="submit" id="export-btn" class="primary-button" data-i18n="backup.exportBtn">Download encrypted backup</button>
+      </form>
+
+      <!-- Restore -->
+      <form id="open-form" class="panel" novalidate>
+        <h2 data-i18n="backup.restoreTitle">Restore a backup</h2>
+        <p class="hint" data-i18n="backup.restoreHint">
+          Adds what's in a backup file to this account: passwords are merged (exact duplicates are skipped),
+          bookmarks go into a new folder under "Other bookmarks", and settings replace this device's.
+        </p>
+
+        <label for="restore-file" data-i18n="backup.fileLabel">Backup file</label>
+        <input id="restore-file" type="file" accept=".json,application/json" />
+        <label for="restore-backup-password" data-i18n="backup.backupPasswordLabel">Backup password</label>
+        <input id="restore-backup-password" type="password" autocomplete="off" />
+
+        <p id="open-error" class="error" hidden></p>
+        <p id="restore-result" class="notice" hidden></p>
+        <button type="submit" id="open-btn" class="secondary-button" data-i18n="backup.openBtn">Open backup</button>
+      </form>
+
+      <form id="restore-form" class="panel" hidden>
+        <h2 data-i18n="backup.chooseTitle">Choose what to restore</h2>
+        <p id="restore-summary" class="hint"></p>
+        <fieldset class="parts">
+          <label class="checkbox-row" id="restore-passwords-row"><input type="checkbox" name="passwords" checked /> <span id="restore-passwords-label"></span></label>
+          <label class="checkbox-row" id="restore-bookmarks-row"><input type="checkbox" name="bookmarks" checked /> <span id="restore-bookmarks-label"></span></label>
+          <label class="checkbox-row" id="restore-settings-row"><input type="checkbox" name="settings" checked /> <span data-i18n="backup.partSettings">Settings</span></label>
+        </fieldset>
+        <p id="restore-error" class="error" hidden></p>
+        <div class="actions">
+          <button type="button" id="restore-cancel-btn" class="secondary-button" data-i18n="common.cancel">Cancel</button>
+          <button type="submit" id="restore-btn" class="primary-button" data-i18n="backup.restoreBtn">Restore</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <script type="module" src="backup.js"></script>
+</body>
+</html>

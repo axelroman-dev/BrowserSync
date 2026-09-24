@@ -7,6 +7,7 @@ import * as auth from "../lib/auth.js";
 import { getAllLocal, setLocal } from "../lib/storage.js";
 import { generatePassword } from "../lib/crypto.js";
 import { siteIconElement } from "../lib/favicon.js";
+import { entriesToCsv, downloadFile, datedFilename } from "../lib/backup.js";
 import { listEntries, saveEntry, deleteEntry, importEntries, parseCsv } from "../lib/passwordVault.js";
 import { HOST_ORIGINS } from "../lib/pageCredentials.js";
 import { initI18n, t } from "../lib/i18n.js";
@@ -357,6 +358,40 @@ document.getElementById("inpage-toggle").addEventListener("click", () => {
     setInPageEnabled(true);
   } else if (confirm(t("passwords.confirmDisableInPage"))) {
     setInPageEnabled(false);
+  }
+});
+
+// CSV export: plain text by nature, so it's behind a warning and a fresh
+// check of the account password (see auth.verifyPassword).
+const exportDialog = document.getElementById("export-dialog");
+
+document.getElementById("export-btn").addEventListener("click", () => {
+  document.getElementById("export-password").value = "";
+  showError(document.getElementById("export-error"), "");
+  exportDialog.showModal();
+  document.getElementById("export-password").focus();
+});
+
+document.getElementById("export-cancel-btn").addEventListener("click", () => exportDialog.close());
+exportDialog.addEventListener("close", () => (document.getElementById("export-password").value = ""));
+
+document.getElementById("export-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errorEl = document.getElementById("export-error");
+  const password = document.getElementById("export-password").value;
+  if (!password) return showError(errorEl, t("common.enterPassword"));
+  const btn = document.getElementById("export-confirm-btn");
+  btn.disabled = true;
+  try {
+    await auth.verifyPassword(password);
+    const current = await listEntries(await requireKey());
+    downloadFile(datedFilename("browsersync-passwords", "csv"), entriesToCsv(current), "text/csv");
+    exportDialog.close();
+    showError(document.getElementById("vault-notice"), t("passwords.exportDone", { count: String(current.length) }));
+  } catch (err) {
+    showError(errorEl, err.message || t("common.somethingWentWrong"));
+  } finally {
+    btn.disabled = false;
   }
 });
 

@@ -191,7 +191,4 @@ input[type="email"], input[type="password"], input[type="text"], input[type="num
 .indented { display: flex; flex-direction: column; gap: 4px; padding-left: 20px; }
 .hint.block { display: block; font-weight: normal; }
 
-hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
-.danger-zone { margin-top: 16px; border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
-.danger-zone summary { cursor: pointer; color: var(--danger); font-size: 12px; font-weight: 600; }
