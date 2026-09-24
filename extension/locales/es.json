@@ -241,7 +241,11 @@
     "exportDone": "Se exportaron {{count}} contraseñas. Borra el archivo CSV en cuanto lo hayas importado.",
     "backupTitle": "Copia de seguridad completa",
     "backupHint": "Exporta o restaura un archivo cifrado con tus contraseñas, marcadores y ajustes.",
-    "backupOpen": "Abrir"
+    "backupOpen": "Abrir",
+    "neverTitle": "Nunca guardar en estos sitios",
+    "neverHint": "Sitios donde elegiste \"Nunca\" en el aviso de guardar. Las contraseñas guardadas se siguen sugiriendo ahí.",
+    "neverEmpty": "Ninguno todavía.",
+    "neverRemove": "Quitar"
   },
   "inPage": {
     "manage": "Gestionar contraseñas",
@@ -252,7 +256,9 @@
     "update": "Actualizar",
     "notNow": "Ahora no",
     "saved": "Guardada ✓",
-    "saveFailed": "No se pudo guardar. ¿Está BrowserSync desbloqueado?"
+    "saveFailed": "No se pudo guardar. ¿Está BrowserSync desbloqueado?",
+    "neverForSite": "Nunca",
+    "neverForHost": "No volver a ofrecer guardar contraseñas en {{host}}"
   },
   "backup": {
     "brand": "BrowserSync — Copia de seguridad",

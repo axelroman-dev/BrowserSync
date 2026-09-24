@@ -134,6 +134,13 @@ async function renderSave() {
       document.getElementById("save-username").textContent = t("inPage.saveFailed");
     }
   });
+  const neverBtn = document.getElementById("never-btn");
+  neverBtn.textContent = t("inPage.neverForSite");
+  neverBtn.title = t("inPage.neverForHost", { host: pending.host });
+  onSafeClick(neverBtn, async () => {
+    await send({ type: "frame-never-pending" });
+    close();
+  });
   onSafeClick(document.getElementById("dismiss-btn"), async () => {
     await send({ type: "frame-dismiss-pending" });
     close();
