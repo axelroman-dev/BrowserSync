@@ -63,6 +63,35 @@
     return Boolean(passwordField) && findUsernameField(passwordField) === el;
   }
 
+  // Two-step verification code fields. autocomplete="one-time-code" is the
+  // standard marker; otherwise the field's name/id/placeholder/label has to
+  // look like a code field AND its length has to fit a code, so a promo or
+  // ZIP code box isn't mistaken for one.
+  const OTP_TYPES = new Set(["text", "tel", "number"]);
+  const OTP_HINTS = /one[-_ ]?time|\botp\b|totp|2fa|mfa|two[-_ ]?factor|2[-_ ]?step|verification|verify|auth(entication|enticator)?[-_ ]?code|security[-_ ]?code|passcode/i;
+
+  function isOtpField(el) {
+    if (!(el instanceof HTMLInputElement) || !isVisible(el) || !OTP_TYPES.has(el.type)) return false;
+    if (/\bone-time-code\b/.test(el.autocomplete)) return true;
+    if (el.maxLength === 1) return digitBoxes(el).length >= 4;
+    const hints = [el.name, el.id, el.placeholder, el.getAttribute("aria-label"), el.labels?.[0]?.textContent].join(" ");
+    return OTP_HINTS.test(hints) && (el.maxLength === -1 || (el.maxLength >= 4 && el.maxLength <= 10));
+  }
+
+  /** Codes split into one box per digit: the single-character inputs around `field`, in order. */
+  function digitBoxes(field) {
+    if (field.maxLength !== 1) return [];
+    const scope = field.form ?? field.parentElement?.parentElement ?? document;
+    return [...scope.querySelectorAll("input")].filter((input) => input.maxLength === 1 && isVisible(input));
+  }
+
+  /** "login" (username/password), "otp" (verification code), or null. */
+  function fieldKind(el) {
+    if (isLoginField(el)) return "login";
+    if (isOtpField(el)) return "otp";
+    return null;
+  }
+
   /** The username/password pair a fill should target, starting from whichever of them the menu was opened on. */
   function fieldPair(field) {
     if (field.type === "password") return { usernameField: findUsernameField(field), passwordField: field };
@@ -73,6 +102,7 @@
   // One icon, shown only inside the login field that has focus.
 
   let iconField = null;
+  let iconKind = "login";
   const iconHost = createIcon();
 
   function createIcon() {
@@ -97,14 +127,15 @@
       event.stopPropagation();
       if (!event.isTrusted || !iconField) return;
       if (menu?.field === iconField) closeMenu();
-      else openMenu(iconField);
+      else openMenu(iconField, iconKind);
     });
     shadow.appendChild(button);
     return host;
   }
 
-  function showIcon(field) {
+  function showIcon(field, kind) {
     iconField = field;
+    iconKind = kind;
     // Appended lazily (and re-appended if the page wiped the DOM) so pages
     // without a login form never get our element at all.
     if (!iconHost.isConnected) document.documentElement.appendChild(iconHost);
@@ -128,7 +159,8 @@
   document.addEventListener(
     "focusin",
     (event) => {
-      if (isLoginField(event.target)) showIcon(event.target);
+      const kind = fieldKind(event.target);
+      if (kind) showIcon(event.target, kind);
     },
     true,
   );
@@ -139,7 +171,7 @@
       // password fields just moves the icon (focusin above) - anything else
       // hides it. Clicking the icon itself never takes the focus.
       setTimeout(() => {
-        if (!isLoginField(document.activeElement)) hideIcon();
+        if (!fieldKind(document.activeElement)) hideIcon();
       }, 0);
     },
     true,
@@ -160,12 +192,12 @@
 
   // ---- Extension iframes (menu + save prompt) ---------------------------
 
-  function createFrame(mode, width, height) {
+  function createFrame(mode, width, height, kind = "login") {
     const host = document.createElement("browsersync-frame");
     host.style.cssText = `position:absolute;z-index:${Z_TOP};margin:0;padding:0;border:0;opacity:1;transform:none;filter:none;`;
     const shadow = host.attachShadow({ mode: "closed" });
     const iframe = document.createElement("iframe");
-    iframe.src = `${FRAME_URL}?mode=${mode}`;
+    iframe.src = `${FRAME_URL}?mode=${mode}&kind=${kind}`;
     iframe.style.cssText =
       `all:initial;display:block;width:${width}px;height:${height}px;border:1px solid #d7dbe0;` +
       "border-radius:10px;box-shadow:0 6px 24px rgb(0 0 0 / .18);";
@@ -175,9 +207,9 @@
     return host;
   }
 
-  function openMenu(field) {
+  function openMenu(field, kind = "login") {
     closeMenu();
-    menu = { host: createFrame("suggest", 300, 190), field };
+    menu = { host: createFrame("suggest", 300, 190, kind), field };
     positionMenu();
   }
 
@@ -241,6 +273,16 @@
       if (usernameField && message.username) setFieldValue(usernameField, message.username);
       // Absent on "email first" logins; that step only needs the username.
       if (passwordField) setFieldValue(passwordField, message.password);
+    } else if (message?.type === "bs-fill-otp") {
+      const field = menu?.field;
+      closeMenu();
+      if (message.origin !== location.origin || !field?.isConnected) return;
+      const boxes = digitBoxes(field);
+      if (boxes.length >= message.code.length) {
+        [...message.code].forEach((digit, i) => setFieldValue(boxes[i], digit));
+      } else {
+        setFieldValue(field, message.code);
+      }
     } else if (message?.type === "bs-close") {
       if (message.target === "save") closeSavePrompt();
       else closeMenu();
@@ -308,6 +350,7 @@
   }
 
   // A login field focused before this script ran (autofocus) gets its icon too.
-  if (isLoginField(document.activeElement)) showIcon(document.activeElement);
+  const initialKind = fieldKind(document.activeElement);
+  if (initialKind) showIcon(document.activeElement, initialKind);
   checkPendingSave();
 })();

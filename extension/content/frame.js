@@ -10,7 +10,10 @@ import { siteIconElement } from "../lib/favicon.js";
 
 await initI18n();
 
-const mode = new URLSearchParams(location.search).get("mode") === "save" ? "save" : "suggest";
+const params = new URLSearchParams(location.search);
+const mode = params.get("mode") === "save" ? "save" : "suggest";
+// "otp": opened from a verification-code field - lists entries with a 2FA secret and fills the current code.
+const kind = params.get("kind") === "otp" ? "otp" : "login";
 const openedAt = performance.now();
 const MIN_VISIBLE_MS = 500;
 
@@ -78,7 +81,7 @@ async function renderSuggest() {
   const message = document.getElementById("suggest-message");
   const unlockBtn = document.getElementById("unlock-btn");
 
-  const response = await send({ type: "frame-get-suggestions" });
+  const response = await send({ type: "frame-get-suggestions", kind });
   if (response?.locked) {
     message.textContent = t("inPage.locked");
     message.hidden = false;
@@ -87,7 +90,7 @@ async function renderSuggest() {
   }
   const suggestions = response?.suggestions ?? [];
   if (!suggestions.length) {
-    message.textContent = t("inPage.noneForSite", { site: hostOf(response?.origin) });
+    message.textContent = t(kind === "otp" ? "inPage.noCodesForSite" : "inPage.noneForSite", { site: hostOf(response?.origin) });
     message.hidden = false;
     return;
   }
@@ -100,10 +103,10 @@ async function renderSuggest() {
     text.className = "suggestion-text";
     text.textContent = suggestion.username || t("passwords.noUsername");
     const site = document.createElement("small");
-    site.textContent = suggestion.site || hostOf(response.origin);
+    site.textContent = kind === "otp" ? t("inPage.codeFor", { site: suggestion.site || hostOf(response.origin) }) : suggestion.site || hostOf(response.origin);
     text.appendChild(site);
     btn.appendChild(text);
-    onSafeClick(btn, () => send({ type: "frame-fill", id: suggestion.id }));
+    onSafeClick(btn, () => send({ type: "frame-fill", id: suggestion.id, kind }));
     list.appendChild(btn);
   }
 }

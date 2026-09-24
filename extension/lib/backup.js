@@ -43,9 +43,16 @@ function csvField(value) {
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-/** Chrome's own export columns, which Chrome, Edge, Firefox, Bitwarden and this vault's importer all read. */
+/**
+ * Chrome's own export columns, which Chrome, Edge, Firefox, Bitwarden and
+ * this vault's importer all read - plus a trailing "totp" column only when
+ * some entry has a 2FA secret, so a plain export stays byte-for-byte
+ * Chrome's format.
+ */
 export function entriesToCsv(entries) {
-  const lines = [["name", "url", "username", "password", "note"].join(",")];
+  const withTotp = entries.some((entry) => entry.totp);
+  const header = ["name", "url", "username", "password", "note"];
+  const lines = [(withTotp ? [...header, "totp"] : header).join(",")];
   for (const entry of entries) {
     let name = entry.url;
     try {
@@ -53,7 +60,9 @@ export function entriesToCsv(entries) {
     } catch {
       // Non-web URL (e.g. android://) - keep it as the name.
     }
-    lines.push([name, entry.url, entry.username, entry.password, entry.notes].map(csvField).join(","));
+    const fields = [name, entry.url, entry.username, entry.password, entry.notes];
+    if (withTotp) fields.push(entry.totp ?? "");
+    lines.push(fields.map(csvField).join(","));
   }
   return `${lines.join("\r\n")}\r\n`;
 }
@@ -86,13 +95,14 @@ function simplifyBookmarks(nodes) {
 export async function collectBackup(key, include) {
   const data = {};
   if (include.passwords) {
-    data.passwords = (await listEntries(key)).map(({ url, username, password, notes, match, favicon }) => ({
+    data.passwords = (await listEntries(key)).map(({ url, username, password, notes, match, favicon, totp }) => ({
       url,
       username,
       password,
       notes,
       match,
       favicon,
+      totp,
     }));
   }
   if (include.bookmarks) {

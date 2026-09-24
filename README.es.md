@@ -278,6 +278,11 @@ En la pestaña que se abrió (o en cualquier momento después, haciendo clic en 
   Nota: cerrar sesión elimina la copia de la bóveda de este dispositivo (vuelve desde el
   servidor en el siguiente inicio de sesión), así que el popup te avisa si hay cambios
   sin sincronizar.
+- **Códigos de verificación (TOTP):** edita una contraseña guardada y pega la clave
+  2FA o el enlace `otpauth://` que te da la web. La página de contraseñas muestra el
+  código actual con su cuenta atrás, y el icono de llave ofrece rellenarlo en el campo
+  del código de la web. Los CSV exportados de Bitwarden traen sus claves TOTP. Ten en
+  cuenta que quien abra tu bóveda tendría entonces los dos factores.
 - **Exportar / importar:** **Exportar CSV** en la página de contraseñas te da un
   archivo en texto plano para llevar tus contraseñas a otro gestor (bórralo después de
   importarlo). Para una copia segura, en los ajustes del popup → **"Exportar / importar
