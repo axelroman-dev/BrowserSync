@@ -8,6 +8,7 @@ import { getAllLocal, setLocal } from "../lib/storage.js";
 import { generatePassword } from "../lib/crypto.js";
 import { siteIconElement } from "../lib/favicon.js";
 import { entriesToCsv, downloadFile, datedFilename } from "../lib/backup.js";
+import { getNeverSaveHosts, removeNeverSaveHost } from "../lib/neverSave.js";
 import { listEntries, saveEntry, deleteEntry, importEntries, parseCsv } from "../lib/passwordVault.js";
 import { HOST_ORIGINS } from "../lib/pageCredentials.js";
 import { initI18n, t } from "../lib/i18n.js";
@@ -302,6 +303,28 @@ function renderEntryMatchHint() {
 }
 fields.match.addEventListener("change", renderEntryMatchHint);
 
+async function renderNeverList() {
+  const hosts = await getNeverSaveHosts();
+  // Built first and swapped in with one replaceChildren(): a remove click
+  // and the storage listener both re-render, and appending into a list the
+  // other call just cleared would show every row twice.
+  const items = hosts.map((host) => {
+    const item = document.createElement("li");
+    const name = document.createElement("span");
+    name.className = "host";
+    name.textContent = host;
+    item.append(name, rowButton(t("passwords.neverRemove"), () => removeNeverSaveHost(host)));
+    return item;
+  });
+  if (!items.length) {
+    const empty = document.createElement("li");
+    empty.className = "empty";
+    empty.textContent = t("passwords.neverEmpty");
+    items.push(empty);
+  }
+  document.getElementById("never-list").replaceChildren(...items);
+}
+
 async function renderMatchDefault() {
   ({ passwordMatchDefault: matchDefault } = await getAllLocal());
   const select = document.getElementById("match-default-select");
@@ -452,6 +475,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
     init();
   } else if (area === "session" && "encryptionKeyRaw" in changes) {
     init();
+  } else if (area === "local" && "passwordNeverSave" in changes) {
+    if (!views.vault.hidden) renderNeverList();
   } else if (area === "local" && ("passwordVault" in changes || "passwordsSyncError" in changes)) {
     if (!views.vault.hidden) loadEntries();
   }
@@ -471,7 +496,7 @@ async function init() {
     return;
   }
   showView("vault");
-  await Promise.all([loadEntries(), renderInPageToggle(), renderMatchDefault()]);
+  await Promise.all([loadEntries(), renderInPageToggle(), renderMatchDefault(), renderNeverList()]);
   // Pull whatever other devices saved since the last background sync.
   requestSync();
 }

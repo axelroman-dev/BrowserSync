@@ -20,6 +20,7 @@ import { getActiveKey } from "./auth.js";
 import { getAllLocal } from "./storage.js";
 import { listEntries, saveEntry, syncPasswords } from "./passwordVault.js";
 import { entryMatchesUrl, loadPublicSuffixList } from "./urlMatch.js";
+import { isNeverSaveHost, addNeverSaveHost } from "./neverSave.js";
 
 export const HOST_ORIGINS = ["http://*/*", "https://*/*"];
 const CONTENT_SCRIPT_ID = "browsersync-credentials";
@@ -119,6 +120,9 @@ async function handleCapture(message, sender) {
   const password = typeof message.password === "string" ? message.password : "";
   const username = typeof message.username === "string" ? message.username.trim() : "";
   if (!origin || !password) return { ok: false };
+  // The user chose "Never for this site" here before: don't even keep the
+  // captured password around.
+  if (await isNeverSaveHost(new URL(origin).hostname)) return { ok: false };
   const key = await getActiveKey();
   // Locked: nothing to compare against or encrypt with, so no prompt.
   if (!key) return { ok: false };
@@ -193,7 +197,22 @@ async function handleFill(message, sender) {
 async function handleGetPending(sender) {
   const pending = await getPending(sender.tab.id);
   if (!pending) return { pending: null };
-  return { pending: { origin: pending.origin, username: pending.username, isUpdate: Boolean(pending.updateId) } };
+  return {
+    pending: {
+      origin: pending.origin,
+      host: new URL(pending.origin).hostname,
+      username: pending.username,
+      isUpdate: Boolean(pending.updateId),
+    },
+  };
+}
+
+/** "Never for this site": remembers the pending login's host and drops the captured password. */
+async function handleNeverPending(sender) {
+  const pending = await getPending(sender.tab.id);
+  if (pending) await addNeverSaveHost(new URL(pending.origin).hostname);
+  await clearPending(sender.tab.id);
+  return { ok: true };
 }
 
 async function handleSavePending(sender) {
@@ -237,6 +256,8 @@ export function handleCredentialMessage(message, sender) {
       return isFromOurFrame(sender) ? handleGetPending(sender) : null;
     case "frame-save-pending":
       return isFromOurFrame(sender) ? handleSavePending(sender) : null;
+    case "frame-never-pending":
+      return isFromOurFrame(sender) ? handleNeverPending(sender) : null;
     case "frame-dismiss-pending":
       return isFromOurFrame(sender) ? clearPending(sender.tab.id).then(() => ({ ok: true })) : null;
     case "frame-close":

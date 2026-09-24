@@ -241,7 +241,11 @@
     "exportDone": "Exported {{count}} passwords. Delete the CSV file once you've imported it.",
     "backupTitle": "Full backup",
     "backupHint": "Export or restore an encrypted file with your passwords, bookmarks and settings.",
-    "backupOpen": "Open"
+    "backupOpen": "Open",
+    "neverTitle": "Never save on these sites",
+    "neverHint": "Sites where you chose \"Never\" in the save prompt. Saved passwords are still suggested there.",
+    "neverEmpty": "None yet.",
+    "neverRemove": "Remove"
   },
   "inPage": {
     "manage": "Manage passwords",
@@ -252,7 +256,9 @@
     "update": "Update",
     "notNow": "Not now",
     "saved": "Saved ✓",
-    "saveFailed": "Could not save. Is BrowserSync unlocked?"
+    "saveFailed": "Could not save. Is BrowserSync unlocked?",
+    "neverForSite": "Never",
+    "neverForHost": "Never offer to save passwords on {{host}}"
   },
   "backup": {
     "brand": "BrowserSync — Backup",

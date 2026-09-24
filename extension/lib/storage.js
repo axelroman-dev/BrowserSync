@@ -82,6 +82,9 @@ const LOCAL_DEFAULTS = {
   // How saved passwords match page URLs when an entry doesn't pick its own
   // mode - see lib/urlMatch.js.
   passwordMatchDefault: "domain",
+  // Hostnames where the save prompt is never shown - see neverSave.js.
+  // Device preference, so it survives logout.
+  passwordNeverSave: [],
 };
 
 export async function getLocal(keys) {
