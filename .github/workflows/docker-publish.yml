@@ -38,7 +38,14 @@ jobs:
   # below - a broken build shows up in ~30s instead of after a multi-minute
   # buildx run, and it also runs on PRs from forks that can't see the Docker
   # Hub secrets the publish job needs.
+  #
+  # Skipped for the push of a merged release-please PR: release-please.yml
+  # publishes that same commit (with its version tags) by calling this
+  # workflow, so building it here too would just do it twice. That call
+  # arrives with the same push event and commit message, which is why
+  # `inputs.release` has to be checked - it's only set by that call.
   typecheck:
+    if: "${{ !(github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.release && startsWith(github.event.head_commit.message, 'chore(main): release')) }}"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -146,7 +153,9 @@ jobs:
   # typecheck/docker failed (the normal "needs" default would just skip it).
   notify-telegram:
     needs: [typecheck, docker, dockerhub-description]
-    if: always() && github.event_name != 'pull_request'
+    # Same release-commit skip as `typecheck` above - otherwise the skipped
+    # jobs would be reported as a failed run.
+    if: "${{ always() && github.event_name != 'pull_request' && !(github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.release && startsWith(github.event.head_commit.message, 'chore(main): release')) }}"
     runs-on: ubuntu-latest
     steps:
       - name: Work out overall pass/fail
