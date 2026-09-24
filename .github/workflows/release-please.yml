@@ -1,0 +1,43 @@
+name: Release
+
+# Keeps an open "release X.Y.Z" pull request up to date on every push to
+# main: it bumps the version in extension/manifest.json, server/package.json
+# and server/package-lock.json and writes CHANGELOG.md, deciding the new
+# number from the conventional-commit messages since the last release
+# (feat -> minor, fix -> patch, "!"/BREAKING CHANGE -> major). Merging that
+# PR creates the vX.Y.Z tag and GitHub release, then publishes the matching
+# server image. Configured in release-please-config.json.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # A tag pushed with the workflow's own GITHUB_TOKEN doesn't trigger other
+  # workflows, so docker-publish.yml's `tags: v*.*.*` trigger never sees the
+  # tag created above - call it directly instead, passing the version for
+  # the image's semver tags.
+  publish-server-image:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      release: true
+      version: ${{ needs.release-please.outputs.version }}
+    secrets: inherit
