@@ -245,7 +245,13 @@
     "neverTitle": "Nunca guardar en estos sitios",
     "neverHint": "Sitios donde elegiste \"Nunca\" en el aviso de guardar. Las contraseñas guardadas se siguen sugiriendo ahí.",
     "neverEmpty": "Ninguno todavía.",
-    "neverRemove": "Quitar"
+    "neverRemove": "Quitar",
+    "totpLabel": "Verificación en dos pasos (TOTP)",
+    "totpPlaceholder": "Clave secreta o enlace otpauth://",
+    "totpHint": "Opcional. Pega la clave o el enlace otpauth:// que te da la web al activar la verificación en dos pasos. Es cómodo, pero quien abra tu bóveda tendría los dos factores.",
+    "totpInvalid": "clave 2FA no válida",
+    "totpInvalidInput": "Esa clave de verificación en dos pasos no es válida. Pega la clave (letras A-Z y números 2-7) o el enlace otpauth:// completo.",
+    "copyCode": "Copiar código"
   },
   "inPage": {
     "manage": "Gestionar contraseñas",
@@ -258,7 +264,9 @@
     "saved": "Guardada ✓",
     "saveFailed": "No se pudo guardar. ¿Está BrowserSync desbloqueado?",
     "neverForSite": "Nunca",
-    "neverForHost": "No volver a ofrecer guardar contraseñas en {{host}}"
+    "neverForHost": "No volver a ofrecer guardar contraseñas en {{host}}",
+    "noCodesForSite": "No hay códigos de verificación guardados para {{site}}.",
+    "codeFor": "Código 2FA · {{site}}"
   },
   "backup": {
     "brand": "BrowserSync — Copia de seguridad",

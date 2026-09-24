@@ -254,6 +254,11 @@ On the tab that opened (or any time later, by clicking the toolbar icon):
   to host, "starts with" or exact-URL matching globally or per password.
   Note: logging out removes this device's copy of the vault (it comes back from the
   server on the next login), so the popup warns you if there are unsynced changes.
+- **Two-step codes (TOTP):** edit a saved password and paste the 2FA key or
+  `otpauth://` link a site gives you. The vault page then shows the current code
+  with its countdown, and the key icon offers to fill it into the site's
+  verification-code field. Bitwarden CSV exports bring their TOTP keys along. Note
+  that whoever opens your vault then has both factors.
 - **Export / import:** the password page's **Export CSV** gives you a plain-text file
   for moving your passwords to another manager (delete it after importing). For a
   safe copy, the popup's settings → **"Export / import a backup"** downloads one file

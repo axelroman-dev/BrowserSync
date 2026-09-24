@@ -702,7 +702,8 @@ function renderPasswords(container, payload, query) {
     .sort((a, b) => hostOf(a.url).localeCompare(hostOf(b.url)));
   if (!entries.length) return emptyHint(container, query ? "dashboard.noMatches" : "dashboard.nothingSyncedForType");
   for (const entry of entries) {
-    const row = dataRow({ title: hostOf(entry.url), href: /^https?:/.test(entry.url) ? entry.url : null, detail: entry.username || "—" });
+    const detail = `${entry.username || "—"}${entry.totp ? " · 2FA" : ""}`;
+    const row = dataRow({ title: hostOf(entry.url), href: /^https?:/.test(entry.url) ? entry.url : null, detail });
     row.prepend(siteIcon(entry));
     const main = row.querySelector(".data-row-main");
     const secret = document.createElement("span");
@@ -814,10 +815,16 @@ function csvField(value) {
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
+// Same columns as the extension's entriesToCsv(): Chrome's, plus "totp"
+// only when some entry has a 2FA secret.
 function passwordsToCsv(entries) {
-  const lines = [["name", "url", "username", "password", "note"].join(",")];
+  const withTotp = entries.some((entry) => entry.totp);
+  const header = ["name", "url", "username", "password", "note"];
+  const lines = [(withTotp ? [...header, "totp"] : header).join(",")];
   for (const entry of entries) {
-    lines.push([hostOf(entry.url), entry.url, entry.username, entry.password, entry.notes].map(csvField).join(","));
+    const fields = [hostOf(entry.url), entry.url, entry.username, entry.password, entry.notes];
+    if (withTotp) fields.push(entry.totp ?? "");
+    lines.push(fields.map(csvField).join(","));
   }
   return `${lines.join("\r\n")}\r\n`;
 }
@@ -919,13 +926,14 @@ async function buildExport(key, include) {
   }
   const data = {};
   if (include.passwords) {
-    data.passwords = (await livePasswords(key)).map(({ url, username, password, notes, match, favicon }) => ({
+    data.passwords = (await livePasswords(key)).map(({ url, username, password, notes, match, favicon, totp }) => ({
       url,
       username,
       password,
       notes,
       match,
       favicon,
+      totp,
     }));
   }
   if (include.bookmarks) data.bookmarks = await bookmarksForBackup(key);

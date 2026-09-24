@@ -7,6 +7,7 @@ import * as auth from "../lib/auth.js";
 import { getAllLocal, setLocal } from "../lib/storage.js";
 import { generatePassword } from "../lib/crypto.js";
 import { siteIconElement } from "../lib/favicon.js";
+import { parseTotp, generateTotp, formatTotp } from "../lib/totp.js";
 import { entriesToCsv, downloadFile, datedFilename } from "../lib/backup.js";
 import { getNeverSaveHosts, removeNeverSaveHost } from "../lib/neverSave.js";
 import { listEntries, saveEntry, deleteEntry, importEntries, parseCsv } from "../lib/passwordVault.js";
@@ -33,6 +34,7 @@ const fields = {
   match: document.getElementById("entry-match"),
   username: document.getElementById("entry-username"),
   password: document.getElementById("entry-password"),
+  totp: document.getElementById("entry-totp"),
   notes: document.getElementById("entry-notes"),
 };
 
@@ -119,7 +121,10 @@ function renderEntries() {
     container.appendChild(empty);
     return;
   }
+  totpConfigs.clear();
   for (const entry of visible) container.appendChild(renderEntryRow(entry));
+  // Fill codes in right away instead of waiting for the next tick.
+  refreshTotpCodes();
 }
 
 function rowButton(label, onClick, className = "row-button") {
@@ -130,6 +135,40 @@ function rowButton(label, onClick, className = "row-button") {
   btn.addEventListener("click", onClick);
   return btn;
 }
+
+// ---- Live TOTP codes ---------------------------------------------------------
+// Rows with a 2FA secret show the current code and its countdown; one
+// ticker refreshes every visible code once a second.
+const totpConfigs = new Map(); // entry id -> parsed config (see totp.js)
+
+function renderTotpLine(entry) {
+  const line = document.createElement("div");
+  line.className = "entry-totp";
+  line.dataset.entryId = entry.id;
+  const code = document.createElement("span");
+  code.className = "totp-code";
+  code.textContent = "••• •••";
+  const timer = document.createElement("span");
+  timer.className = "totp-timer";
+  line.append(code, timer);
+  const config = parseTotp(entry.totp);
+  if (config) totpConfigs.set(entry.id, config);
+  else code.textContent = t("passwords.totpInvalid");
+  return line;
+}
+
+async function refreshTotpCodes() {
+  for (const line of document.querySelectorAll(".entry-totp[data-entry-id]")) {
+    const config = totpConfigs.get(line.dataset.entryId);
+    if (!config) continue;
+    const { code, remaining } = await generateTotp(config);
+    line.querySelector(".totp-code").textContent = formatTotp(code);
+    line.querySelector(".totp-timer").textContent = `${remaining}s`;
+    line.classList.toggle("expiring", remaining <= 5);
+  }
+}
+
+setInterval(refreshTotpCodes, 1000);
 
 function renderEntryRow(entry) {
   const row = document.createElement("div");
@@ -171,6 +210,7 @@ function renderEntryRow(entry) {
   secret.className = "entry-secret";
   secret.textContent = revealed ? entry.password : "••••••••••";
   info.appendChild(secret);
+  if (entry.totp) info.appendChild(renderTotpLine(entry));
 
   row.appendChild(info);
 
@@ -180,6 +220,14 @@ function renderEntryRow(entry) {
     actions.appendChild(rowButton(t("passwords.copyUsername"), (e) => copyToClipboard(entry.username, e.target, false)));
   }
   actions.appendChild(rowButton(t("passwords.copyPassword"), (e) => copyToClipboard(entry.password, e.target, true)));
+  if (entry.totp) {
+    actions.appendChild(
+      rowButton(t("passwords.copyCode"), async (e) => {
+        const config = parseTotp(entry.totp);
+        if (config) copyToClipboard((await generateTotp(config)).code, e.target, false);
+      }),
+    );
+  }
   actions.appendChild(
     rowButton(revealed ? t("passwords.hide") : t("passwords.show"), () => {
       if (revealed) revealedIds.delete(entry.id);
@@ -252,6 +300,7 @@ function openDialog(entry = null) {
   fields.username.value = entry?.username ?? "";
   fields.password.value = entry?.password ?? "";
   fields.notes.value = entry?.notes ?? "";
+  fields.totp.value = entry?.totp ?? "";
   setPasswordVisible(false);
   showError(document.getElementById("entry-error"), "");
   dialog.showModal();
@@ -281,6 +330,10 @@ document.getElementById("entry-form").addEventListener("submit", async (e) => {
     showError(errorEl, t("passwords.siteAndPasswordRequired"));
     return;
   }
+  if (fields.totp.value.trim() && !parseTotp(fields.totp.value)) {
+    showError(errorEl, t("passwords.totpInvalidInput"));
+    return;
+  }
   const saveBtn = document.getElementById("entry-save-btn");
   saveBtn.disabled = true;
   const ok = await runMutation((key) =>
@@ -291,6 +344,7 @@ document.getElementById("entry-form").addEventListener("submit", async (e) => {
       username: fields.username.value.trim(),
       password: fields.password.value,
       notes: fields.notes.value,
+      totp: fields.totp.value,
     }),
   );
   saveBtn.disabled = false;

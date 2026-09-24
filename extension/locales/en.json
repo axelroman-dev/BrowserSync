@@ -245,7 +245,13 @@
     "neverTitle": "Never save on these sites",
     "neverHint": "Sites where you chose \"Never\" in the save prompt. Saved passwords are still suggested there.",
     "neverEmpty": "None yet.",
-    "neverRemove": "Remove"
+    "neverRemove": "Remove",
+    "totpLabel": "Two-step verification (TOTP)",
+    "totpPlaceholder": "Secret key or otpauth:// link",
+    "totpHint": "Optional. Paste the key or otpauth:// link the site gives you when you turn on two-step verification. Handy, but whoever opens your vault would then have both factors.",
+    "totpInvalid": "invalid 2FA key",
+    "totpInvalidInput": "That two-step verification key isn't valid. Paste the key (letters A-Z and digits 2-7) or the full otpauth:// link.",
+    "copyCode": "Copy code"
   },
   "inPage": {
     "manage": "Manage passwords",
@@ -258,7 +264,9 @@
     "saved": "Saved ✓",
     "saveFailed": "Could not save. Is BrowserSync unlocked?",
     "neverForSite": "Never",
-    "neverForHost": "Never offer to save passwords on {{host}}"
+    "neverForHost": "Never offer to save passwords on {{host}}",
+    "noCodesForSite": "No two-step codes saved for {{site}}.",
+    "codeFor": "2FA code · {{site}}"
   },
   "backup": {
     "brand": "BrowserSync — Backup",

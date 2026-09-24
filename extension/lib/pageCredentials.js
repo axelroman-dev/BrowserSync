@@ -21,6 +21,7 @@ import { getAllLocal } from "./storage.js";
 import { listEntries, saveEntry, syncPasswords } from "./passwordVault.js";
 import { entryMatchesUrl, loadPublicSuffixList } from "./urlMatch.js";
 import { isNeverSaveHost, addNeverSaveHost } from "./neverSave.js";
+import { parseTotp, generateTotp } from "./totp.js";
 
 export const HOST_ORIGINS = ["http://*/*", "https://*/*"];
 const CONTENT_SCRIPT_ID = "browsersync-credentials";
@@ -157,11 +158,16 @@ async function handleCheckPending(sender) {
   return { show: true };
 }
 
-async function handleGetSuggestions(sender) {
+/**
+ * `kind` is "login" (username/password field) or "otp" (verification code
+ * field - only entries with a usable 2FA secret are offered there).
+ */
+async function handleGetSuggestions(message, sender) {
   const origin = webOrigin(sender.tab.url);
   const key = await getActiveKey();
   if (!key) return { locked: true, origin };
-  const entries = origin ? await entriesForUrl(key, sender.tab.url) : [];
+  let entries = origin ? await entriesForUrl(key, sender.tab.url) : [];
+  if (message.kind === "otp") entries = entries.filter((entry) => parseTotp(entry.totp));
   return {
     origin,
     // `site` is where the entry was saved, which with domain matching can
@@ -184,6 +190,14 @@ async function handleFill(message, sender) {
   // navigated to another site while the menu was open.
   const entry = (await entriesForUrl(key, sender.tab.url)).find((candidate) => candidate.id === message.id);
   if (!entry) return { ok: false };
+  if (message.kind === "otp") {
+    // Only the current code crosses into the page, never the secret.
+    const config = parseTotp(entry.totp);
+    if (!config) return { ok: false };
+    const { code } = await generateTotp(config);
+    await chrome.tabs.sendMessage(sender.tab.id, { type: "bs-fill-otp", origin, code }, { frameId: 0 });
+    return { ok: true };
+  }
   await chrome.tabs.sendMessage(
     sender.tab.id,
     // The content script refuses the fill unless its own location.origin
@@ -249,7 +263,7 @@ export function handleCredentialMessage(message, sender) {
     case "cs-check-pending":
       return isFromContentScript(sender) ? handleCheckPending(sender) : null;
     case "frame-get-suggestions":
-      return isFromOurFrame(sender) ? handleGetSuggestions(sender) : null;
+      return isFromOurFrame(sender) ? handleGetSuggestions(message, sender) : null;
     case "frame-fill":
       return isFromOurFrame(sender) ? handleFill(message, sender) : null;
     case "frame-get-pending":

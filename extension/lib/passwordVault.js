@@ -2,11 +2,12 @@
 // to read from or write back to (extensions have no API for the browser's
 // own saved passwords), so the vault is its own list of entries:
 //
-//   { id, url, origin, username, password, notes, match, favicon, createdAt, updatedAt }
+//   { id, url, origin, username, password, notes, match, favicon, totp, createdAt, updatedAt }
 //
 // (`match` is the entry's URL-matching mode, or null to follow the device
 // default - see urlMatch.js. `favicon` is a small data: URL of the site's
-// icon, or null - see favicon.js.)
+// icon, or null - see favicon.js. `totp` is the 2FA secret or otpauth://
+// link, or null - see totp.js.)
 //
 // kept in chrome.storage.local encrypted with the DEK (see storage.js) and
 // synced as the "passwords" blob. Losing an edit here is far worse than
@@ -25,6 +26,7 @@ import { encryptJSON, decryptJSON } from "./crypto.js";
 import { getSyncBlob, putSyncBlob } from "./api.js";
 import { MATCH_MODES } from "./urlMatch.js";
 import { fetchFavicon, isStoredFavicon } from "./favicon.js";
+import { parseTotp } from "./totp.js";
 import { t } from "./i18n.js";
 
 const LOCK_NAME = "browsersync-password-vault";
@@ -109,7 +111,13 @@ export async function listEntries(key) {
  * caches icons per visited page, and the login page is the one known to
  * have been visited.
  */
-export async function saveEntry(key, { id, url, username, password, notes, match, faviconPageUrl }) {
+/** A TOTP value worth storing (see totp.js), or null. */
+function cleanTotp(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  return parseTotp(text) ? text : null;
+}
+
+export async function saveEntry(key, { id, url, username, password, notes, match, totp, faviconPageUrl }) {
   // Read before taking the lock: it's only a local cache lookup, but other
   // vault writers needn't wait on it. Only real saves refresh the icon -
   // never a background pass, whose bumped updatedAt could win the per-entry
@@ -125,6 +133,9 @@ export async function saveEntry(key, { id, url, username, password, notes, match
       notes: notes ?? "",
       match: MATCH_MODES.includes(match) ? match : null,
     };
+    // `totp` left undefined (e.g. the in-page save prompt, which only knows
+    // the password) keeps whatever the entry already has.
+    if (totp !== undefined) fields.totp = cleanTotp(totp);
     const index = id ? entries.findIndex((entry) => entry.id === id && !entry.deleted) : -1;
     if (index >= 0) {
       const existing = entries[index];
@@ -133,7 +144,7 @@ export async function saveEntry(key, { id, url, username, password, notes, match
       const keptFavicon = existing.url === fields.url ? (existing.favicon ?? null) : null;
       entries[index] = { ...existing, ...fields, favicon: favicon ?? keptFavicon, updatedAt: now };
     } else {
-      entries.push({ id: crypto.randomUUID(), ...fields, favicon, createdAt: now, updatedAt: now });
+      entries.push({ id: crypto.randomUUID(), totp: null, ...fields, favicon, createdAt: now, updatedAt: now });
     }
     await writeLocalEntries(key, entries, { passwordsPendingSync: true });
   });
@@ -172,6 +183,7 @@ export async function importEntries(key, rows) {
         username: String(row.username ?? ""),
         password: String(row.password ?? ""),
         notes: String(row.notes ?? ""),
+        totp: cleanTotp(row.totp),
         match: MATCH_MODES.includes(row.match) ? row.match : null,
         favicon: favicons[i],
         createdAt: now,
@@ -238,6 +250,7 @@ export function parseCsv(text) {
   const userCol = column("username", "login_username", "user", "email");
   const passCol = column("password", "login_password");
   const notesCol = column("note", "notes", "comment");
+  const totpCol = column("totp", "login_totp", "otpauth");
   if (urlCol < 0 || passCol < 0) return null;
 
   return rows.map((row) => ({
@@ -245,6 +258,7 @@ export function parseCsv(text) {
     username: userCol >= 0 ? (row[userCol] ?? "") : "",
     password: row[passCol] ?? "",
     notes: notesCol >= 0 ? (row[notesCol] ?? "") : "",
+    totp: totpCol >= 0 ? (row[totpCol] ?? "") : "",
   }));
 }
 
