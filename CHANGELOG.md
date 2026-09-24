@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/axelroman-dev/BrowserSync/compare/v1.2.0...v1.3.0) (2026-09-24)
+
+
+### Features
+
+* add backup export/import, settings page and account management in dashboard ([#4](https://github.com/axelroman-dev/BrowserSync/issues/4)) ([c57eb76](https://github.com/axelroman-dev/BrowserSync/commit/c57eb76f979a00c0c2e0ea41c595dcf66c63d072))
+
 ## [1.2.0](https://github.com/axelroman-dev/BrowserSync/compare/v1.1.0...v1.2.0) (2026-09-24)
 
 
