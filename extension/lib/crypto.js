@@ -155,6 +155,45 @@ export function generatePassphrase() {
   return `${words.join("-")}-${String(suffix).padStart(4, "0")}`;
 }
 
+const PASSWORD_CHARSETS = {
+  lower: "abcdefghijkmnopqrstuvwxyz",
+  upper: "ABCDEFGHJKLMNPQRSTUVWXYZ",
+  digits: "23456789",
+  symbols: "!@#$%^&*-_=+?",
+};
+
+/**
+ * Generates a random password for the vault (see passwordVault.js). Uses
+ * rejection sampling so every character is uniformly distributed - a plain
+ * `% charset.length` would slightly favor the first characters - and
+ * guarantees at least one character from every enabled set, since many
+ * sites reject passwords missing a digit or symbol. Look-alike characters
+ * (l/1, O/0, I) are left out of the sets so a password can be read out and
+ * retyped by hand.
+ */
+export function generatePassword({ length = 20, symbols = true } = {}) {
+  const sets = [PASSWORD_CHARSETS.lower, PASSWORD_CHARSETS.upper, PASSWORD_CHARSETS.digits];
+  if (symbols) sets.push(PASSWORD_CHARSETS.symbols);
+  const all = sets.join("");
+  const chars = sets.map((set) => set[randomIndex(set.length)]);
+  while (chars.length < length) chars.push(all[randomIndex(all.length)]);
+  // Fisher-Yates, so the guaranteed characters don't always sit at the front.
+  for (let i = chars.length - 1; i > 0; i--) {
+    const j = randomIndex(i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join("");
+}
+
+function randomIndex(max) {
+  const limit = Math.floor(0x100000000 / max) * max;
+  const buffer = new Uint32Array(1);
+  do {
+    crypto.getRandomValues(buffer);
+  } while (buffer[0] >= limit);
+  return buffer[0] % max;
+}
+
 function pickRandomWords(count) {
   const result = [];
   const indices = new Uint32Array(count);

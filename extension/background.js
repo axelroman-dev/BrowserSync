@@ -3,9 +3,11 @@
 // so they aren't tied to the popup document's short lifetime. Kept
 // intentionally thin - all real logic lives in lib/.
 import { getAllLocal } from "./lib/storage.js";
-import { getSession } from "./lib/auth.js";
 import { runSyncCycle } from "./lib/syncOrchestrator.js";
 import { applyFirstSyncChoice } from "./lib/firstSyncPrompt.js";
+import { syncPasswords } from "./lib/passwordVault.js";
+import { getSession, getActiveKey } from "./lib/auth.js";
+import { handleCredentialMessage, syncContentScriptRegistration, forgetTab } from "./lib/pageCredentials.js";
 import { initI18n } from "./lib/i18n.js";
 
 // So t() (used by a handful of translated error messages deep in
@@ -36,6 +38,7 @@ async function ensureAlarm() {
 chrome.runtime.onInstalled.addListener(async () => {
   await i18nReady;
   await ensureAlarm();
+  await syncContentScriptRegistration();
   const session = await getSession();
   if (!session.isLoggedIn) {
     chrome.tabs.create({ url: chrome.runtime.getURL("onboarding/onboarding.html") });
@@ -43,6 +46,14 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.runtime.onStartup.addListener(ensureAlarm);
+
+// The in-page password content script is registered dynamically, only
+// while the user has granted the optional host permission (see
+// lib/pageCredentials.js) - and revoking it from chrome://extensions must
+// stop it too, not just the vault page's own toggle.
+chrome.permissions.onAdded.addListener(() => syncContentScriptRegistration());
+chrome.permissions.onRemoved.addListener(() => syncContentScriptRegistration());
+chrome.tabs.onRemoved.addListener((tabId) => forgetTab(tabId));
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === SYNC_ALARM_NAME) {
@@ -56,7 +67,21 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 // document, the service worker doesn't get torn down just because the user
 // clicked away, so a sync kicked off from the popup keeps running to
 // completion even if the popup closes mid-request.
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // In-page suggestions and the save prompt - lib/pageCredentials.js checks
+  // each sender itself and returns null for anything it doesn't own.
+  const credentialResponse = handleCredentialMessage(message, sender);
+  if (credentialResponse) {
+    credentialResponse.then(sendResponse, () => sendResponse({ ok: false }));
+    return true;
+  }
+  if (message?.type === "refresh-content-scripts") {
+    syncContentScriptRegistration().then(
+      (enabled) => sendResponse({ enabled }),
+      (err) => sendResponse({ enabled: false, message: err?.message }),
+    );
+    return true;
+  }
   if (message?.type === "refresh-alarm") {
     ensureAlarm().then(() => sendResponse({ ok: true }));
     return true;
@@ -67,6 +92,22 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   // reopened just because a promise inside it is still pending).
   if (message?.type === "run-sync") {
     i18nReady.then(() => runSyncCycle()).then(sendResponse);
+    return true;
+  }
+  // Syncs only the password vault - sent by the vault page after every
+  // edit, so a saved password reaches the server right away instead of at
+  // the next alarm tick, and without the bookmarks first-sync guard in
+  // runSyncCycle (vault entries merge by id, so there's nothing to
+  // duplicate). Runs here rather than in the page for the same reason as
+  // "run-sync": closing the tab mustn't cut the upload short.
+  if (message?.type === "sync-passwords") {
+    i18nReady
+      .then(() => getActiveKey())
+      .then((key) => (key ? syncPasswords(key) : Promise.reject(new Error("locked"))))
+      .then(
+        (result) => sendResponse({ status: "ok", ...result }),
+        (err) => sendResponse({ status: "error", message: err?.message }),
+      );
     return true;
   }
   // Resolves the merge/replace choice, then runs a sync cycle immediately

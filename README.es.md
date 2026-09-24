@@ -245,6 +245,22 @@ En la pestaña que se abrió (o en cualquier momento después, haciendo clic en 
   extensiones instaladas que se sincronizó — descifrado localmente, ahí mismo en la
   página. Es una buena forma de confirmar que una sincronización realmente se hizo, o
   de ver qué tiene sincronizado otro de tus dispositivos sin tener que cambiar a él.
+- Haz clic en **"Contraseñas guardadas"** en el popup para abrir tu bóveda de
+  contraseñas: añade, edita, copia y genera contraseñas, o importa el CSV que exporta tu
+  navegador (`chrome://password-manager/settings` → Exportar). Las contraseñas se cifran
+  con la misma clave de datos que todo lo demás y se sincronizan con tus otros
+  dispositivos; el servidor no puede leerlas. Borra el CSV exportado después de
+  importarlo: está en texto plano.
+  Activa **"Sugerir y guardar contraseñas en páginas web"** arriba en esa página (pide
+  permiso para acceder a las páginas web) para tener un icono de llave en los campos de
+  contraseña con tus cuentas guardadas para ese sitio, y un aviso de "¿Guardar
+  contraseña?" al iniciar sesión en un sitio nuevo. Nada se rellena sin tu clic. Por
+  defecto, una contraseña guardada en `example.com` también se ofrece en sus subdominios
+  (`login.example.com`); puedes cambiarlo a host, "empieza por" o URL exacta, en general
+  o para cada contraseña.
+  Nota: cerrar sesión elimina la copia de la bóveda de este dispositivo (vuelve desde el
+  servidor en el siguiente inicio de sesión), así que el popup te avisa si hay cambios
+  sin sincronizar.
 
 ### 4. Tus datos, y cómo borrarlos
 

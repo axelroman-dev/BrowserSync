@@ -12,6 +12,7 @@ import { getAllLocal, setLocal } from "./storage.js";
 import { syncBookmarks } from "./bookmarksSync.js";
 import { syncHistory } from "./historySync.js";
 import { syncExtensionsList } from "./extensionsList.js";
+import { syncPasswords } from "./passwordVault.js";
 import { NetworkError, ApiError } from "./api.js";
 import { needsFirstSyncChoice } from "./firstSyncPrompt.js";
 
@@ -47,6 +48,11 @@ export async function runSyncCycle() {
     const bookmarksResult = await syncBookmarks(key);
     if (historyEnabled) await syncHistory(key);
     await syncExtensionsList(key);
+    // Isolated from the rest of the cycle: a password-sync failure (most
+    // likely a self-hosted server that predates the vault) is recorded as
+    // passwordsSyncError by syncPasswords itself and shown on the vault
+    // page, instead of turning every bookmark sync red.
+    await syncPasswords(key).catch(() => {});
 
     // Marks this device as past its first bookmark sync, so firstSyncPrompt.js
     // never asks the merge-or-replace question again once it's been answered

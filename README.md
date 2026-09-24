@@ -224,6 +224,19 @@ On the tab that opened (or any time later, by clicking the toolbar icon):
   history (searchable), and the last-synced list of installed extensions — decrypted
   locally, right there in the page. It's a good way to confirm a sync actually went
   through, or to check what another of your devices has synced without switching to it.
+- Click **"Saved passwords"** in the popup to open your password vault: add, edit,
+  copy and generate passwords, or import the CSV your browser exports
+  (`chrome://password-manager/settings` → Export). Passwords are encrypted with the
+  same data key as everything else and synced to your other devices; the server
+  can't read them. Delete the exported CSV after importing it — it's plain text.
+  Turn on **"Suggest and save passwords on websites"** at the top of that page (it asks
+  for permission to access websites) to get a key icon in password fields that lists
+  your saved accounts for that site, and a "Save password?" prompt after you log in
+  somewhere new. Nothing is filled without your click. By default a password saved on
+  `example.com` is also offered on its subdomains (`login.example.com`); you can switch
+  to host, "starts with" or exact-URL matching globally or per password.
+  Note: logging out removes this device's copy of the vault (it comes back from the
+  server on the next login), so the popup warns you if there are unsynced changes.
 
 ### 4. Your data, and how to delete it
 

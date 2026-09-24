@@ -1,6 +1,7 @@
 import { wireConnectForm } from "../lib/connectForm.js";
 import { PRIVACY_POLICY_URL } from "../config.js";
-import { initI18n, t } from "../lib/i18n.js";
+import { wireSetupForm, renderSetupForm } from "../lib/setupForm.js";
+import { initI18n } from "../lib/i18n.js";
 
 await initI18n();
 
@@ -49,32 +50,26 @@ const el = {
   forgotCancelLink: document.getElementById("forgot-cancel-link"),
 };
 
+// Last step after connecting: the same preferences as the popup's settings
+// panel plus the in-page password option (see lib/setupForm.js), so a new
+// install is fully set up here without hunting through the popup. The first
+// sync starts on Finish (not on connect) so an unchecked "Sync browsing
+// history" is respected from the very first cycle.
 wireConnectForm(el, async (session) => {
   for (const view of [el.form, el.savePassphraseView, el.deviceSetupView, el.firstSyncChoiceView, el.forgotPasswordView]) {
     view.hidden = true;
   }
   document.getElementById("connected-view").hidden = false;
+  document.querySelector(".footer-note").hidden = true;
   document.getElementById("connected-email").textContent = session.accountEmail;
-  await chrome.runtime.sendMessage({ type: "refresh-alarm" });
+  await renderSetupForm();
+});
 
-  // Unlike popup.js, this used to just sit on "You're connected" and rely on
-  // the next background alarm tick (up to syncIntervalMinutes away) to
-  // actually sync - so picking "replace" here wiped this device's bookmarks
-  // immediately but could leave it looking empty for a long while instead of
-  // repopulating them from the server right away. Run it now instead, via
-  // the background service worker so it survives this tab closing.
-  const statusEl = document.getElementById("connected-sync-status");
-  const errorEl = document.getElementById("connected-sync-error");
-  const result = await chrome.runtime.sendMessage({ type: "run-sync" });
-  if (result?.status === "ok") {
-    statusEl.textContent = t("onboarding.syncedOk");
-  } else if (result?.status === "error") {
-    statusEl.hidden = true;
-    errorEl.textContent = result.message || t("onboarding.syncFailedFallback");
-    errorEl.hidden = false;
-  } else if (result?.status === "skipped" && result?.reason === "needs_first_sync_choice") {
-    statusEl.textContent = t("onboarding.syncNeedsChoice");
-  } else {
-    statusEl.hidden = true;
-  }
+wireSetupForm(async () => {
+  // Not awaited: the service worker runs the sync to completion even
+  // after this tab is gone, and the popup shows how it went.
+  chrome.runtime.sendMessage({ type: "run-sync" }).catch(() => {});
+  const tab = await chrome.tabs.getCurrent();
+  if (tab?.id !== undefined) await chrome.tabs.remove(tab.id);
+  else window.close();
 });

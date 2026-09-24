@@ -18,8 +18,8 @@ herramienta. Si algo no queda claro, pregúntale a quien te dio la URL del servi
   generada en tu dispositivo, que queda encerrada dentro de un "sobre" cifrado usando
   una clave derivada de tu passphrase. Ese sobre es lo que se guarda aquí. Es seguro
   guardarlo: abrirlo requiere tu passphrase, que el servidor nunca llega a conocer.
-- **Blobs cifrados** de tus marcadores y (si lo activas) tu historial de navegación,
-  cifrados en tu propio dispositivo con esa clave de datos antes de enviarse a
+- **Blobs cifrados** de tus marcadores, (si lo activas) tu historial de navegación y
+  las contraseñas que guardes en la bóveda de contraseñas de la extensión, cifrados en tu propio dispositivo con esa clave de datos antes de enviarse a
   cualquier lado.
 - Marcas de tiempo de cuándo sincronizaste por última vez, y el tamaño aproximado de
   cada blob cifrado.
@@ -40,7 +40,12 @@ herramienta. Si algo no queda claro, pregúntale a quien te dio la URL del servi
   pero solo en cada uno de *tus propios dispositivos* (en el almacenamiento local de la
   extensión), nunca en el servidor. Eso es lo que permite que tu contraseña desbloquee
   BrowserSync en el día a día sin que el servidor pueda hacer lo mismo.
-- Contraseñas o datos de autocompletado de tu navegador. Esta herramienta no toca eso.
+- Las contraseñas que guarda tu propio navegador, ni sus datos de autocompletado.
+  BrowserSync no puede leerlos; solo guarda las contraseñas que guardes en su propia
+  bóveda (cifradas, ver arriba). Si activas las sugerencias en páginas, la extensión lee
+  el usuario y la contraseña de un formulario de inicio de sesión al enviarlo, solo para
+  ofrecerte guardarlos: se quedan en tu dispositivo salvo que pulses Guardar, y entonces
+  se cifran antes de subirse como todo lo demás.
 
 ## Qué puede y qué no puede ver el administrador
 

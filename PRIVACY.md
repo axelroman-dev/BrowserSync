@@ -18,8 +18,8 @@ anything here is unclear, ask whoever gave you the server URL.
   gets locked inside an encrypted "envelope" using a key derived from your passphrase.
   That envelope is what's stored here. It's safe to store: opening it requires your
   passphrase, which the server never learns.
-- **Encrypted blobs** of your bookmarks and (if you turn it on) browsing history,
-  encrypted on your own device with that data key before they're ever sent anywhere.
+- **Encrypted blobs** of your bookmarks, (if you turn it on) browsing history, and
+  any passwords you save in the extension's password vault, encrypted on your own device with that data key before they're ever sent anywhere.
 - Timestamps of when you last synced, and the rough size of each encrypted blob.
 - If you're logged in on more than one device, one row per device recording when it
   last used its login session — this is what lets you log out a single lost/old device
@@ -37,7 +37,11 @@ anything here is unclear, ask whoever gave you the server URL.
   each of *your own devices* (in the extension's local storage), never on the server.
   That's what lets your password unlock BrowserSync day-to-day without the server ever
   being able to do the same.
-- Passwords or autofill data from your browser. This tool doesn't touch those.
+- The passwords your browser itself saves, or its autofill data. BrowserSync can't read
+  those; it only keeps the passwords you save in its own vault (encrypted, see above).
+  If you turn on in-page suggestions, the extension reads a login form's username and
+  password when you submit it, only to offer saving them — they stay on your device
+  unless you click Save, and are then encrypted before upload like everything else.
 
 ## What the admin can and can't see
 

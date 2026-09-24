@@ -6,7 +6,7 @@ import { getBlob, getBlobMeta, putBlob, BlobTooLargeError, VersionConflictError,
 export const syncRouter = Router();
 syncRouter.use(requireAuth);
 
-const ALL_DATA_TYPES: DataType[] = ["bookmarks", "history", "extensions"];
+const ALL_DATA_TYPES: DataType[] = ["bookmarks", "history", "extensions", "passwords"];
 
 /**
  * Metadata-only summary of every data type at once - what the account
@@ -40,8 +40,8 @@ const putBodySchema = z.object({
 
 /**
  * The server is deliberately blob-shape-agnostic: it never inspects
- * ciphertext contents, only stores/returns it. bookmarks/history/extensions
- * all share this exact handler, which is why the three public routes are
+ * ciphertext contents, only stores/returns it. bookmarks/history/extensions/passwords
+ * all share this exact handler, which is why the public routes are
  * this thin.
  */
 function registerSyncRoutes(dataType: DataType) {
@@ -105,3 +105,4 @@ function registerSyncRoutes(dataType: DataType) {
 registerSyncRoutes("bookmarks");
 registerSyncRoutes("history");
 registerSyncRoutes("extensions");
+registerSyncRoutes("passwords");

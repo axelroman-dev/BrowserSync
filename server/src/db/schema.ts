@@ -110,7 +110,7 @@ export const syncBlobs = pgTable(
     index("sync_blobs_user_id_idx").on(table.userId),
     check(
       "sync_blobs_data_type_check",
-      sql`${table.dataType} IN ('bookmarks', 'history', 'extensions')`,
+      sql`${table.dataType} IN ('bookmarks', 'history', 'extensions', 'passwords')`,
     ),
   ],
 );
