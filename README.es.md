@@ -278,6 +278,15 @@ En la pestaña que se abrió (o en cualquier momento después, haciendo clic en 
   Nota: cerrar sesión elimina la copia de la bóveda de este dispositivo (vuelve desde el
   servidor en el siguiente inicio de sesión), así que el popup te avisa si hay cambios
   sin sincronizar.
+- **Exportar / importar:** **Exportar CSV** en la página de contraseñas te da un
+  archivo en texto plano para llevar tus contraseñas a otro gestor (bórralo después de
+  importarlo). Para una copia segura, en los ajustes del popup → **"Exportar / importar
+  copia de seguridad"** se descarga un archivo con tus contraseñas, los marcadores de
+  este dispositivo y tus ajustes, cifrado con una contraseña de copia que tú eliges, y
+  se puede restaurar en esta u otra cuenta. Las dos exportaciones piden antes tu
+  contraseña de BrowserSync. El dashboard del servidor también puede exportar esos dos
+  archivos desde su tarjeta Exportar (por ejemplo, desde un equipo sin la extensión); la
+  restauración se hace solo desde la extensión.
 
 ### 4. Tus datos, y cómo borrarlos
 

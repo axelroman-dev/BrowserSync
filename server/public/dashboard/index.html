@@ -18,13 +18,14 @@
         </select>
         <div id="account-bar" class="account-bar" hidden>
           <span id="account-email"></span>
-          <button id="logout-btn" class="link-button" data-i18n="dashboard.logOut">Log out</button>
+          <button id="logout-btn" class="secondary-button logout-button" data-i18n="dashboard.logOut">Log out</button>
         </div>
       </div>
     </header>
 
     <main>
       <!-- Login -->
+      <p id="account-deleted-notice" class="notice" data-i18n="dashboard.accountDeleted" hidden>Your account and all its data were deleted.</p>
       <section id="login-view" class="card">
         <h1 data-i18n="dashboard.loginTitle">Log in to your account</h1>
         <p class="hint" data-i18n="dashboard.loginHint">
@@ -64,6 +65,19 @@
           <div id="status-list" class="status-list"></div>
         </div>
 
+        <div id="export-card" class="card" hidden>
+          <h1 data-i18n="dashboard.exportTitle">Export</h1>
+          <p class="hint" data-i18n="dashboard.exportCardHint">
+            Download your synced data - to move passwords to another manager, or keep an encrypted copy you can
+            restore from the extension. Asks for your recovery passphrase each time.
+          </p>
+          <div class="export-actions">
+            <button type="button" id="export-csv-open" class="secondary-button" data-i18n="dashboard.exportCsv">Passwords (CSV)</button>
+            <button type="button" id="export-backup-open" class="secondary-button" data-i18n="dashboard.exportBackup">Encrypted backup</button>
+          </div>
+          <p id="export-notice" class="notice" hidden></p>
+        </div>
+
         <div class="card summary-card">
           <div class="summary-main">
             <h1 data-i18n="dashboard.linkedDevicesTitle">Linked devices</h1>
@@ -71,6 +85,18 @@
           </div>
           <button type="button" id="open-devices-btn" class="secondary-button" data-i18n="dashboard.manage">Manage</button>
         </div>
+
+        <form id="delete-account-form" class="card danger-card" novalidate>
+          <h1 data-i18n="dashboard.dangerTitle">Danger zone</h1>
+          <p class="hint" data-i18n="dashboard.deleteAccountHint">
+            Permanently deletes your account, every synced item (bookmarks, history, extensions, passwords) and signs
+            out every device. It cannot be undone - export a backup first if you might want your data later.
+          </p>
+          <label for="delete-account-password" data-i18n="dashboard.confirmPasswordLabel">Your account password</label>
+          <input id="delete-account-password" type="password" autocomplete="current-password" />
+          <p id="delete-account-error" class="error" hidden></p>
+          <button type="submit" id="delete-account-btn" class="danger-button delete-account-button" data-i18n="dashboard.deleteAccountBtn">Delete my account</button>
+        </form>
       </section>
     </main>
   </div>
@@ -115,7 +141,58 @@
       </div>
       <p id="data-meta" class="status-row-detail"></p>
       <div id="data-content" class="tree"></div>
+
     </div>
+  </dialog>
+
+  <!-- Export: same file formats as the extension (lib/backup.js); importing stays extension-only. -->
+  <dialog id="export-dialog">
+    <div class="dialog-header">
+      <h1 id="export-dialog-title"></h1>
+      <button type="button" class="dialog-close" data-close aria-label="Close">×</button>
+    </div>
+    <form id="export-form" class="export-form" novalidate>
+      <p id="export-csv-warning" class="warning" data-i18n="dashboard.exportCsvWarning">
+        The CSV file is NOT encrypted: anyone who opens it can read every password. Import it where you need it and
+        delete it right after.
+      </p>
+      <div id="export-backup-fields" class="export-form">
+        <p class="hint" data-i18n="dashboard.exportBackupHint">
+          Downloads your synced passwords and bookmarks in one file encrypted with a backup password you choose.
+          Restore it from the extension (popup settings → "Export / import a backup").
+        </p>
+        <div class="parts">
+          <label class="checkbox-row" id="export-passwords-row"><input type="checkbox" name="passwords" checked /> <span data-i18n="dashboard.dataTypePasswords">Passwords</span></label>
+          <label class="checkbox-row" id="export-bookmarks-row"><input type="checkbox" name="bookmarks" checked /> <span data-i18n="dashboard.dataTypeBookmarks">Bookmarks</span></label>
+        </div>
+        <label for="export-backup-password" data-i18n="dashboard.backupPasswordLabel">Backup password</label>
+        <input id="export-backup-password" type="password" autocomplete="new-password" />
+        <label for="export-backup-password-confirm" data-i18n="dashboard.backupPasswordConfirmLabel">Repeat backup password</label>
+        <input id="export-backup-password-confirm" type="password" autocomplete="new-password" />
+      </div>
+      <label for="export-passphrase" data-i18n="dashboard.recoveryPassphraseLabel">Recovery passphrase</label>
+      <input id="export-passphrase" type="password" autocomplete="off" />
+      <p id="export-error" class="error" hidden></p>
+      <button type="submit" id="export-submit" class="primary-button"></button>
+    </form>
+  </dialog>
+
+  <!-- Confirmation modal for logout and account deletion (see confirmModal in dashboard.js). -->
+  <dialog id="confirm-dialog" class="confirm-dialog">
+    <form method="dialog">
+      <div class="confirm-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+          <path d="M12 9v4M12 17h.01" />
+        </svg>
+      </div>
+      <h1 id="confirm-title"></h1>
+      <p id="confirm-message"></p>
+      <div class="confirm-actions">
+        <button type="submit" value="cancel" class="secondary-button" data-i18n="dashboard.cancel">Cancel</button>
+        <button type="submit" value="confirm" id="confirm-ok" class="confirm-danger"></button>
+      </div>
+    </form>
   </dialog>
 
   <!-- Linked devices management -->

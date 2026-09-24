@@ -28,9 +28,12 @@ async function deriveSalt(purpose, email) {
 }
 
 async function deriveKekFromPassphrase(passphrase, email) {
+  return pbkdf2DeriveKey(passphrase, await deriveSalt("kek-passphrase", email));
+}
+
+async function pbkdf2DeriveKey(secret, salt) {
   const encoder = new TextEncoder();
-  const salt = await deriveSalt("kek-passphrase", email);
-  const baseKey = await crypto.subtle.importKey("raw", encoder.encode(passphrase), "PBKDF2", false, ["deriveKey"]);
+  const baseKey = await crypto.subtle.importKey("raw", encoder.encode(secret), "PBKDF2", false, ["deriveKey"]);
   return crypto.subtle.deriveKey(
     { name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
     baseKey,
@@ -38,6 +41,20 @@ async function deriveKekFromPassphrase(passphrase, email) {
     true,
     ["encrypt", "decrypt"],
   );
+}
+
+function bufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+async function encryptJSON(key, value) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const plaintext = new TextEncoder().encode(JSON.stringify(value));
+  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, plaintext);
+  return { ciphertext: bufferToBase64(ciphertext), iv: bufferToBase64(iv) };
 }
 
 function base64ToBuffer(base64) {
@@ -201,6 +218,7 @@ async function loadStatus() {
     // opt-in) or never ran has nothing worth a row.
     const synced = blobs.filter((blob) => blob.version);
     syncedTypes = synced.map((blob) => blob.dataType);
+    renderExportCard();
     viewBtn.hidden = !synced.length;
     if (!synced.length) {
       emptyHint(container, "dashboard.nothingSyncedYet");
@@ -261,6 +279,77 @@ function armConfirm(btn, warningLabel, armedMs = 4000) {
   };
 }
 
+// --- Confirmation modal (logout, account deletion) ---
+const confirmDialog = document.getElementById("confirm-dialog");
+
+/** Resolves true only when the user clicks the confirm button (Cancel, Escape and the backdrop all resolve false). */
+function confirmModal({ title, message, confirmLabel }) {
+  document.getElementById("confirm-title").textContent = title;
+  document.getElementById("confirm-message").textContent = message;
+  document.getElementById("confirm-ok").textContent = confirmLabel;
+  confirmDialog.returnValue = "";
+  confirmDialog.showModal();
+  // Focus starts on Cancel, so a stray Enter never confirms.
+  confirmDialog.querySelector('button[value="cancel"]').focus();
+  return new Promise((resolve) => {
+    confirmDialog.addEventListener("close", () => resolve(confirmDialog.returnValue === "confirm"), { once: true });
+  });
+}
+
+confirmDialog.addEventListener("click", (e) => {
+  if (e.target === confirmDialog) confirmDialog.close();
+});
+
+async function confirmAndLogout() {
+  const confirmed = await confirmModal({
+    title: t("dashboard.logOut"),
+    message: t("dashboard.confirmLogout"),
+    confirmLabel: t("dashboard.logOut"),
+  });
+  if (confirmed) await doLogout();
+}
+
+// Deleting needs the account password (checked by the server) plus the
+// modal. Available here, not only in the extension, because the moment
+// someone wants to leave is often after they've already uninstalled it.
+// The server could delete the account on its own anyway, so offering it
+// from this server-served page adds no new risk.
+document.getElementById("delete-account-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const passwordInput = document.getElementById("delete-account-password");
+  const errorEl = document.getElementById("delete-account-error");
+  errorEl.hidden = true;
+  if (!passwordInput.value) {
+    errorEl.textContent = t("dashboard.enterPasswordToDelete");
+    errorEl.hidden = false;
+    return;
+  }
+  const confirmed = await confirmModal({
+    title: t("dashboard.deleteAccountTitle"),
+    message: t("dashboard.confirmDeleteAccount", { email: document.getElementById("account-email").textContent }),
+    confirmLabel: t("dashboard.deleteAccountBtn"),
+  });
+  if (!confirmed) return;
+  const btn = document.getElementById("delete-account-btn");
+  btn.disabled = true;
+  btn.textContent = t("dashboard.deletingAccount");
+  try {
+    await authFetch("/api/auth/account", { method: "DELETE", body: { password: passwordInput.value } });
+    // Every session of this account is gone server-side; just drop ours.
+    session = null;
+    clearSession();
+    passwordInput.value = "";
+    await doLogout();
+    document.getElementById("account-deleted-notice").hidden = false;
+  } catch (err) {
+    errorEl.textContent = err.status === 401 ? t("dashboard.wrongAccountPassword") : err.message || t("dashboard.couldNotDeleteAccount");
+    errorEl.hidden = false;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = t("dashboard.deleteAccountBtn");
+  }
+});
+
 async function doLogout() {
   if (session) {
     await rawRequest("/api/auth/logout", { method: "POST", body: { refreshToken: session.refreshToken } }).catch(() => {
@@ -270,6 +359,7 @@ async function doLogout() {
   session = null;
   clearSession();
   for (const dialog of Object.values(dialogs)) dialog.close();
+  document.getElementById("delete-account-form").reset();
   lockData();
   document.getElementById("login-form").reset();
   showView(false);
@@ -709,6 +799,186 @@ document.getElementById("data-refresh-btn").addEventListener("click", async () =
   }
 });
 
+// --- Export (from the unlocked viewer) ---
+// Same two formats as the extension's lib/backup.js, so a file made here
+// restores there: a Chrome-style passwords CSV, and a backup file encrypted
+// with a backup password. Importing is deliberately extension-only - this
+// page's code comes from the server, and letting it write into the vault
+// would widen what a compromised server could do.
+const BACKUP_FORMAT = "browsersync-backup";
+const BACKUP_FORMAT_VERSION = 1;
+const MIN_BACKUP_PASSWORD_LENGTH = 8;
+
+function csvField(value) {
+  const text = String(value ?? "");
+  return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+function passwordsToCsv(entries) {
+  const lines = [["name", "url", "username", "password", "note"].join(",")];
+  for (const entry of entries) {
+    lines.push([hostOf(entry.url), entry.url, entry.username, entry.password, entry.notes].map(csvField).join(","));
+  }
+  return `${lines.join("\r\n")}\r\n`;
+}
+
+function downloadFile(filename, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+const datedFilename = (prefix, extension) => `${prefix}-${new Date().toISOString().slice(0, 10)}.${extension}`;
+
+/** Unwraps the account's DEK from the recovery passphrase, like the data viewer's unlock. */
+async function unwrapWithPassphrase(passphrase) {
+  const { dekEnvelope } = await authFetch("/api/auth/dek-envelope");
+  const email = document.getElementById("account-email").textContent;
+  const kek = await deriveKekFromPassphrase(passphrase, email);
+  try {
+    return await unwrapDEK(kek, dekEnvelope);
+  } catch {
+    throw new Error(t("dashboard.wrongPassphrase"));
+  }
+}
+
+async function fetchPayload(key, dataType) {
+  const blob = await authFetch(`/api/sync/${dataType}`).catch((err) => {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  });
+  return blob ? decryptJSON(key, blob.ciphertext, blob.iv) : null;
+}
+
+async function livePasswords(key) {
+  const payload = await fetchPayload(key, "passwords");
+  return (payload?.entries ?? []).filter((entry) => !entry.deleted);
+}
+
+/** The synced bookmark nodes as the extension's backup tree: {title, url?, children?}. */
+async function bookmarksForBackup(key) {
+  const payload = await fetchPayload(key, "bookmarks");
+  const simplify = (nodes) =>
+    nodes.map((node) => (node.kind === "bookmark" ? { title: node.title, url: node.url } : { title: node.title, children: simplify(node.children) }));
+  return simplify(buildDisplayTree(payload?.nodes ?? []));
+}
+
+async function encryptBackupFile(data, backupPassword) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const { ciphertext, iv } = await encryptJSON(await pbkdf2DeriveKey(backupPassword, salt), data);
+  return JSON.stringify(
+    {
+      format: BACKUP_FORMAT,
+      version: BACKUP_FORMAT_VERSION,
+      createdAt: new Date().toISOString(),
+      kdf: { name: "PBKDF2", hash: "SHA-256", iterations: PBKDF2_ITERATIONS, salt: bufferToBase64(salt) },
+      iv,
+      ciphertext,
+    },
+    null,
+    2,
+  );
+}
+
+/** The Export card only offers what's actually been synced. */
+function renderExportCard() {
+  const hasPasswords = syncedTypes.includes("passwords");
+  document.getElementById("export-card").hidden = !hasPasswords && !syncedTypes.includes("bookmarks");
+  document.getElementById("export-csv-open").hidden = !hasPasswords;
+}
+
+// Each export asks for the passphrase in its own dialog and forgets the key
+// as soon as the file is built - nothing stays unlocked on the main page.
+let exportMode = "csv";
+
+function openExportDialog(mode) {
+  exportMode = mode;
+  document.getElementById("export-form").reset();
+  document.getElementById("export-error").hidden = true;
+  document.getElementById("export-dialog-title").textContent = mode === "csv" ? t("dashboard.exportCsvTitle") : t("dashboard.exportBackupTitle");
+  document.getElementById("export-csv-warning").hidden = mode !== "csv";
+  document.getElementById("export-backup-fields").hidden = mode !== "backup";
+  document.getElementById("export-passwords-row").hidden = !syncedTypes.includes("passwords");
+  document.getElementById("export-bookmarks-row").hidden = !syncedTypes.includes("bookmarks");
+  document.getElementById("export-submit").textContent = mode === "csv" ? t("dashboard.exportCsvBtn") : t("dashboard.exportBackupBtn");
+  dialogs.export.showModal();
+  document.getElementById(mode === "csv" ? "export-passphrase" : "export-backup-password").focus();
+}
+
+document.getElementById("export-csv-open").addEventListener("click", () => openExportDialog("csv"));
+document.getElementById("export-backup-open").addEventListener("click", () => openExportDialog("backup"));
+
+async function buildExport(key, include) {
+  if (exportMode === "csv") {
+    const entries = await livePasswords(key);
+    downloadFile(datedFilename("browsersync-passwords", "csv"), passwordsToCsv(entries), "text/csv");
+    return t("dashboard.exportCsvDone", { count: entries.length });
+  }
+  const data = {};
+  if (include.passwords) {
+    data.passwords = (await livePasswords(key)).map(({ url, username, password, notes, match, favicon }) => ({
+      url,
+      username,
+      password,
+      notes,
+      match,
+      favicon,
+    }));
+  }
+  if (include.bookmarks) data.bookmarks = await bookmarksForBackup(key);
+  const backupPassword = document.getElementById("export-backup-password").value;
+  downloadFile(datedFilename("browsersync-backup", "json"), await encryptBackupFile(data, backupPassword), "application/json");
+  return t("dashboard.exportBackupDone");
+}
+
+document.getElementById("export-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const errorEl = document.getElementById("export-error");
+  const passphrase = document.getElementById("export-passphrase").value;
+  const backupPassword = document.getElementById("export-backup-password").value;
+  const include = {
+    passwords: syncedTypes.includes("passwords") && form.elements.passwords.checked,
+    bookmarks: syncedTypes.includes("bookmarks") && form.elements.bookmarks.checked,
+  };
+  const fail = (message) => {
+    errorEl.textContent = message;
+    errorEl.hidden = false;
+  };
+  errorEl.hidden = true;
+  if (exportMode === "backup") {
+    if (!include.passwords && !include.bookmarks) return fail(t("dashboard.exportPickSomething"));
+    if (backupPassword.length < MIN_BACKUP_PASSWORD_LENGTH) return fail(t("dashboard.backupPasswordTooShort", { min: MIN_BACKUP_PASSWORD_LENGTH }));
+    if (backupPassword !== document.getElementById("export-backup-password-confirm").value) {
+      return fail(t("dashboard.backupPasswordsDontMatch"));
+    }
+  }
+  if (!passphrase) return fail(t("dashboard.enterRecoveryPassphrase"));
+
+  const btn = document.getElementById("export-submit");
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = t("common.unlocking");
+  try {
+    const notice = await buildExport(await unwrapWithPassphrase(passphrase), include);
+    dialogs.export.close();
+    const noticeEl = document.getElementById("export-notice");
+    noticeEl.textContent = notice;
+    noticeEl.hidden = false;
+  } catch (err) {
+    fail(err.message || t("dashboard.couldNotDecryptData"));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+});
+
+// The dialog's inputs hold the passphrase and backup password - clear them on close.
+document.getElementById("export-dialog").addEventListener("close", () => document.getElementById("export-form").reset());
+
 // Cleans up "ghost" devices from reinstalling the extension (or logging
 // into this dashboard again): nothing in an extension's own storage
 // survives a full uninstall, so there's no reliable way to detect "this is
@@ -735,6 +1005,7 @@ document.getElementById("revoke-others-btn").addEventListener("click", async () 
 // --- Dialogs: the main page only shows summaries; lists open here. ---
 const dialogs = {
   data: document.getElementById("data-dialog"),
+  export: document.getElementById("export-dialog"),
   devices: document.getElementById("devices-dialog"),
 };
 
@@ -780,6 +1051,7 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
   const errorEl = document.getElementById("login-error");
   const submitBtn = document.getElementById("login-submit");
   errorEl.hidden = true;
+  document.getElementById("account-deleted-notice").hidden = true;
   submitBtn.disabled = true;
   submitBtn.textContent = t("dashboard.loggingIn");
   try {
@@ -799,7 +1071,7 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
   }
 });
 
-document.getElementById("logout-btn").addEventListener("click", doLogout);
+document.getElementById("logout-btn").addEventListener("click", confirmAndLogout);
 
 async function init() {
   if (!session) {

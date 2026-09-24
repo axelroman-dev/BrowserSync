@@ -174,55 +174,7 @@
       <button id="sync-now-btn" class="primary-button" data-i18n="popup.syncNow">Sync now</button>
       <a href="#" id="passwords-link" class="link" data-i18n="popup.openPasswords">Saved passwords</a>
       <a href="#" id="view-data-link" class="link" data-i18n="popup.viewSyncedData">View synced data</a>
-      <a href="#" id="logout-link" class="link" data-i18n="popup.logoutSwitch">Log out / switch account</a>
 
-      <div id="settings-panel" hidden>
-        <hr />
-        <label class="checkbox-row">
-          <input type="checkbox" id="history-enabled" />
-          <span data-i18n="popup.syncBrowsingHistory">Sync browsing history</span>
-        </label>
-        <label for="history-days" data-i18n="popup.historyRetentionLabel">History retention (days)</label>
-        <input type="number" id="history-days" min="1" max="3650" />
-
-        <label for="sync-interval" data-i18n="popup.syncEveryLabel">Sync every (minutes)</label>
-        <input type="number" id="sync-interval" min="5" max="1440" />
-
-        <button id="save-settings-btn" class="secondary-button" data-i18n="popup.saveSettings">Save settings</button>
-
-        <a href="#" id="manage-devices-link" class="link" data-i18n="popup.manageDevices">Manage linked devices</a>
-
-        <details class="danger-zone">
-          <summary data-i18n="popup.restoreBookmarksSummary">Restore bookmarks from server</summary>
-          <p class="hint" data-i18n="popup.restoreBookmarksHint">
-            Replaces this device's bookmarks with whatever's currently synced on the server. Use this if this
-            device's bookmarks ever end up wrong or out of sync.
-          </p>
-          <button type="button" id="force-restore-btn" class="danger-button" data-i18n="popup.restoreNow">Restore now</button>
-          <p id="force-restore-status" class="hint" hidden></p>
-          <p id="force-restore-error" class="error" hidden></p>
-        </details>
-
-        <details class="danger-zone">
-          <summary data-i18n="popup.pushBookmarksSummary">Push this device's bookmarks to the server</summary>
-          <p class="hint" data-i18n="popup.pushBookmarksHint">
-            The reverse of restoring: discards whatever's currently synced and replaces it with this device's
-            bookmarks instead. Use this if the server ended up with the wrong bookmarks and this device has the
-            ones you actually want.
-          </p>
-          <button type="button" id="force-push-btn" class="danger-button" data-i18n="popup.pushNow">Push now</button>
-          <p id="force-push-status" class="hint" hidden></p>
-          <p id="force-push-error" class="error" hidden></p>
-        </details>
-
-        <details class="danger-zone">
-          <summary data-i18n="popup.deleteAccountSummary">Delete account and all synced data</summary>
-          <p class="hint" data-i18n="popup.deleteAccountHint">This permanently deletes your account and every synced blob from the server. It cannot be undone.</p>
-          <input id="delete-password" type="password" data-i18n-placeholder="popup.confirmPasswordPlaceholder" placeholder="Confirm your password" />
-          <button id="delete-account-btn" class="danger-button" data-i18n="popup.deleteMyAccount">Delete my account</button>
-          <p id="delete-error" class="error" hidden></p>
-        </details>
-      </div>
     </section>
   </main>
 

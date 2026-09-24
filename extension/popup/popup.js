@@ -1,7 +1,7 @@
 import { wireConnectForm } from "../lib/connectForm.js";
 import * as auth from "../lib/auth.js";
 import * as api from "../lib/api.js";
-import { getAllLocal, setLocal } from "../lib/storage.js";
+import { getAllLocal } from "../lib/storage.js";
 import { armConfirm } from "../lib/uiConfirm.js";
 import { needsFirstSyncChoice } from "../lib/firstSyncPrompt.js";
 import { wireSetupForm, renderSetupForm, isSetupComplete } from "../lib/setupForm.js";
@@ -78,11 +78,6 @@ async function renderStatusView() {
   } else {
     errorEl.hidden = true;
   }
-
-  const settings = await getAllLocal();
-  document.getElementById("history-enabled").checked = settings.historyEnabled;
-  document.getElementById("history-days").value = settings.historyDays;
-  document.getElementById("sync-interval").value = settings.syncIntervalMinutes;
 }
 
 // Only syncs once render() actually lands on the status view: while the
@@ -216,8 +211,11 @@ document.getElementById("unlock-repair-link").addEventListener("click", (e) => {
   showView("repair");
 });
 
-document.getElementById("unlock-switch-account-link").addEventListener("click", async (e) => {
+const unlockLogoutLink = document.getElementById("unlock-switch-account-link");
+const confirmUnlockLogout = armConfirm(unlockLogoutLink, t("popup.confirmLogout"));
+unlockLogoutLink.addEventListener("click", async (e) => {
   e.preventDefault();
+  if (!confirmUnlockLogout()) return;
   await auth.logout();
   await render();
 });
@@ -260,58 +258,6 @@ document.getElementById("sync-now-btn").addEventListener("click", async (e) => {
   btn.textContent = t("popup.syncNow");
 });
 
-const confirmForceRestore = armConfirm(document.getElementById("force-restore-btn"), t("popup.confirmForceRestore"));
-document.getElementById("force-restore-btn").addEventListener("click", async (e) => {
-  if (!confirmForceRestore()) return;
-  const btn = e.currentTarget;
-  const statusEl = document.getElementById("force-restore-status");
-  const errorEl = document.getElementById("force-restore-error");
-  statusEl.hidden = true;
-  errorEl.hidden = true;
-  btn.disabled = true;
-  btn.textContent = t("popup.restoring");
-  try {
-    const result = await chrome.runtime.sendMessage({ type: "apply-first-sync-choice", choice: "replace" });
-    await renderStatusView();
-    if (result?.status === "error") {
-      errorEl.textContent = result.message || t("popup.couldNotRestore");
-      errorEl.hidden = false;
-    } else {
-      statusEl.textContent = t("popup.restoredStatus");
-      statusEl.hidden = false;
-    }
-  } finally {
-    btn.disabled = false;
-    btn.textContent = t("popup.restoreNow");
-  }
-});
-
-const confirmForcePush = armConfirm(document.getElementById("force-push-btn"), t("popup.confirmForcePush"));
-document.getElementById("force-push-btn").addEventListener("click", async (e) => {
-  if (!confirmForcePush()) return;
-  const btn = e.currentTarget;
-  const statusEl = document.getElementById("force-push-status");
-  const errorEl = document.getElementById("force-push-error");
-  statusEl.hidden = true;
-  errorEl.hidden = true;
-  btn.disabled = true;
-  btn.textContent = t("popup.pushing");
-  try {
-    const result = await chrome.runtime.sendMessage({ type: "apply-first-sync-choice", choice: "keep-local" });
-    await renderStatusView();
-    if (result?.status === "error") {
-      errorEl.textContent = result.message || t("popup.couldNotPush");
-      errorEl.hidden = false;
-    } else {
-      statusEl.textContent = t("popup.pushedStatus");
-      statusEl.hidden = false;
-    }
-  } finally {
-    btn.disabled = false;
-    btn.textContent = t("popup.pushNow");
-  }
-});
-
 document.getElementById("passwords-link").addEventListener("click", (e) => {
   e.preventDefault();
   chrome.tabs.create({ url: chrome.runtime.getURL("passwords/passwords.html") });
@@ -322,54 +268,9 @@ document.getElementById("view-data-link").addEventListener("click", (e) => {
   chrome.tabs.create({ url: chrome.runtime.getURL("viewer/viewer.html") });
 });
 
-document.getElementById("manage-devices-link").addEventListener("click", (e) => {
-  e.preventDefault();
-  chrome.tabs.create({ url: chrome.runtime.getURL("devices/devices.html") });
-});
-
-// Logging out deletes this device's local password vault (see
-// clearAccountLocal), so vault edits the server hasn't accepted yet would be
-// lost - ask for a second click first in that case only.
-const logoutLink = document.getElementById("logout-link");
-const confirmLogoutWithPending = armConfirm(logoutLink, t("popup.logoutPendingPasswords"));
-logoutLink.addEventListener("click", async (e) => {
-  e.preventDefault();
-  const { passwordsPendingSync } = await getAllLocal();
-  if (passwordsPendingSync && !confirmLogoutWithPending()) return;
-  await auth.logout();
-  await render();
-});
-
 document.getElementById("settings-toggle").addEventListener("click", () => {
-  const panel = document.getElementById("settings-panel");
-  panel.hidden = !panel.hidden;
-});
-
-document.getElementById("save-settings-btn").addEventListener("click", async () => {
-  const historyEnabled = document.getElementById("history-enabled").checked;
-  const historyDays = Math.max(1, Number(document.getElementById("history-days").value) || 90);
-  const syncIntervalMinutes = Math.max(5, Number(document.getElementById("sync-interval").value) || 15);
-  await setLocal({ historyEnabled, historyDays, syncIntervalMinutes });
-  await chrome.runtime.sendMessage({ type: "refresh-alarm" });
-});
-
-const confirmDeleteAccount = armConfirm(document.getElementById("delete-account-btn"), t("connectForm.confirmCantBeUndone"));
-document.getElementById("delete-account-btn").addEventListener("click", async () => {
-  const password = document.getElementById("delete-password").value;
-  const errorEl = document.getElementById("delete-error");
-  if (!password) {
-    errorEl.textContent = t("popup.enterPasswordToConfirm");
-    errorEl.hidden = false;
-    return;
-  }
-  if (!confirmDeleteAccount()) return;
-  try {
-    await auth.deleteAccount(password);
-    await render();
-  } catch (err) {
-    errorEl.textContent = err.message || t("popup.couldNotDeleteAccount");
-    errorEl.hidden = false;
-  }
+  chrome.tabs.create({ url: chrome.runtime.getURL("settings/settings.html") });
+  window.close();
 });
 
 render();

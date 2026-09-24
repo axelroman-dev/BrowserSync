@@ -1,0 +1,26 @@
+/* Same look as the password vault page, plus the form panels below. */
+@import "../passwords/passwords.css";
+
+main { max-width: 640px; }
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+.panel h2 { margin: 0; font-size: 16px; }
+.panel .hint { margin: 2px 0 6px; line-height: 1.45; }
+.panel label { font-size: 13px; font-weight: 600; margin-top: 8px; }
+.panel .primary-button, .panel .secondary-button { align-self: flex-start; margin-top: 12px; }
+
+.parts { border: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.checkbox-row { display: flex; align-items: center; gap: 8px; font-weight: 500 !important; margin-top: 0 !important; }
+.checkbox-row input { width: auto; }
+
+.actions { display: flex; gap: 8px; }
+.actions .primary-button, .actions .secondary-button { margin-top: 12px; }

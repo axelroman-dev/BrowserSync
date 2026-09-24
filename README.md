@@ -254,6 +254,14 @@ On the tab that opened (or any time later, by clicking the toolbar icon):
   to host, "starts with" or exact-URL matching globally or per password.
   Note: logging out removes this device's copy of the vault (it comes back from the
   server on the next login), so the popup warns you if there are unsynced changes.
+- **Export / import:** the password page's **Export CSV** gives you a plain-text file
+  for moving your passwords to another manager (delete it after importing). For a
+  safe copy, the popup's settings → **"Export / import a backup"** downloads one file
+  with your passwords, this device's bookmarks and your settings, encrypted with a
+  backup password you choose, and can restore it into this or another account. Both
+  exports ask for your BrowserSync password first. The server's dashboard can export
+  the same two files from its Export card (e.g. from a computer without the
+  extension); restoring is done from the extension only.
 
 ### 4. Your data, and how to delete it
 

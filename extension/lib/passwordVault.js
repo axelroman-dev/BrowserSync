@@ -24,7 +24,7 @@ import { getAllLocal, setLocal } from "./storage.js";
 import { encryptJSON, decryptJSON } from "./crypto.js";
 import { getSyncBlob, putSyncBlob } from "./api.js";
 import { MATCH_MODES } from "./urlMatch.js";
-import { fetchFavicon } from "./favicon.js";
+import { fetchFavicon, isStoredFavicon } from "./favicon.js";
 import { t } from "./i18n.js";
 
 const LOCK_NAME = "browsersync-password-vault";
@@ -150,12 +150,15 @@ export async function deleteEntry(key, id) {
 }
 
 /**
- * Adds rows from parseCsv(), skipping any that exactly match an existing
- * entry (same site, username and password) so importing the same export
- * twice is harmless.
+ * Adds rows from parseCsv() or a backup file (see backup.js), skipping any
+ * that exactly match an existing entry (same site, username and password)
+ * so importing the same export twice is harmless.
  */
 export async function importEntries(key, rows) {
-  const favicons = await Promise.all(rows.map((row) => fetchFavicon(normalizeUrl(row.url).url)));
+  // A backup row brings its own icon; CSV rows are looked up in the cache.
+  const favicons = await Promise.all(
+    rows.map((row) => (isStoredFavicon(row.favicon) ? row.favicon : fetchFavicon(normalizeUrl(row.url).url))),
+  );
   return withVaultLock(async () => {
     const entries = await readLocalEntries(key);
     const signature = (entry) => `${entry.origin ?? entry.url}\n${entry.username}\n${entry.password}`;
@@ -165,10 +168,11 @@ export async function importEntries(key, rows) {
     for (const [i, row] of rows.entries()) {
       const entry = {
         id: crypto.randomUUID(),
-        ...normalizeUrl(row.url),
-        username: row.username ?? "",
-        password: row.password ?? "",
-        notes: row.notes ?? "",
+        ...normalizeUrl(String(row.url ?? "")),
+        username: String(row.username ?? ""),
+        password: String(row.password ?? ""),
+        notes: String(row.notes ?? ""),
+        match: MATCH_MODES.includes(row.match) ? row.match : null,
         favicon: favicons[i],
         createdAt: now,
         updatedAt: now,

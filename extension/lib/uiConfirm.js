@@ -6,6 +6,9 @@
 // first click swaps its label to a "click again to confirm" warning for a
 // few seconds, second click (while armed) runs the action. Safe to use from
 // a full tab too (e.g. onboarding.js), just unnecessary there.
+//
+// `warningLabel` can be a function, for a warning that depends on state at
+// click time.
 export function armConfirm(btn, warningLabel, armedMs = 4000) {
   const originalLabel = btn.textContent;
   let armed = false;
@@ -18,7 +21,7 @@ export function armConfirm(btn, warningLabel, armedMs = 4000) {
       return true;
     }
     armed = true;
-    btn.textContent = warningLabel;
+    btn.textContent = typeof warningLabel === "function" ? warningLabel() : warningLabel;
     timer = setTimeout(() => {
       armed = false;
       btn.textContent = originalLabel;

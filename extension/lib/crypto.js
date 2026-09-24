@@ -48,7 +48,7 @@ async function deriveSalt(purpose, email) {
   return new Uint8Array(digest);
 }
 
-async function pbkdf2DeriveKey(secret, salt) {
+export async function pbkdf2DeriveKey(secret, salt) {
   const encoder = new TextEncoder();
   const baseKey = await crypto.subtle.importKey("raw", encoder.encode(secret), "PBKDF2", false, [
     "deriveKey",
@@ -204,14 +204,14 @@ function pickRandomWords(count) {
   return result;
 }
 
-function bufferToBase64(buffer) {
+export function bufferToBase64(buffer) {
   const bytes = new Uint8Array(buffer);
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary);
 }
 
-function base64ToBuffer(base64) {
+export function base64ToBuffer(base64) {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);

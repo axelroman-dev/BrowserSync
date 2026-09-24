@@ -172,20 +172,34 @@ export async function completeDeviceSetup({ email, password, passphrase, dekEnve
  * was cleared (typically: the whole browser restarted). Unwraps THIS
  * device's local password envelope - no network round trip needed.
  */
-export async function unlock(password) {
+/** Unwraps this device's password-wrapped DEK envelope, throwing WrongSecretError on a wrong password. */
+async function unwrapWithPassword(password) {
   const { accountEmail, dekEnvelopePasswordCiphertext, dekEnvelopePasswordIv } = await getAllLocal();
   if (!accountEmail) throw new Error("No account connected.");
   if (!dekEnvelopePasswordCiphertext) {
     throw Object.assign(new Error("This device hasn't been set up yet."), { code: "no_local_envelope" });
   }
   const kekPassword = await deriveKekFromPassword(password, accountEmail);
-  let dek;
   try {
-    dek = await unwrapDEK(kekPassword, { ciphertext: dekEnvelopePasswordCiphertext, iv: dekEnvelopePasswordIv });
+    return await unwrapDEK(kekPassword, { ciphertext: dekEnvelopePasswordCiphertext, iv: dekEnvelopePasswordIv });
   } catch {
     throw new WrongSecretError(t("errors.wrongPassword"));
   }
-  await activateDEK(dek);
+}
+
+export async function unlock(password) {
+  await activateDEK(await unwrapWithPassword(password));
+}
+
+/**
+ * Re-checks the account password without changing any state - asked for
+ * before anything leaves the vault in a form this device's key no longer
+ * protects (CSV export, backup file), so an unlocked browser left unattended
+ * isn't enough to walk off with everything. Checked locally against this
+ * device's envelope, no server round trip.
+ */
+export async function verifyPassword(password) {
+  await unwrapWithPassword(password);
 }
 
 export async function getActiveKey() {

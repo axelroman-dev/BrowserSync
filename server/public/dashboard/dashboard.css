@@ -13,6 +13,8 @@
   --danger: #c53030;
   --warning-bg: #fff4e0;
   --warning-text: #8a5300;
+  --notice-bg: #e8f5ec;
+  --notice-text: #1e6b3a;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -28,6 +30,8 @@
     --danger: #ff8080;
     --warning-bg: #3a2c12;
     --warning-text: #ffc978;
+    --notice-bg: #1b3325;
+    --notice-text: #8fdca9;
   }
 }
 
@@ -287,6 +291,70 @@ dialog.wide { width: min(760px, calc(100vw - 32px)); }
 .badge-on, .badge-off { font-size: 11px; padding: 1px 7px; border-radius: 999px; flex-shrink: 0; border: 1px solid var(--border); }
 .badge-on { color: var(--ok); border-color: var(--ok); }
 .badge-off { color: var(--muted); }
+
+.export-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.export-actions .secondary-button { padding: 7px 14px; font-size: 13px; }
+.export-form { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.export-form .hint { margin: 0 0 4px; }
+.export-form .warning { margin: 0 0 4px; }
+.parts { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.checkbox-row { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; margin: 0; }
+.notice {
+  background: var(--notice-bg);
+  color: var(--notice-text);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+/* Header logout: a normal button that stands out in red (same as the extension's settings page). */
+.logout-button { border-color: var(--danger); color: var(--danger); font-weight: 600; padding: 5px 12px; }
+.logout-button:hover { background: var(--error-bg); }
+
+.danger-card { display: flex; flex-direction: column; gap: 4px; border-color: var(--danger); }
+.danger-card h1 { color: var(--danger); }
+.danger-card .hint { margin: 6px 0 4px; }
+.delete-account-button { align-self: flex-start; margin-top: 12px; padding: 8px 14px; font-size: 13px; font-weight: 600; }
+.delete-account-button:hover { background: var(--error-bg); }
+
+.confirm-dialog {
+  width: min(420px, calc(100vw - 32px));
+  border: none;
+  border-radius: 14px;
+  padding: 26px 24px 20px;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.3);
+  text-align: center;
+  overflow: visible;
+}
+.confirm-dialog::backdrop { background: rgb(0 0 0 / 0.5); backdrop-filter: blur(2px); }
+.confirm-dialog[open] { animation: confirm-in 0.14s ease-out; }
+@keyframes confirm-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+.confirm-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--error-bg);
+  color: var(--danger);
+}
+.confirm-dialog h1 { margin: 0 0 8px; font-size: 18px; }
+.confirm-dialog p { margin: 0 0 22px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.confirm-actions { display: flex; gap: 10px; }
+.confirm-actions button { flex: 1; padding: 10px 12px; font-size: 14px; }
+.confirm-danger {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.confirm-danger:hover { filter: brightness(1.08); }
+.confirm-danger:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .revoke-others { display: block; margin: -8px 0 12px auto; }
 

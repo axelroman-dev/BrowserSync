@@ -1,0 +1,71 @@
+/* Same look as the vault and backup pages. */
+@import "../backup/backup.css";
+
+.panel .setting-row { padding: 12px 0; border-top: 1px solid var(--border); }
+.panel h2 + .setting-row { border-top: none; }
+.panel .setting-row .hint { margin: 4px 0 0; }
+.panel .setting-row .notice, .panel .setting-row .error { margin: 8px 0 0; }
+.panel .setting-row input[type="password"] { margin-top: 8px; width: 100%; }
+.panel .setting-row .secondary-button, .panel .setting-row .danger-button { align-self: center; margin-top: 0; }
+
+.indented { display: flex; flex-direction: column; gap: 6px; padding-left: 24px; }
+.indented label { margin-top: 4px; }
+
+/* Stands out from the other account actions, but keeps the normal button shape. */
+.logout-button { border-color: var(--danger); color: var(--danger); font-weight: 600; }
+.logout-button:hover { background: var(--error-bg); }
+
+.confirm-dialog {
+  width: min(420px, calc(100vw - 32px));
+  border: none;
+  border-radius: 14px;
+  padding: 26px 24px 20px;
+  background: var(--card-bg);
+  color: var(--text);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.3);
+  text-align: center;
+}
+.confirm-dialog::backdrop { background: rgb(0 0 0 / 0.5); backdrop-filter: blur(2px); }
+.confirm-dialog[open] { animation: confirm-in 0.14s ease-out; }
+@keyframes confirm-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+.confirm-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--error-bg);
+  color: var(--danger);
+}
+.confirm-dialog h2 { margin: 0 0 8px; font-size: 18px; }
+.confirm-dialog p { margin: 0 0 22px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.confirm-actions { display: flex; gap: 10px; }
+.confirm-actions button { flex: 1; padding: 10px 12px; font-size: 14px; }
+.confirm-danger {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.confirm-danger:hover { filter: brightness(1.08); }
+
+.panel.danger { border-color: var(--danger); }
+.panel.danger h2 { color: var(--danger); }
+.danger-button {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  border-radius: 6px;
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.danger-button:disabled { opacity: 0.5; cursor: not-allowed; }

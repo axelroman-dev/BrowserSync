@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Settings - BrowserSync</title>
+<link rel="stylesheet" href="settings.css" />
+</head>
+<body>
+  <header>
+    <span class="brand" data-i18n="settings.brand">BrowserSync — Settings</span>
+    <div class="header-actions">
+      <span id="account-label" class="account-label"></span>
+      <select id="language-select" class="language-select">
+        <option value="auto" data-i18n="language.auto">Auto</option>
+        <option value="en" data-i18n="language.en">English</option>
+        <option value="es" data-i18n="language.es">Español</option>
+      </select>
+    </div>
+  </header>
+
+  <main>
+    <section id="not-connected-view" hidden>
+      <p data-i18n="common.notConnected">Not connected. Open the BrowserSync toolbar icon to log in first.</p>
+    </section>
+
+    <section id="settings-view" hidden>
+      <!-- Sync -->
+      <form id="sync-form" class="panel" novalidate>
+        <h2 data-i18n="settings.syncTitle">Sync</h2>
+        <label class="checkbox-row">
+          <input type="checkbox" id="history-enabled" />
+          <span data-i18n="popup.syncBrowsingHistory">Sync browsing history</span>
+        </label>
+        <div id="history-days-row" class="indented">
+          <label for="history-days" data-i18n="popup.historyRetentionLabel">History retention (days)</label>
+          <input type="number" id="history-days" min="1" max="3650" />
+        </div>
+        <label for="sync-interval" data-i18n="popup.syncEveryLabel">Sync every (minutes)</label>
+        <input type="number" id="sync-interval" min="5" max="1440" />
+        <p id="sync-notice" class="notice" hidden></p>
+        <button type="submit" class="primary-button" data-i18n="popup.saveSettings">Save settings</button>
+      </form>
+
+      <!-- Account -->
+      <div class="panel">
+        <h2 data-i18n="settings.accountTitle">Account</h2>
+        <div class="setting-row">
+          <div class="setting-text">
+            <strong data-i18n="popup.openPasswords">Saved passwords</strong>
+            <p class="hint" data-i18n="settings.passwordsHint">Your vault, in-page suggestions and URL matching.</p>
+          </div>
+          <a href="../passwords/passwords.html" class="secondary-button button-link" data-i18n="passwords.backupOpen">Open</a>
+        </div>
+        <div class="setting-row">
+          <div class="setting-text">
+            <strong data-i18n="popup.manageDevices">Manage linked devices</strong>
+            <p class="hint" data-i18n="settings.devicesHint">See and sign out the devices using this account.</p>
+          </div>
+          <a href="../devices/devices.html" class="secondary-button button-link" data-i18n="passwords.backupOpen">Open</a>
+        </div>
+        <div class="setting-row">
+          <div class="setting-text">
+            <strong data-i18n="popup.backup">Export / import a backup</strong>
+            <p class="hint" data-i18n="passwords.backupHint">Export or restore an encrypted file with your passwords, bookmarks and settings.</p>
+          </div>
+          <a href="../backup/backup.html" class="secondary-button button-link" data-i18n="passwords.backupOpen">Open</a>
+        </div>
+        <div class="setting-row">
+          <div class="setting-text">
+            <strong data-i18n="settings.logoutTitle">Log out</strong>
+            <p class="hint" data-i18n="settings.logoutHint">Signs this device out. Your synced data stays on the server.</p>
+          </div>
+          <button type="button" id="logout-btn" class="secondary-button logout-button" data-i18n="settings.logoutBtn">Log out</button>
+        </div>
+      </div>
+
+      <!-- Danger zone -->
+      <div class="panel danger">
+        <h2 data-i18n="settings.dangerTitle">Danger zone</h2>
+
+        <div class="setting-row">
+          <div class="setting-text">
+            <strong data-i18n="popup.restoreBookmarksSummary">Restore bookmarks from server</strong>
+            <p class="hint" data-i18n="popup.restoreBookmarksHint">Replaces this device's bookmarks with whatever's currently synced on the server.</p>
+            <p id="force-restore-status" class="notice" hidden></p>
+            <p id="force-restore-error" class="error" hidden></p>
+          </div>
+          <button type="button" id="force-restore-btn" class="danger-button" data-i18n="popup.restoreNow">Restore now</button>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-text">
+            <strong data-i18n="popup.pushBookmarksSummary">Push this device's bookmarks to the server</strong>
+            <p class="hint" data-i18n="popup.pushBookmarksHint">Discards whatever's currently synced and replaces it with this device's bookmarks.</p>
+            <p id="force-push-status" class="notice" hidden></p>
+            <p id="force-push-error" class="error" hidden></p>
+          </div>
+          <button type="button" id="force-push-btn" class="danger-button" data-i18n="popup.pushNow">Push now</button>
+        </div>
+
+        <form id="delete-form" class="setting-row" novalidate>
+          <div class="setting-text">
+            <strong data-i18n="popup.deleteAccountSummary">Delete account and all synced data</strong>
+            <p class="hint" data-i18n="popup.deleteAccountHint">This permanently deletes your account and every synced blob from the server. It cannot be undone.</p>
+            <input id="delete-password" type="password" autocomplete="current-password" data-i18n-placeholder="popup.confirmPasswordPlaceholder" placeholder="Confirm your password" />
+            <p id="delete-error" class="error" hidden></p>
+          </div>
+          <button type="submit" class="danger-button" data-i18n="popup.deleteMyAccount">Delete my account</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- Confirmation modal for every destructive action on this page (see confirmModal in settings.js). -->
+  <dialog id="confirm-dialog" class="confirm-dialog">
+    <form method="dialog">
+      <div class="confirm-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+          <path d="M12 9v4M12 17h.01" />
+        </svg>
+      </div>
+      <h2 id="confirm-title"></h2>
+      <p id="confirm-message"></p>
+      <div class="confirm-actions">
+        <button type="submit" value="cancel" class="secondary-button" data-i18n="common.cancel">Cancel</button>
+        <button type="submit" value="confirm" id="confirm-ok" class="confirm-danger"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="settings.js"></script>
+</body>
+</html>
