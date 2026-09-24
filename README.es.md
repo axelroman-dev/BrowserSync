@@ -155,6 +155,23 @@ Considera fijar un tag específico (una versión o un hash de commit) en vez de
 homelab en el siguiente `docker compose pull` — actualízalo deliberadamente cuando
 estés listo.
 
+### Publicar una nueva versión
+
+Las versiones las gestiona [release-please](https://github.com/googleapis/release-please)
+([`.github/workflows/release-please.yml`](.github/workflows/release-please.yml)). Escribe
+los mensajes de commit (o los títulos de los PR, si fusionas con squash) como
+[conventional commits](https://www.conventionalcommits.org/es/): `feat: ...` para
+funciones nuevas, `fix: ...` para correcciones, `feat!: ...` para cambios incompatibles.
+En cada push a `main` mantiene actualizado un pull request **"chore(main): release
+X.Y.Z"** que sube la versión en `extension/manifest.json`, `server/package.json` y
+`server/package-lock.json` y actualiza [`CHANGELOG.md`](CHANGELOG.md). Fusiona ese PR
+cuando quieras publicar: crea el tag `vX.Y.Z` y la release de GitHub, y publica la
+imagen del servidor correspondiente (tags `X.Y.Z` y `X.Y`). No edites esas versiones a
+mano.
+
+Configuración única: **Settings → Actions → General → Workflow permissions**, marca
+**"Allow GitHub Actions to create and approve pull requests"**.
+
 ### Hacer un fork para tu propio servidor
 
 Todo el sentido del campo "servidor self-hosted" en la extensión es que cualquiera

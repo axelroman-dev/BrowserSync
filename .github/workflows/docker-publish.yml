@@ -13,6 +13,16 @@ on:
       - "server/**"
       - ".github/workflows/docker-publish.yml"
   workflow_dispatch: {} # lets you trigger a rebuild/republish manually from the Actions tab
+  # Called by release-please.yml after a release is created (see there for
+  # why the tag push alone doesn't trigger this workflow).
+  workflow_call:
+    inputs:
+      release:
+        type: boolean
+        default: false
+      version:
+        type: string
+        default: ""
 
 # Cancels an in-progress run for the same branch/PR when a new commit lands,
 # so pushes don't queue up a pile of redundant builds.
@@ -63,7 +73,8 @@ jobs:
       # Derives every tag/label this image should get from git context:
       #   - the branch name, on a push to main
       #   - "latest", also only on the default branch (never on a PR build)
-      #   - semver tags (v1.2.3 -> 1.2.3, 1.2, 1) when you push a version tag
+      #   - semver tags (v1.2.3 -> 1.2.3, 1.2) when you push a version tag,
+      #     or when release-please.yml calls this with the released version
       #   - a short commit SHA, always - lets you pin/rollback to an exact build
       - uses: docker/metadata-action@v5
         id: meta
@@ -73,6 +84,8 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{version}},value=${{ inputs.version }},enable=${{ inputs.release == true }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }},enable=${{ inputs.release == true }}
             type=sha,format=short
 
       # Only log in when we're actually going to push - a pull_request run

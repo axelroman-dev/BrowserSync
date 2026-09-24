@@ -146,6 +146,23 @@ Consider pinning to a specific tag (a version or commit SHA) rather than `latest
 production, so a bad push doesn't silently roll out to your homelab on the next
 `docker compose pull` - bump it deliberately when you're ready.
 
+### Releasing a new version
+
+Versions are handled by [release-please](https://github.com/googleapis/release-please)
+([`.github/workflows/release-please.yml`](.github/workflows/release-please.yml)). Write
+commit messages (or PR titles, when squash-merging) as
+[conventional commits](https://www.conventionalcommits.org/): `feat: ...` for new
+features, `fix: ...` for bug fixes, `feat!: ...` for breaking changes. On every push
+to `main` it keeps a **"chore(main): release X.Y.Z"** pull request up to date, which
+bumps the version in `extension/manifest.json`, `server/package.json` and
+`server/package-lock.json` and updates [`CHANGELOG.md`](CHANGELOG.md). Merge that PR
+when you want to release: it creates the `vX.Y.Z` tag and GitHub release, and publishes
+the matching server image (`X.Y.Z` and `X.Y` tags). Never edit those version fields by
+hand.
+
+One-time setup: **Settings → Actions → General → Workflow permissions**, tick **"Allow
+GitHub Actions to create and approve pull requests"**.
+
 ### Forking for your own server
 
 The whole point of the "self-hosted server" field in the extension is that anyone can
