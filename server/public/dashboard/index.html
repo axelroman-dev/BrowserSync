@@ -28,9 +28,7 @@
       <section id="login-view" class="card">
         <h1 data-i18n="dashboard.loginTitle">Log in to your account</h1>
         <p class="hint" data-i18n="dashboard.loginHint">
-          Account status (linked devices, sync versions) is visible right away. Bookmarks stay end-to-end
-          encrypted and are never visible to the server - you can optionally decrypt them right here in your
-          browser with your recovery passphrase, to compare against what's in your browser.
+          Account status (linked devices, sync versions) is visible right away. Your synced data stays end-to-end encrypted and is never visible to the server - you can optionally decrypt it right here in your browser with your recovery passphrase.
         </p>
         <form id="login-form" novalidate>
           <label for="login-email" data-i18n="common.email">Email</label>
@@ -45,7 +43,7 @@
         </form>
       </section>
 
-      <!-- Dashboard -->
+      <!-- Dashboard: short summaries only; the full lists open in dialogs below. -->
       <section id="dashboard-view" hidden>
         <div class="card">
           <h1 data-i18n="dashboard.accountTitle">Account</h1>
@@ -58,60 +56,83 @@
         </div>
 
         <div class="card">
-          <h1 data-i18n="dashboard.syncStatusTitle">Sync status</h1>
-          <p class="hint" data-i18n="dashboard.syncStatusHint">
-            Whether each data type has ever synced from any device, and the version/size/timestamp of what's
-            currently stored - the quickest way to check "did my last sync actually save?" without opening the
-            extension.
-          </p>
+          <div class="card-header">
+            <h1 data-i18n="dashboard.syncStatusTitle">Sync status</h1>
+            <button type="button" id="open-data-btn" class="secondary-button" data-i18n="dashboard.viewData" hidden>View data</button>
+          </div>
           <p id="status-error" class="error" hidden></p>
           <div id="status-list" class="status-list"></div>
         </div>
 
-        <div class="card">
-          <h1 data-i18n="dashboard.bookmarksTitle">Bookmarks</h1>
-          <p class="hint" data-i18n="dashboard.bookmarksHint">
-            Decrypted entirely in this browser tab using your recovery passphrase - the passphrase and the
-            decrypted bookmarks never leave your device or reach the server. Useful for comparing what's actually
-            saved against what's in your browser.
-          </p>
-
-          <p id="bookmarks-error" class="error" hidden></p>
-
-          <div id="bookmarks-locked">
-            <label for="bookmarks-passphrase" data-i18n="dashboard.recoveryPassphraseLabel">Recovery passphrase</label>
-            <input id="bookmarks-passphrase" type="password" autocomplete="off" />
-            <button type="button" id="bookmarks-unlock-btn" class="secondary-button" data-i18n="common.unlock">Unlock</button>
-          </div>
-
-          <div id="bookmarks-unlocked" hidden>
-            <div class="bookmarks-toolbar">
-              <span id="bookmarks-meta" class="status-row-detail"></span>
-              <div class="bookmarks-toolbar-actions">
-                <button type="button" id="bookmarks-refresh-btn" class="link-button" data-i18n="common.refresh">Refresh</button>
-                <button type="button" id="bookmarks-lock-btn" class="link-button" data-i18n="common.lock">Lock</button>
-              </div>
-            </div>
-            <div id="bookmarks-tree" class="tree"></div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="devices-header">
+        <div class="card summary-card">
+          <div class="summary-main">
             <h1 data-i18n="dashboard.linkedDevicesTitle">Linked devices</h1>
-            <button type="button" id="revoke-others-btn" class="link-button" data-i18n="dashboard.cleanUpOtherDevices" hidden>Clean up other devices</button>
+            <p id="devices-summary" class="summary-text"></p>
           </div>
-          <p class="hint" data-i18n="dashboard.devicesHint">
-            Every device currently signed into this account. Revoke anything you don't recognize - a
-            "never used" badge usually means a leftover from reinstalling the extension rather than a device
-            someone's actually using.
-          </p>
-          <p id="devices-error" class="error" hidden></p>
-          <div id="devices-list" class="devices-list"></div>
+          <button type="button" id="open-devices-btn" class="secondary-button" data-i18n="dashboard.manage">Manage</button>
         </div>
       </section>
     </main>
   </div>
+
+  <!-- Synced data viewer: one passphrase unlock, one tab per synced data type -->
+  <dialog id="data-dialog" class="wide">
+    <div class="dialog-header">
+      <h1 data-i18n="dashboard.dataViewerTitle">Synced data</h1>
+      <button type="button" class="dialog-close" data-close aria-label="Close">×</button>
+    </div>
+    <p class="hint" data-i18n="dashboard.dataViewerHint">
+      Decrypted entirely in this browser tab using your recovery passphrase - the passphrase and the decrypted
+      data never leave your device or reach the server. Closing this window forgets both.
+    </p>
+
+    <div id="data-tabs" class="tabs" role="tablist">
+      <button type="button" class="tab" data-type="bookmarks" data-i18n="dashboard.dataTypeBookmarks">Bookmarks</button>
+      <button type="button" class="tab" data-type="history" data-i18n="dashboard.dataTypeHistory">History</button>
+      <button type="button" class="tab" data-type="extensions" data-i18n="dashboard.dataTypeExtensions">Extensions</button>
+      <button type="button" class="tab" data-type="passwords" data-i18n="dashboard.dataTypePasswords">Passwords</button>
+    </div>
+
+    <p id="passwords-warning" class="warning" data-i18n="dashboard.passwordsWarning" hidden>
+      This page's code is served by the BrowserSync server. Only unlock your passwords here if you trust whoever
+      runs it - the browser extension doesn't have this risk.
+    </p>
+    <p id="data-error" class="error" hidden></p>
+
+    <form id="data-locked" class="unlock-form">
+      <label for="data-passphrase" data-i18n="dashboard.recoveryPassphraseLabel">Recovery passphrase</label>
+      <input id="data-passphrase" type="password" autocomplete="off" />
+      <button type="submit" id="data-unlock-btn" class="secondary-button" data-i18n="common.unlock">Unlock</button>
+    </form>
+
+    <div id="data-unlocked" hidden>
+      <div class="data-toolbar">
+        <input id="data-filter" type="search" class="filter-input" data-i18n-placeholder="dashboard.filterPlaceholder" placeholder="Filter" />
+        <div class="bookmarks-toolbar-actions">
+          <button type="button" id="data-refresh-btn" class="link-button" data-i18n="common.refresh">Refresh</button>
+          <button type="button" id="data-lock-btn" class="link-button" data-i18n="common.lock">Lock</button>
+        </div>
+      </div>
+      <p id="data-meta" class="status-row-detail"></p>
+      <div id="data-content" class="tree"></div>
+    </div>
+  </dialog>
+
+  <!-- Linked devices management -->
+  <dialog id="devices-dialog">
+    <div class="dialog-header">
+      <h1 data-i18n="dashboard.linkedDevicesTitle">Linked devices</h1>
+      <button type="button" class="dialog-close" data-close aria-label="Close">×</button>
+    </div>
+    <p class="hint" data-i18n="dashboard.devicesHint">
+      Every device currently signed into this account. Revoke anything you don't recognize - a
+      "never used" badge usually means a leftover from reinstalling the extension rather than a device
+      someone's actually using.
+    </p>
+    <button type="button" id="revoke-others-btn" class="link-button revoke-others" data-i18n="dashboard.cleanUpOtherDevices" hidden>Clean up other devices</button>
+    <p id="devices-error" class="error" hidden></p>
+    <div id="devices-list" class="devices-list"></div>
+  </dialog>
 
   <script type="module" src="dashboard.js"></script>
 </body>

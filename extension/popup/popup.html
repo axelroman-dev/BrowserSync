@@ -128,6 +128,34 @@
       <a href="#" id="repair-cancel-link" class="link" data-i18n="common.cancel">Cancel</a>
     </section>
 
+    <!-- Shown until the "Set up BrowserSync" step is finished (e.g. the onboarding tab was closed early). -->
+    <section id="setup-view" class="setup-view" hidden>
+      <p><strong data-i18n="onboarding.settingsTitle">Set up BrowserSync</strong></p>
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="setup-history-enabled" />
+        <span data-i18n="popup.syncBrowsingHistory">Sync browsing history</span>
+      </label>
+      <div id="setup-history-days-row" class="indented">
+        <label for="setup-history-days" data-i18n="popup.historyRetentionLabel">History retention (days)</label>
+        <input type="number" id="setup-history-days" min="1" max="3650" />
+      </div>
+
+      <label for="setup-sync-interval" data-i18n="popup.syncEveryLabel">Sync every (minutes)</label>
+      <input type="number" id="setup-sync-interval" min="5" max="1440" />
+
+      <label class="checkbox-row align-start">
+        <input type="checkbox" id="setup-inpage" />
+        <span>
+          <span data-i18n="passwords.inPageTitle">Suggest and save passwords on websites</span>
+          <span class="hint block" data-i18n="onboarding.inPageHint">Adds a key icon to password fields and offers to save new logins. Chrome will ask for permission to access websites.</span>
+        </span>
+      </label>
+
+      <p id="setup-error" class="error" hidden></p>
+      <button type="button" id="setup-finish-btn" class="primary-button" data-i18n="onboarding.finish">Finish</button>
+    </section>
+
     <!-- Normal connected + unlocked view. -->
     <section id="status-view" hidden>
       <dl class="status-grid">
@@ -144,6 +172,7 @@
       <p id="sync-error" class="error" hidden></p>
 
       <button id="sync-now-btn" class="primary-button" data-i18n="popup.syncNow">Sync now</button>
+      <a href="#" id="passwords-link" class="link" data-i18n="popup.openPasswords">Saved passwords</a>
       <a href="#" id="view-data-link" class="link" data-i18n="popup.viewSyncedData">View synced data</a>
       <a href="#" id="logout-link" class="link" data-i18n="popup.logoutSwitch">Log out / switch account</a>
 

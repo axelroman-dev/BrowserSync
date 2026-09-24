@@ -38,7 +38,14 @@ async function request(serverUrl, path, { method = "GET", body, accessToken, sig
     payload = await response.json();
   } catch {
     // Non-JSON response (e.g. a proxy error page) - treat as a network-level problem.
-    if (!response.ok) throw new NetworkError(`Server returned ${response.status} with an unexpected response.`);
+    // `status` lets callers tell an old server that simply lacks a route
+    // (a plain-HTML 404) apart from one that's actually unreachable - see
+    // passwordVault.js.
+    if (!response.ok) {
+      throw Object.assign(new NetworkError(`Server returned ${response.status} with an unexpected response.`), {
+        status: response.status,
+      });
+    }
   }
 
   if (!response.ok) throw new ApiError(response.status, payload);

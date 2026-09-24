@@ -3,7 +3,7 @@ import { db } from "../db/client.js";
 import { syncBlobs, type SyncBlob } from "../db/schema.js";
 import { config } from "../config.js";
 
-export type DataType = "bookmarks" | "history" | "extensions";
+export type DataType = "bookmarks" | "history" | "extensions" | "passwords";
 
 export class BlobTooLargeError extends Error {}
 export class VersionConflictError extends Error {

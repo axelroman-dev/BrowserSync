@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>BrowserSync</title>
+<link rel="stylesheet" href="frame.css" />
+</head>
+<body>
+  <header>
+    <span class="brand">BrowserSync</span>
+    <button type="button" id="close-btn" class="close-button" data-i18n-title="common.cancel" aria-label="Close">×</button>
+  </header>
+
+  <!-- mode=suggest: the list opened from the key icon in a password field -->
+  <section id="suggest-view" hidden>
+    <div id="suggestions" class="suggestions"></div>
+    <p id="suggest-message" class="message" hidden></p>
+    <div class="footer">
+      <button type="button" id="unlock-btn" class="primary-button" data-i18n="common.unlock" hidden>Unlock</button>
+      <button type="button" id="manage-btn" class="link-button" data-i18n="inPage.manage">Manage passwords</button>
+    </div>
+  </section>
+
+  <!-- mode=save: shown after a login form was submitted -->
+  <section id="save-view" hidden>
+    <p id="save-title" class="save-title"></p>
+    <p id="save-username" class="save-username"></p>
+    <div class="actions">
+      <button type="button" id="dismiss-btn" class="secondary-button" data-i18n="inPage.notNow">Not now</button>
+      <button type="button" id="save-btn" class="primary-button" data-i18n="passwords.save">Save</button>
+    </div>
+  </section>
+
+  <script type="module" src="frame.js"></script>
+</body>
+</html>

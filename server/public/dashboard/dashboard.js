@@ -174,6 +174,7 @@ function dataTypeLabels() {
     bookmarks: t("dashboard.dataTypeBookmarks"),
     history: t("dashboard.dataTypeHistory"),
     extensions: t("dashboard.dataTypeExtensions"),
+    passwords: t("dashboard.dataTypePasswords"),
   };
 }
 
@@ -184,14 +185,28 @@ async function loadAccount() {
   document.getElementById("account-created").textContent = formatDate(account.createdAt);
 }
 
+// Data types that currently have something stored - drives both the status
+// list and which tabs the data viewer offers.
+let syncedTypes = [];
+
 async function loadStatus() {
   const errorEl = document.getElementById("status-error");
   const container = document.getElementById("status-list");
+  const viewBtn = document.getElementById("open-data-btn");
   errorEl.hidden = true;
   container.textContent = "";
   try {
     const { blobs } = await authFetch("/api/sync/status");
-    for (const blob of blobs) {
+    // Only what's actually been synced: a type that's off (history is
+    // opt-in) or never ran has nothing worth a row.
+    const synced = blobs.filter((blob) => blob.version);
+    syncedTypes = synced.map((blob) => blob.dataType);
+    viewBtn.hidden = !synced.length;
+    if (!synced.length) {
+      emptyHint(container, "dashboard.nothingSyncedYet");
+      return;
+    }
+    for (const blob of synced) {
       const row = document.createElement("div");
       row.className = "status-row";
 
@@ -201,22 +216,25 @@ async function loadStatus() {
       const title = document.createElement("span");
       title.className = "status-row-title";
       const dot = document.createElement("span");
-      dot.className = "dot " + (blob.version ? "dot-ok" : "dot-empty");
+      dot.className = "dot dot-ok";
       title.appendChild(dot);
       title.appendChild(document.createTextNode(dataTypeLabels()[blob.dataType] ?? blob.dataType));
       main.appendChild(title);
 
       const detail = document.createElement("span");
       detail.className = "status-row-detail";
-      detail.textContent = blob.version
-        ? t("dashboard.versionDetail", { version: blob.version, size: formatBytes(blob.sizeBytes), date: formatDate(blob.updatedAt) })
-        : t("dashboard.neverSyncedFromDevice");
+      detail.textContent = t("dashboard.versionDetail", {
+        version: blob.version,
+        size: formatBytes(blob.sizeBytes),
+        date: formatDate(blob.updatedAt),
+      });
       main.appendChild(detail);
 
       row.appendChild(main);
       container.appendChild(row);
     }
   } catch (err) {
+    viewBtn.hidden = true;
     errorEl.textContent = err.message || t("dashboard.couldNotLoadSyncStatus");
     errorEl.hidden = false;
   }
@@ -251,7 +269,8 @@ async function doLogout() {
   }
   session = null;
   clearSession();
-  lockBookmarks();
+  for (const dialog of Object.values(dialogs)) dialog.close();
+  lockData();
   document.getElementById("login-form").reset();
   showView(false);
 }
@@ -264,6 +283,7 @@ async function loadDevices() {
   container.textContent = "";
   try {
     const { devices } = await authFetch("/api/auth/devices");
+    renderDevicesSummary(devices);
     bulkRevokeBtn.hidden = devices.length <= 1;
     if (!devices.length) {
       const empty = document.createElement("p");
@@ -334,9 +354,20 @@ async function loadDevices() {
       container.appendChild(row);
     }
   } catch (err) {
+    document.getElementById("devices-summary").textContent = t("dashboard.couldNotLoadDevices");
     errorEl.textContent = err.message || t("dashboard.couldNotLoadDevices");
     errorEl.hidden = false;
   }
+}
+
+function renderDevicesSummary(devices) {
+  // This dashboard session counts as a linked device too, but it's not what
+  // anyone means by "my devices" - leave it out of the headline number.
+  const others = devices.filter((device) => device.id !== session.deviceId);
+  const neverUsed = others.filter((device) => !device.lastUsedAt).length;
+  let text = t("dashboard.devicesSummary", { count: others.length });
+  if (neverUsed) text += ` · ${t("dashboard.devicesSummaryNeverUsed", { count: neverUsed })}`;
+  document.getElementById("devices-summary").textContent = text;
 }
 
 function renderBookmarkNode(node) {
@@ -373,43 +404,264 @@ function renderBookmarkNode(node) {
   return li;
 }
 
-function lockBookmarks() {
+// --- Synced data viewer (one dialog, one tab per data type) ---
+// One passphrase unlock serves every tab. The unwrapped key and every
+// decrypted payload live only in these variables, and closing the dialog
+// (or Lock, logout, reload) drops them.
+const DATA_TYPES = ["bookmarks", "history", "extensions", "passwords"];
+// History can hold tens of thousands of entries; render only the first
+// matches and let the filter narrow it down.
+const MAX_ROWS = 500;
+
+let activeDataType = "bookmarks";
+const decryptedCache = new Map(); // dataType -> { payload, updatedAt } | null (nothing synced)
+const revealedPasswords = new Set();
+
+function lockData() {
   unlockedKey = null;
-  document.getElementById("bookmarks-passphrase").value = "";
-  document.getElementById("bookmarks-error").hidden = true;
-  document.getElementById("bookmarks-locked").hidden = false;
-  document.getElementById("bookmarks-unlocked").hidden = true;
+  decryptedCache.clear();
+  revealedPasswords.clear();
+  document.getElementById("data-passphrase").value = "";
+  document.getElementById("data-filter").value = "";
+  document.getElementById("data-error").hidden = true;
+  document.getElementById("data-content").textContent = "";
+  document.getElementById("data-locked").hidden = false;
+  document.getElementById("data-unlocked").hidden = true;
 }
 
-/** Fetches the current bookmarks blob and renders it with an already-unwrapped key. */
-async function renderBookmarksTree(key) {
-  const blob = await authFetch("/api/sync/bookmarks");
-  const container = document.getElementById("bookmarks-tree");
+function selectDataTab(dataType) {
+  activeDataType = dataType;
+  for (const tab of document.querySelectorAll("#data-tabs .tab")) {
+    tab.classList.toggle("active", tab.dataset.type === dataType);
+  }
+  document.getElementById("passwords-warning").hidden = dataType !== "passwords";
+  document.getElementById("data-filter").hidden = dataType === "bookmarks";
+  document.getElementById("data-filter").value = "";
+  if (unlockedKey) showDataTab().catch(showDataError);
+}
+
+function showDataError(err) {
+  const errorEl = document.getElementById("data-error");
+  errorEl.textContent = err?.message || t("dashboard.couldNotDecryptData");
+  errorEl.hidden = false;
+}
+
+async function fetchDecrypted(dataType, { force = false } = {}) {
+  if (!force && decryptedCache.has(dataType)) return decryptedCache.get(dataType);
+  const blob = await authFetch(`/api/sync/${dataType}`).catch((err) => {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  });
+  const result = blob ? { payload: await decryptJSON(unlockedKey, blob.ciphertext, blob.iv), updatedAt: blob.updatedAt } : null;
+  decryptedCache.set(dataType, result);
+  return result;
+}
+
+/** Fetches (once per unlock) and renders the active tab. */
+async function showDataTab({ force = false } = {}) {
+  document.getElementById("data-error").hidden = true;
+  const dataType = activeDataType;
+  const result = await fetchDecrypted(dataType, { force });
+  if (dataType !== activeDataType) return; // the user switched tabs meanwhile
+  document.getElementById("data-meta").textContent = result
+    ? t("dashboard.lastSynced", { date: formatDate(result.updatedAt) })
+    : t("dashboard.nothingSyncedForType");
+  renderDataContent();
+}
+
+function renderDataContent() {
+  const container = document.getElementById("data-content");
   container.textContent = "";
-  if (!blob) {
-    document.getElementById("bookmarks-meta").textContent = t("dashboard.noBookmarksSynced");
-    return;
-  }
-  const payload = await decryptJSON(key, blob.ciphertext, blob.iv);
-  const tree = buildDisplayTree(payload.nodes ?? []);
-  document.getElementById("bookmarks-meta").textContent = t("dashboard.lastSynced", { date: formatDate(blob.updatedAt) });
-  if (!tree.length) {
-    const empty = document.createElement("p");
-    empty.className = "empty-hint";
-    empty.textContent = t("dashboard.noBookmarksSynced");
-    container.appendChild(empty);
+  const result = decryptedCache.get(activeDataType);
+  if (!result) return;
+  const query = document.getElementById("data-filter").value.trim().toLowerCase();
+  const renderers = { bookmarks: renderBookmarks, history: renderHistory, extensions: renderExtensions, passwords: renderPasswords };
+  renderers[activeDataType](container, result.payload, query);
+}
+
+function emptyHint(container, key) {
+  const empty = document.createElement("p");
+  empty.className = "empty-hint";
+  empty.textContent = t(key);
+  container.appendChild(empty);
+}
+
+function dataRow({ title, href, detail, badge }) {
+  const row = document.createElement("div");
+  row.className = "data-row";
+  const main = document.createElement("div");
+  main.className = "data-row-main";
+  if (href) {
+    const link = document.createElement("a");
+    link.href = href;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = title;
+    link.title = href;
+    main.appendChild(link);
   } else {
-    const ul = document.createElement("ul");
-    ul.className = "tree-root";
-    for (const node of tree) ul.appendChild(renderBookmarkNode(node));
-    container.appendChild(ul);
+    const label = document.createElement("span");
+    label.className = "data-row-title";
+    label.textContent = title;
+    main.appendChild(label);
+  }
+  if (detail) {
+    const detailEl = document.createElement("span");
+    detailEl.className = "data-row-detail";
+    detailEl.textContent = detail;
+    main.appendChild(detailEl);
+  }
+  row.appendChild(main);
+  if (badge) {
+    const badgeEl = document.createElement("span");
+    badgeEl.className = badge.on ? "badge-on" : "badge-off";
+    badgeEl.textContent = badge.label;
+    row.appendChild(badgeEl);
+  }
+  return row;
+}
+
+/** Appends at most MAX_ROWS rows, with a note when the rest were cut off. */
+function appendCapped(container, items, toRow, total) {
+  for (const item of items.slice(0, MAX_ROWS)) container.appendChild(toRow(item));
+  if (items.length > MAX_ROWS) {
+    const note = document.createElement("p");
+    note.className = "empty-hint";
+    note.textContent = t("dashboard.showingFirst", { shown: MAX_ROWS, total });
+    container.appendChild(note);
   }
 }
 
-document.getElementById("bookmarks-unlock-btn").addEventListener("click", async () => {
-  const passphrase = document.getElementById("bookmarks-passphrase").value;
-  const errorEl = document.getElementById("bookmarks-error");
-  const btn = document.getElementById("bookmarks-unlock-btn");
+function renderBookmarks(container, payload) {
+  const tree = buildDisplayTree(payload.nodes ?? []);
+  if (!tree.length) return emptyHint(container, "dashboard.noBookmarksSynced");
+  const ul = document.createElement("ul");
+  ul.className = "tree-root";
+  for (const node of tree) ul.appendChild(renderBookmarkNode(node));
+  container.appendChild(ul);
+}
+
+function renderHistory(container, payload, query) {
+  const entries = [...(payload.entries ?? [])]
+    .filter((entry) => !query || `${entry.title} ${entry.url}`.toLowerCase().includes(query))
+    .sort((a, b) => b.lastVisitTime - a.lastVisitTime);
+  if (!entries.length) return emptyHint(container, query ? "dashboard.noMatches" : "dashboard.nothingSyncedForType");
+  appendCapped(
+    container,
+    entries,
+    (entry) =>
+      dataRow({
+        title: entry.title || entry.url,
+        href: entry.url,
+        detail: t("dashboard.historyDetail", { date: formatDate(entry.lastVisitTime), count: entry.visitCount }),
+      }),
+    entries.length,
+  );
+}
+
+function renderExtensions(container, payload, query) {
+  const extensions = [...(payload.extensions ?? [])]
+    .filter((ext) => !query || ext.name.toLowerCase().includes(query))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  if (!extensions.length) return emptyHint(container, query ? "dashboard.noMatches" : "dashboard.nothingSyncedForType");
+  for (const ext of extensions) {
+    container.appendChild(
+      dataRow({
+        title: ext.name,
+        detail: ext.id,
+        badge: { on: ext.enabled, label: ext.enabled ? t("dashboard.enabled") : t("dashboard.disabled") },
+      }),
+    );
+  }
+}
+
+function hostOf(url) {
+  try {
+    return new URL(url).host || url;
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * The icon the extension stored with the entry (a data: URL, encrypted with
+ * the rest of it), else the site's first letter. This page never requests
+ * icons from the sites or an icon service, which would reveal the vault's
+ * sites to them.
+ */
+function siteIcon(entry) {
+  if (typeof entry.favicon === "string" && entry.favicon.startsWith("data:image/")) {
+    const img = document.createElement("img");
+    img.className = "site-icon";
+    img.alt = "";
+    img.src = entry.favicon;
+    return img;
+  }
+  const letter = document.createElement("span");
+  letter.className = "site-icon site-icon-letter";
+  letter.textContent = (hostOf(entry.url).replace(/^www\./, "")[0] ?? "?").toUpperCase();
+  return letter;
+}
+
+function renderPasswords(container, payload, query) {
+  // Deleted entries stay in the blob as tombstones (see the extension's
+  // passwordVault.js) - never shown.
+  const entries = (payload.entries ?? [])
+    .filter((entry) => !entry.deleted)
+    .filter((entry) => !query || `${entry.url} ${entry.username} ${entry.notes}`.toLowerCase().includes(query))
+    .sort((a, b) => hostOf(a.url).localeCompare(hostOf(b.url)));
+  if (!entries.length) return emptyHint(container, query ? "dashboard.noMatches" : "dashboard.nothingSyncedForType");
+  for (const entry of entries) {
+    const row = dataRow({ title: hostOf(entry.url), href: /^https?:/.test(entry.url) ? entry.url : null, detail: entry.username || "—" });
+    row.prepend(siteIcon(entry));
+    const main = row.querySelector(".data-row-main");
+    const secret = document.createElement("span");
+    secret.className = "data-row-secret";
+    secret.textContent = revealedPasswords.has(entry.id) ? entry.password : "••••••••••";
+    main.appendChild(secret);
+
+    const actions = document.createElement("div");
+    actions.className = "data-row-actions";
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "secondary-button";
+    toggle.textContent = revealedPasswords.has(entry.id) ? t("dashboard.hide") : t("dashboard.show");
+    toggle.addEventListener("click", () => {
+      if (revealedPasswords.has(entry.id)) revealedPasswords.delete(entry.id);
+      else revealedPasswords.add(entry.id);
+      renderDataContent();
+    });
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.className = "secondary-button";
+    copy.textContent = t("common.copy");
+    copy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(entry.password);
+        copy.textContent = t("common.copied");
+      } catch {
+        copy.textContent = t("dashboard.copyFailed");
+      }
+      setTimeout(() => (copy.textContent = t("common.copy")), 1500);
+    });
+    actions.append(toggle, copy);
+    row.appendChild(actions);
+    container.appendChild(row);
+  }
+}
+
+document.getElementById("data-tabs").addEventListener("click", (e) => {
+  const tab = e.target.closest(".tab");
+  if (tab) selectDataTab(tab.dataset.type);
+});
+
+document.getElementById("data-filter").addEventListener("input", renderDataContent);
+
+document.getElementById("data-locked").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const passphrase = document.getElementById("data-passphrase").value;
+  const errorEl = document.getElementById("data-error");
+  const btn = document.getElementById("data-unlock-btn");
   errorEl.hidden = true;
   if (!passphrase) {
     errorEl.textContent = t("dashboard.enterRecoveryPassphrase");
@@ -422,39 +674,36 @@ document.getElementById("bookmarks-unlock-btn").addEventListener("click", async 
     const { dekEnvelope } = await authFetch("/api/auth/dek-envelope");
     const email = document.getElementById("account-email").textContent;
     const kek = await deriveKekFromPassphrase(passphrase, email);
-    let key;
     try {
-      key = await unwrapDEK(kek, dekEnvelope);
+      unlockedKey = await unwrapDEK(kek, dekEnvelope);
     } catch {
       throw new Error(t("dashboard.wrongPassphrase"));
     }
-    await renderBookmarksTree(key);
-    unlockedKey = key;
-    document.getElementById("bookmarks-locked").hidden = true;
-    document.getElementById("bookmarks-unlocked").hidden = false;
+    document.getElementById("data-passphrase").value = "";
+    document.getElementById("data-locked").hidden = true;
+    document.getElementById("data-unlocked").hidden = false;
+    await showDataTab();
   } catch (err) {
-    errorEl.textContent = err.message || t("dashboard.couldNotDecryptBookmarks");
-    errorEl.hidden = false;
+    showDataError(err);
   } finally {
     btn.disabled = false;
     btn.textContent = t("common.unlock");
   }
 });
 
-document.getElementById("bookmarks-lock-btn").addEventListener("click", lockBookmarks);
+document.getElementById("data-lock-btn").addEventListener("click", lockData);
 
-// Re-fetches and re-renders with the already-unwrapped key from this
-// unlock - handy after syncing from the extension/another device, without
-// having to re-type the recovery passphrase just to see the new state.
-document.getElementById("bookmarks-refresh-btn").addEventListener("click", async () => {
+// Re-fetches the active tab with the key already in hand - handy after
+// syncing from the extension/another device, without re-typing the
+// recovery passphrase.
+document.getElementById("data-refresh-btn").addEventListener("click", async () => {
   if (!unlockedKey) return;
-  const btn = document.getElementById("bookmarks-refresh-btn");
+  const btn = document.getElementById("data-refresh-btn");
   btn.disabled = true;
   try {
-    await renderBookmarksTree(unlockedKey);
+    await showDataTab({ force: true });
   } catch (err) {
-    document.getElementById("bookmarks-error").textContent = err.message || t("dashboard.couldNotRefreshBookmarks");
-    document.getElementById("bookmarks-error").hidden = false;
+    showDataError(err);
   } finally {
     btn.disabled = false;
   }
@@ -483,9 +732,44 @@ document.getElementById("revoke-others-btn").addEventListener("click", async () 
   }
 });
 
+// --- Dialogs: the main page only shows summaries; lists open here. ---
+const dialogs = {
+  data: document.getElementById("data-dialog"),
+  devices: document.getElementById("devices-dialog"),
+};
+
+for (const dialog of Object.values(dialogs)) {
+  dialog.querySelector("[data-close]").addEventListener("click", () => dialog.close());
+  // A click on the backdrop lands on the <dialog> element itself.
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+}
+
+/** Opens the viewer with one tab per synced type, starting on the first. */
+function openDataDialog() {
+  for (const tab of document.querySelectorAll("#data-tabs .tab")) {
+    tab.hidden = !syncedTypes.includes(tab.dataset.type);
+  }
+  selectDataTab(DATA_TYPES.find((type) => syncedTypes.includes(type)) ?? "bookmarks");
+  dialogs.data.showModal();
+  if (!unlockedKey) document.getElementById("data-passphrase").focus();
+}
+
+// Closing the viewer drops the unwrapped key and everything decrypted with
+// it: nothing stays in memory once it's off screen.
+dialogs.data.addEventListener("close", lockData);
+
+document.getElementById("open-data-btn").addEventListener("click", openDataDialog);
+
+document.getElementById("open-devices-btn").addEventListener("click", () => {
+  dialogs.devices.showModal();
+  loadDevices();
+});
+
 async function loadDashboard() {
   showView(true);
-  lockBookmarks();
+  lockData();
   await Promise.all([loadAccount(), loadStatus(), loadDevices()]);
 }
 

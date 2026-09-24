@@ -65,6 +65,23 @@ const LOCAL_DEFAULTS = {
   bookmarkBlobVersion: 0, // last server "version" this device successfully wrote/read
   historyBlobVersion: 0,
   extensionsBlobVersion: 0,
+  // Saved-password vault (see passwordVault.js): {ciphertext, iv} encrypted
+  // with the DEK, so it's unreadable on disk while the extension is locked.
+  // Kept locally (unlike bookmarks/history there's no Chromium store behind
+  // it) so the vault page works offline and edits survive a failed sync.
+  passwordVault: null,
+  passwordsBlobVersion: 0,
+  // True while the vault holds local edits the server hasn't accepted yet -
+  // popup.js warns before a logout that would throw them away.
+  passwordsPendingSync: false,
+  passwordsSyncError: null,
+  // Set when the "Set up BrowserSync" step (lib/setupForm.js) is finished,
+  // in onboarding or the popup. Until then the popup shows that step instead
+  // of the status view. Device preference, so it survives logout.
+  setupCompletedAt: null,
+  // How saved passwords match page URLs when an entry doesn't pick its own
+  // mode - see lib/urlMatch.js.
+  passwordMatchDefault: "domain",
 };
 
 export async function getLocal(keys) {
@@ -109,6 +126,13 @@ export async function clearAccountLocal() {
     "lastSyncError",
     "historyBlobVersion",
     "extensionsBlobVersion",
+    // Unlike bookmark bookkeeping, the vault is encrypted with THIS account's
+    // DEK and would be undecryptable (and must never be uploaded) under a
+    // different account - the server copy is what a later login restores.
+    "passwordVault",
+    "passwordsBlobVersion",
+    "passwordsPendingSync",
+    "passwordsSyncError",
   ]);
   await clearEncryptionKey();
 }

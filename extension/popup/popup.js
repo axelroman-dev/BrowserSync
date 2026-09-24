@@ -3,6 +3,8 @@ import * as auth from "../lib/auth.js";
 import * as api from "../lib/api.js";
 import { getAllLocal, setLocal } from "../lib/storage.js";
 import { armConfirm } from "../lib/uiConfirm.js";
+import { needsFirstSyncChoice } from "../lib/firstSyncPrompt.js";
+import { wireSetupForm, renderSetupForm, isSetupComplete } from "../lib/setupForm.js";
 import { initI18n, t } from "../lib/i18n.js";
 
 // Resolves the language and translates every data-i18n* element already in
@@ -11,15 +13,12 @@ import { initI18n, t } from "../lib/i18n.js";
 // English string from t() or flash untranslated text.
 await initI18n();
 
-// True right after a sync reports it's blocked on the merge/replace choice
-// (normally already resolved by connectForm.js's themed dialog right after
-// login - this only fires for the rare case of an unresolved device hitting
-// "Sync now"/unlock/repair instead). There's no good way to ask "merge or
-// replace?" here without a real modal - window.confirm() renders clipped to
-// the popup's small window frame (see uiConfirm.js) and can't fit a 3-way
-// choice into an "arm this button" pattern - so this just points the user at
-// the two UIs that CAN ask properly: logging out and back in, or Settings ->
-// "Restore bookmarks from server". Read by renderStatusView().
+// True right after a sync reports it's blocked on the merge/replace choice.
+// render() normally asks that question itself before any sync runs; this
+// covers the rare race where the check only comes up during the sync (e.g.
+// bookmarks appeared on the server in between). syncNowInteractive() then
+// switches to the question directly, and renderStatusView() keeps a hint as
+// a fallback.
 let firstSyncChoicePending = false;
 
 // Runs a sync cycle via the background service worker instead of importing
@@ -30,6 +29,7 @@ let firstSyncChoicePending = false;
 async function syncNowInteractive() {
   const result = await chrome.runtime.sendMessage({ type: "run-sync" });
   firstSyncChoicePending = result?.status === "skipped" && result?.reason === "needs_first_sync_choice";
+  if (firstSyncChoicePending) showFirstSyncChoice();
   return result;
 }
 
@@ -37,6 +37,7 @@ const views = {
   connect: document.getElementById("connect-view"),
   unlock: document.getElementById("unlock-view"),
   repair: document.getElementById("repair-view"),
+  setup: document.getElementById("setup-view"),
   status: document.getElementById("status-view"),
 };
 
@@ -84,10 +85,34 @@ async function renderStatusView() {
   document.getElementById("sync-interval").value = settings.syncIntervalMinutes;
 }
 
+// Only syncs once render() actually lands on the status view: while the
+// bookmarks merge/replace question or the setup step is still showing, the
+// sync would either be skipped or run before the user picked their
+// settings (e.g. upload history they're about to turn off).
+async function renderThenSync() {
+  await render();
+  if (!views.status.hidden) syncNowInteractive().then(renderStatusView);
+}
+
+/** Shows the bookmarks merge/replace question that lives in the connect view (wired by connectForm.js). */
+function showFirstSyncChoice() {
+  showView("connect");
+  for (const id of ["connect-form", "save-passphrase-view", "device-setup-view", "forgot-password-view", "first-sync-error"]) {
+    document.getElementById(id).hidden = true;
+  }
+  document.getElementById("first-sync-choice-view").hidden = false;
+}
+
 async function render() {
   const session = await auth.getSession();
   if (!session.isLoggedIn) {
     showView("connect");
+    // The connect view may still show a sub-step from an earlier visit
+    // (e.g. the merge/replace question before a logout) - start at the form.
+    document.getElementById("connect-form").hidden = false;
+    for (const id of ["save-passphrase-view", "device-setup-view", "forgot-password-view", "first-sync-choice-view"]) {
+      document.getElementById(id).hidden = true;
+    }
     return;
   }
   if (!session.isUnlocked) {
@@ -95,9 +120,23 @@ async function render() {
     showView(session.hasLocalEnvelope ? "unlock" : "repair");
     return;
   }
+  // Setup left unfinished (typically: the onboarding tab was closed early)
+  // is picked up here instead of leaving the user on a status view that
+  // can only say "something's pending".
+  if (await needsFirstSyncChoice().catch(() => false)) {
+    showFirstSyncChoice();
+    return;
+  }
+  if (!(await isSetupComplete())) {
+    showView("setup");
+    await renderSetupForm();
+    return;
+  }
   showView("status");
   await renderStatusView();
 }
+
+wireSetupForm(renderThenSync);
 
 // --- Connect view wiring (shared with onboarding.js) ---
 wireConnectForm(
@@ -145,8 +184,7 @@ wireConnectForm(
   },
   async () => {
     await chrome.runtime.sendMessage({ type: "refresh-alarm" });
-    await render();
-    syncNowInteractive().then(renderStatusView);
+    await renderThenSync();
   },
 );
 
@@ -162,8 +200,7 @@ document.getElementById("unlock-btn").addEventListener("click", async () => {
   try {
     await auth.unlock(password);
     errorEl.hidden = true;
-    await render();
-    syncNowInteractive().then(renderStatusView);
+    await renderThenSync();
   } catch (err) {
     if (err.code === "no_local_envelope") {
       showView("repair");
@@ -200,8 +237,7 @@ document.getElementById("repair-btn").addEventListener("click", async () => {
     const { dekEnvelope } = await api.getDekEnvelope();
     await auth.completeDeviceSetup({ email: accountEmail, password, passphrase, dekEnvelope });
     errorEl.hidden = true;
-    await render();
-    syncNowInteractive().then(renderStatusView);
+    await renderThenSync();
   } catch (err) {
     errorEl.textContent = err.message || t("popup.couldNotReconnect");
     errorEl.hidden = false;
@@ -276,6 +312,11 @@ document.getElementById("force-push-btn").addEventListener("click", async (e) =>
   }
 });
 
+document.getElementById("passwords-link").addEventListener("click", (e) => {
+  e.preventDefault();
+  chrome.tabs.create({ url: chrome.runtime.getURL("passwords/passwords.html") });
+});
+
 document.getElementById("view-data-link").addEventListener("click", (e) => {
   e.preventDefault();
   chrome.tabs.create({ url: chrome.runtime.getURL("viewer/viewer.html") });
@@ -286,8 +327,15 @@ document.getElementById("manage-devices-link").addEventListener("click", (e) => 
   chrome.tabs.create({ url: chrome.runtime.getURL("devices/devices.html") });
 });
 
-document.getElementById("logout-link").addEventListener("click", async (e) => {
+// Logging out deletes this device's local password vault (see
+// clearAccountLocal), so vault edits the server hasn't accepted yet would be
+// lost - ask for a second click first in that case only.
+const logoutLink = document.getElementById("logout-link");
+const confirmLogoutWithPending = armConfirm(logoutLink, t("popup.logoutPendingPasswords"));
+logoutLink.addEventListener("click", async (e) => {
   e.preventDefault();
+  const { passwordsPendingSync } = await getAllLocal();
+  if (passwordsPendingSync && !confirmLogoutWithPending()) return;
   await auth.logout();
   await render();
 });

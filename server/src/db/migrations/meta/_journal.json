@@ -15,6 +15,13 @@
       "when": 1789226632179,
       "tag": "0001_melodic_norman_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790265084692,
+      "tag": "0002_passwords_data_type",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,2 @@
+ALTER TABLE "sync_blobs" DROP CONSTRAINT "sync_blobs_data_type_check";--> statement-breakpoint
+ALTER TABLE "sync_blobs" ADD CONSTRAINT "sync_blobs_data_type_check" CHECK ("sync_blobs"."data_type" IN ('bookmarks', 'history', 'extensions', 'passwords'));
