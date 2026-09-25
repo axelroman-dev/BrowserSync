@@ -1,6 +1,6 @@
 {
   "name": "browsersync-server",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "description": "Self-hosted, multi-tenant sync backend for the BrowserSync extension",
   "private": true,
   "type": "module",
