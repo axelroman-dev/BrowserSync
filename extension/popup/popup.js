@@ -92,7 +92,7 @@ async function renderThenSync() {
 /** Shows the bookmarks merge/replace question that lives in the connect view (wired by connectForm.js). */
 function showFirstSyncChoice() {
   showView("connect");
-  for (const id of ["connect-form", "save-passphrase-view", "device-setup-view", "forgot-password-view", "first-sync-error"]) {
+  for (const id of ["server-step", "connect-form", "save-passphrase-view", "device-setup-view", "forgot-password-view", "first-sync-error"]) {
     document.getElementById(id).hidden = true;
   }
   document.getElementById("first-sync-choice-view").hidden = false;
@@ -103,11 +103,9 @@ async function render() {
   if (!session.isLoggedIn) {
     showView("connect");
     // The connect view may still show a sub-step from an earlier visit
-    // (e.g. the merge/replace question before a logout) - start at the form.
-    document.getElementById("connect-form").hidden = false;
-    for (const id of ["save-passphrase-view", "device-setup-view", "forgot-password-view", "first-sync-choice-view"]) {
-      document.getElementById(id).hidden = true;
-    }
+    // (e.g. the merge/replace question before a logout) - start over at the
+    // server step.
+    connectForm.showServerStep();
     return;
   }
   if (!session.isUnlocked) {
@@ -134,7 +132,7 @@ async function render() {
 wireSetupForm(renderThenSync);
 
 // --- Connect view wiring (shared with onboarding.js) ---
-wireConnectForm(
+const connectForm = wireConnectForm(
   {
     form: document.getElementById("connect-form"),
     formTitle: document.getElementById("connect-title"),
@@ -145,12 +143,13 @@ wireConnectForm(
     forgotPasswordLink: document.getElementById("forgot-password-link"),
     errorMessage: document.getElementById("error-message"),
 
-    serverToggleLink: document.getElementById("server-toggle-link"),
-    serverRequiredHint: document.getElementById("server-required-hint"),
-    serverSection: document.getElementById("server-section"),
+    serverStep: document.getElementById("server-step"),
+    serverHost: document.getElementById("server-host"),
+    changeServerLink: document.getElementById("change-server-link"),
     serverUrlInput: document.getElementById("server-url"),
     testConnectionBtn: document.getElementById("test-connection"),
     testStatus: document.getElementById("test-status"),
+    healthSteps: document.getElementById("health-steps"),
 
     savePassphraseView: document.getElementById("save-passphrase-view"),
     generatedPassphraseDisplay: document.getElementById("generated-passphrase"),

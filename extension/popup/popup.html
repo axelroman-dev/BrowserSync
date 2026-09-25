@@ -21,7 +21,20 @@
 
     <!-- Shown when there's no account connected at all. -->
     <section id="connect-view" hidden>
-      <form id="connect-form" novalidate>
+      <!-- First step: pick and test the server before showing login/register -->
+      <form id="server-step" novalidate>
+        <h2 class="connect-title" data-i18n="connectForm.serverStepTitle">Connect to your server</h2>
+        <p class="hint" data-i18n="popup.serverRequiredHint">No official hosted server is available yet - enter your own server's URL and test the connection.</p>
+        <label for="server-url" data-i18n="connectForm.serverUrlLabel">Server URL</label>
+        <input id="server-url" type="text" data-i18n-placeholder="connectForm.serverUrlPlaceholder" placeholder="https://sync.yourcompany.com" />
+        <ol id="health-steps" class="health-steps" aria-live="polite" hidden></ol>
+        <p id="test-status" class="test-status" hidden></p>
+        <button type="submit" id="test-connection" class="primary-button" data-i18n="connectForm.testConnection">Test connection</button>
+      </form>
+
+      <!-- Main email/password form -->
+      <form id="connect-form" novalidate hidden>
+        <p class="server-summary"><span data-i18n="connectForm.serverLabel">Server:</span> <strong id="server-host"></strong> · <a href="#" id="change-server-link" class="link-inline" data-i18n="connectForm.changeServer">Change</a></p>
         <h2 id="connect-title" class="connect-title" data-i18n="connectForm.createAccountTitle">Create your account</h2>
         <label for="email" data-i18n="common.email">Email</label>
         <input id="email" type="email" autocomplete="username" required />
@@ -34,21 +47,6 @@
         <button type="submit" id="submit-btn" class="primary-button" data-i18n="connectForm.createAccountBtn">Create account</button>
         <a href="#" id="mode-switch-link" class="link" data-i18n="connectForm.switchToLogin">Already have an account? Log in</a>
         <a href="#" id="forgot-password-link" class="link" data-i18n="connectForm.forgotPassword" hidden>Forgot your password?</a>
-
-        <div class="server-block">
-          <a href="#" id="server-toggle-link" class="link discreet" data-i18n="connectForm.usingSelfHosted">Using a self-hosted server?</a>
-          <p id="server-required-hint" class="hint" data-i18n="popup.serverRequiredHint" hidden>
-            No official hosted server is available yet - enter your own server's URL and test the connection.
-          </p>
-          <div id="server-section" hidden>
-            <label for="server-url" data-i18n="connectForm.serverUrlLabel">Server URL</label>
-            <input id="server-url" type="text" data-i18n-placeholder="connectForm.serverUrlPlaceholder" placeholder="https://sync.yourcompany.com" />
-            <div class="test-row">
-              <button type="button" id="test-connection" class="secondary-button" data-i18n="connectForm.testConnection">Test connection</button>
-              <span id="test-status" class="test-status" data-i18n="connectForm.testStatusNotTested">not tested</span>
-            </div>
-          </div>
-        </div>
       </form>
 
       <!-- Shown once, right after creating an account -->
