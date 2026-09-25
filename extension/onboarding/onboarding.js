@@ -17,12 +17,13 @@ const el = {
   forgotPasswordLink: document.getElementById("forgot-password-link"),
   errorMessage: document.getElementById("error-message"),
 
-  serverToggleLink: document.getElementById("server-toggle-link"),
-  serverRequiredHint: document.getElementById("server-required-hint"),
-  serverSection: document.getElementById("server-section"),
+  serverStep: document.getElementById("server-step"),
+  serverHost: document.getElementById("server-host"),
+  changeServerLink: document.getElementById("change-server-link"),
   serverUrlInput: document.getElementById("server-url"),
   testConnectionBtn: document.getElementById("test-connection"),
   testStatus: document.getElementById("test-status"),
+  healthSteps: document.getElementById("health-steps"),
 
   savePassphraseView: document.getElementById("save-passphrase-view"),
   generatedPassphraseDisplay: document.getElementById("generated-passphrase"),
@@ -56,7 +57,7 @@ const el = {
 // sync starts on Finish (not on connect) so an unchecked "Sync browsing
 // history" is respected from the very first cycle.
 wireConnectForm(el, async (session) => {
-  for (const view of [el.form, el.savePassphraseView, el.deviceSetupView, el.firstSyncChoiceView, el.forgotPasswordView]) {
+  for (const view of [el.serverStep, el.form, el.savePassphraseView, el.deviceSetupView, el.firstSyncChoiceView, el.forgotPasswordView]) {
     view.hidden = true;
   }
   document.getElementById("connected-view").hidden = false;

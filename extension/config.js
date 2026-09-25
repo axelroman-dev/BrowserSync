@@ -1,15 +1,12 @@
 // Single source of truth for the default sync server.
 //
 // Set to null/empty for now: there is no officially hosted BrowserSync
-// server yet, so every install must point at a self-hosted one. When this
-// is falsy, the connect screen forces the server-URL field open and
-// requires a successful "Test connection" before letting anyone
-// register/log in - see connectForm.js.
+// server yet, so every install must point at a self-hosted one. The
+// connect screen always starts with a server-URL step that has to pass a
+// health check before register/log in are shown - see connectForm.js.
 //
-// If an official hosted server is ever stood up, set this to its URL. The
-// connect screen automatically switches back to today's behavior (hidden
-// by default, used silently unless someone clicks "Using a self-hosted
-// server?") with no other code changes needed.
+// If an official hosted server is ever stood up, set this to its URL and
+// the server step comes prefilled with it.
 export const OFFICIAL_SERVER_URL = "";
 
 // Public URL for this project's PRIVACY.md, linked from the onboarding
@@ -20,6 +17,14 @@ export const OFFICIAL_SERVER_URL = "";
 // fork this project and maintain your own privacy policy, change this to
 // point at that instead.
 export const PRIVACY_POLICY_URL = "https://github.com/axelroman-dev/BrowserSync/blob/main/PRIVACY.md";
+
+// What a BrowserSync server's GET /api/health reports as "service", and the
+// REST API version this extension speaks. The server reports its own
+// apiVersion and the oldest one it still accepts (minApiVersion); the
+// server step in connectForm.js refuses anything outside that range. Keep
+// in sync with server/src/routes/health.ts.
+export const SERVICE_ID = "browsersync";
+export const API_VERSION = 1;
 
 // Bump this if the on-disk shape of synced bookmark/history payloads ever
 // changes in a way older extension versions can't read.

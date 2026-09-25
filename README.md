@@ -47,7 +47,7 @@ Then:
 
 ```bash
 docker compose up -d --build
-curl http://localhost:3000/api/health   # should return {"status":"ok"}
+curl http://localhost:3000/api/health   # should return {"status":"ok","service":"browsersync","version":"…","apiVersion":1,"minApiVersion":1}
 ```
 
 This starts Postgres and the API, and runs database migrations automatically on
@@ -202,12 +202,11 @@ ungoogled-chromium, Chrome, Brave, Edge, and so on.
 
 On the tab that opened (or any time later, by clicking the toolbar icon):
 
-1. Enter your **email** and choose a **password**. There's no officially hosted
-   BrowserSync server (yet), so the screen also asks for the **server URL** — enter the
-   one whoever set up your server gave you, and click **Test connection** (the "Create
-   account" button stays disabled until it succeeds). If a future version of this
-   extension ships with a default server, this step becomes optional.
-2. Click **Create account**.
+1. The first screen asks for the **server URL** — there's no officially hosted
+   BrowserSync server (yet), so enter the one whoever set up your server gave you and
+   click **Test connection**. The login/register form only appears once the server
+   responds (you can go back with **Change** next to the server name).
+2. Enter your **email**, choose a **password**, and click **Create account**.
 3. Right after that, BrowserSync shows you a **recovery passphrase** it generated for
    you. **Save it somewhere safe right now** — a password manager like Bitwarden,
    1Password, or KeePass. This passphrase is the only way to connect a second device or

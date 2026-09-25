@@ -50,7 +50,7 @@ Luego:
 
 ```bash
 docker compose up -d --build
-curl http://localhost:3000/api/health   # debería devolver {"status":"ok"}
+curl http://localhost:3000/api/health   # debería devolver {"status":"ok","service":"browsersync","version":"…","apiVersion":1,"minApiVersion":1}
 ```
 
 Esto levanta Postgres y la API, y corre las migraciones de base de datos
@@ -215,13 +215,12 @@ Chromium — Helium, ungoogled-chromium, Chrome, Brave, Edge, etc.
 En la pestaña que se abrió (o en cualquier momento después, haciendo clic en el
 ícono de la barra de herramientas):
 
-1. Ingresa tu **email** y elige una **contraseña**. Todavía no existe un servidor
-   oficial de BrowserSync, así que la pantalla también te pide la **URL del
-   servidor** — ingresa la que te haya dado quien administra tu servidor, y haz clic
-   en **Probar conexión** (el botón "Crear cuenta" queda deshabilitado hasta que
-   funcione). Si en el futuro esta extensión trae un servidor por defecto, este paso
-   se vuelve opcional.
-2. Haz clic en **Crear cuenta**.
+1. La primera pantalla te pide la **URL del servidor** — todavía no existe un servidor
+   oficial de BrowserSync, así que ingresa la que te haya dado quien administra tu
+   servidor y haz clic en **Probar conexión**. El formulario de inicio de sesión /
+   registro solo aparece cuando el servidor responde (puedes volver con **Cambiar**
+   junto al nombre del servidor).
+2. Ingresa tu **email**, elige una **contraseña** y haz clic en **Crear cuenta**.
 3. Justo después, BrowserSync te muestra una **passphrase de recuperación** generada
    para ti. **Guárdala en un lugar seguro ahora mismo** — un gestor de contraseñas
    como Bitwarden, 1Password, o KeePass. Esta passphrase es la única forma de conectar

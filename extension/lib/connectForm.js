@@ -1,4 +1,4 @@
-// Shared "connect" form logic (email/password + server switch, plus the
+// Shared "connect" form logic (server step + email/password, plus the
 // save-passphrase / device-setup / forgot-password sub-flows that the
 // envelope-encryption design needs), used by both onboarding.js (first-run
 // full tab) and popup.js (the form shown in the popup itself when logged
@@ -6,6 +6,9 @@
 // pages can have different markup/CSS around an identical interaction.
 //
 // Flow overview (see auth.js for the crypto/server side of each step):
+//  - Server step: always first. The user enters the server URL and it must
+//    pass a health check before the login/register form is shown; the form
+//    then shows the chosen host with a "Change" link back to this step.
 //  - Register: email+password only. The passphrase is generated for the
 //    user and shown exactly once, right after account creation, on the
 //    "save your recovery passphrase" sub-view.
@@ -20,6 +23,7 @@ import * as auth from "./auth.js";
 import { checkHealth, ApiError, NetworkError } from "./api.js";
 import { needsFirstSyncChoice, applyFirstSyncChoice } from "./firstSyncPrompt.js";
 import { armConfirm } from "./uiConfirm.js";
+import { getAllLocal } from "./storage.js";
 import { t } from "./i18n.js";
 
 function describeConnectError(err) {
@@ -35,21 +39,30 @@ function describeConnectError(err) {
   return err.message || t("common.somethingWentWrong");
 }
 
+function describeHealthFailure({ reason, version }) {
+  switch (reason) {
+    case "not_browsersync":
+      return t("connectForm.healthNotBrowserSync");
+    case "server_outdated":
+      return version ? t("connectForm.healthServerOutdatedVersion", { version }) : t("connectForm.healthServerOutdated");
+    case "extension_outdated":
+      return t("connectForm.healthExtensionOutdated");
+    case "unhealthy":
+      return t("connectForm.healthUnhealthy");
+    default:
+      return t("connectForm.testStatusCouldNotConnect");
+  }
+}
+
 /**
  * @param {object} el - DOM element references (see onboarding.js/popup.js for the exact set used)
  * @param {(session: any) => void} onConnected
  */
 export function wireConnectForm(el, onConnected) {
-  // No officially hosted server exists yet (see config.js) - every install
-  // must point at a self-hosted one, so the server-URL field starts
-  // required and expanded instead of hidden behind a "default" nobody set.
-  const hasOfficialServer = Boolean(OFFICIAL_SERVER_URL);
-
   let mode = "register"; // "register" | "login"
-  let currentServerUrl = hasOfficialServer ? OFFICIAL_SERVER_URL : "";
-  // true until the user opens the custom-server section and edits it - or,
-  // with no official server at all, false until they test their own.
-  let serverVerified = hasOfficialServer;
+  // Set only once the server step's health check passes - the
+  // email/password form can't be reached before that.
+  let currentServerUrl = "";
   // Held only in memory, only for the few seconds between a login() call
   // that needs device setup and the user submitting the passphrase for it.
   let pendingDeviceSetup = null; // { email, password, dekEnvelope }
@@ -69,57 +82,119 @@ export function wireConnectForm(el, onConnected) {
     applyMode();
   });
 
-  el.serverToggleLink.addEventListener("click", (e) => {
-    e.preventDefault();
-    const willShow = el.serverSection.hidden;
-    el.serverSection.hidden = !willShow;
-    if (willShow) {
-      el.serverUrlInput.value = currentServerUrl;
-      el.serverToggleLink.textContent = t("connectForm.useDefaultServer");
-    } else {
-      currentServerUrl = OFFICIAL_SERVER_URL;
-      serverVerified = true;
-      el.serverToggleLink.textContent = t("connectForm.usingSelfHosted");
-      updateSubmitEnabled();
+  // --- Server step (first screen): the login/register options only show
+  // once the server URL has passed a health check ---
+  function showServerStep() {
+    el.form.hidden = true;
+    el.savePassphraseView.hidden = true;
+    el.deviceSetupView.hidden = true;
+    el.forgotPasswordView.hidden = true;
+    if (el.firstSyncChoiceView) el.firstSyncChoiceView.hidden = true;
+    el.serverStep.hidden = false;
+    el.testStatus.hidden = true;
+    el.healthSteps.hidden = true;
+    animateIn(el.serverStep);
+    el.serverUrlInput.focus();
+  }
+
+  // One request answers every check, but walking through them one by one
+  // (spinner -> check mark) makes the analysis visible instead of jumping
+  // straight to the form. Each step fails for the checkHealth() reasons
+  // listed next to it.
+  const HEALTH_STEPS = [
+    { label: "connectForm.healthStepConnect", fails: ["unreachable"] },
+    { label: "connectForm.healthStepIdentity", fails: ["not_browsersync"] },
+    { label: "connectForm.healthStepCompat", fails: ["server_outdated", "extension_outdated"] },
+    { label: "connectForm.healthStepStatus", fails: ["unhealthy"] },
+  ];
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const STEP_DELAY_MS = reducedMotion ? 80 : 380;
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  function addHealthStep(labelKey) {
+    const li = document.createElement("li");
+    li.className = "health-step running";
+    const icon = document.createElement("span");
+    icon.className = "health-step-icon";
+    const text = document.createElement("span");
+    text.textContent = t(labelKey);
+    li.append(icon, text);
+    el.healthSteps.append(li);
+    return {
+      finish(ok) {
+        li.className = `health-step ${ok ? "done" : "failed"}`;
+        icon.textContent = ok ? "✓" : "✕";
+      },
+    };
+  }
+
+  /** Animates the checklist for `healthPromise`; resolves to its result once the last step has played. */
+  async function runHealthSteps(healthPromise) {
+    el.healthSteps.replaceChildren();
+    el.healthSteps.classList.remove("success");
+    el.healthSteps.hidden = false;
+    let health;
+    for (const [i, step] of HEALTH_STEPS.entries()) {
+      const row = addHealthStep(step.label);
+      // The first step waits for the real response; the rest just pace out.
+      [health] = await Promise.all([i === 0 ? healthPromise : health, sleep(STEP_DELAY_MS)]);
+      const failed = !health.ok && step.fails.includes(health.reason);
+      row.finish(!failed);
+      if (failed) return health;
     }
-  });
+    el.healthSteps.classList.add("success");
+    await sleep(reducedMotion ? 0 : 450);
+    return health;
+  }
 
-  el.serverUrlInput.addEventListener("input", () => {
-    serverVerified = false;
-    el.testStatus.textContent = t("connectForm.testStatusNotTested");
-    el.testStatus.className = "test-status";
-    updateSubmitEnabled();
-  });
-
-  el.testConnectionBtn.addEventListener("click", async () => {
-    const url = el.serverUrlInput.value.trim();
+  let checking = false;
+  el.serverStep.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (checking) return;
+    const url = el.serverUrlInput.value.trim().replace(/\/+$/, "");
+    el.testStatus.hidden = true;
     if (!isValidUrl(url)) {
-      el.testStatus.textContent = t("connectForm.testStatusInvalidUrl");
-      el.testStatus.className = "test-status test-status-error";
+      el.healthSteps.hidden = true;
+      showTestStatus(t("connectForm.testStatusInvalidUrl"), true);
       return;
     }
-    el.testStatus.textContent = t("connectForm.testStatusTesting");
-    el.testStatus.className = "test-status";
-    const ok = await checkHealth(url);
-    if (ok) {
+    checking = true;
+    el.testConnectionBtn.disabled = true;
+    el.serverUrlInput.readOnly = true;
+    el.testConnectionBtn.textContent = t("connectForm.healthCheckingBtn");
+    try {
+      const health = await runHealthSteps(checkHealth(url));
+      if (!health.ok) {
+        showTestStatus(describeHealthFailure(health), true);
+        return;
+      }
       currentServerUrl = url;
-      serverVerified = true;
-      el.testStatus.textContent = t("connectForm.testStatusConnected");
-      el.testStatus.className = "test-status test-status-ok";
-    } else {
-      serverVerified = false;
-      el.testStatus.textContent = t("connectForm.testStatusCouldNotConnect");
-      el.testStatus.className = "test-status test-status-error";
+      el.serverHost.textContent = health.version ? `${new URL(url).host} (v${health.version})` : new URL(url).host;
+      showMainForm();
+      el.emailInput.focus();
+    } finally {
+      checking = false;
+      el.testConnectionBtn.disabled = false;
+      el.serverUrlInput.readOnly = false;
+      el.testConnectionBtn.textContent = t("connectForm.testConnection");
     }
-    updateSubmitEnabled();
   });
 
-  function updateSubmitEnabled() {
-    el.submitBtn.disabled = !serverVerified;
+  el.changeServerLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    showServerStep();
+  });
+
+  function showTestStatus(message, isError) {
+    el.testStatus.textContent = message;
+    el.testStatus.className = isError ? "test-status test-status-error" : "test-status";
+    el.testStatus.hidden = false;
   }
 
   function showMainForm() {
+    el.serverStep.hidden = true;
     el.form.hidden = false;
+    animateIn(el.form);
     el.savePassphraseView.hidden = true;
     el.deviceSetupView.hidden = true;
     el.forgotPasswordView.hidden = true;
@@ -131,6 +206,7 @@ export function wireConnectForm(el, onConnected) {
   // for why this only ever fires on a device's genuine first bookmark sync.
   async function proceedToConnected() {
     if (el.firstSyncChoiceView && (await needsFirstSyncChoice())) {
+      el.serverStep.hidden = true;
       el.form.hidden = true;
       el.savePassphraseView.hidden = true;
       el.deviceSetupView.hidden = true;
@@ -323,6 +399,13 @@ export function wireConnectForm(el, onConnected) {
     }
   });
 
+  // Restarting a CSS animation needs the class removed, a reflow, then re-added.
+  function animateIn(view) {
+    view.classList.remove("view-enter");
+    void view.offsetWidth;
+    view.classList.add("view-enter");
+  }
+
   function showError(message) {
     el.errorMessage.textContent = message;
     el.errorMessage.hidden = false;
@@ -337,14 +420,13 @@ export function wireConnectForm(el, onConnected) {
     }
   }
 
-  if (!hasOfficialServer) {
-    // Nothing to "toggle" - there's no default to fall back to, so just
-    // show the required server field permanently and explain why.
-    el.serverToggleLink.hidden = true;
-    el.serverSection.hidden = false;
-    if (el.serverRequiredHint) el.serverRequiredHint.hidden = false;
-  }
+  // Prefill with the server this device used last (kept across logouts),
+  // or the official one if it ever exists - the user still has to pass the
+  // health check before seeing login/register.
+  getAllLocal().then(({ serverUrl }) => {
+    if (!el.serverUrlInput.value) el.serverUrlInput.value = serverUrl || OFFICIAL_SERVER_URL || "";
+  });
 
   applyMode();
-  updateSubmitEnabled();
+  return { showServerStep };
 }

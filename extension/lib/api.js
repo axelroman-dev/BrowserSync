@@ -2,6 +2,7 @@
 // encryption - it only ever sees the opaque ciphertext/iv strings that
 // crypto.js produces, which is exactly what should cross the network.
 import { getAllLocal, setLocal, clearAccountLocal } from "./storage.js";
+import { API_VERSION, SERVICE_ID } from "../config.js";
 
 export class ApiError extends Error {
   constructor(status, body) {
@@ -52,17 +53,46 @@ async function request(serverUrl, path, { method = "GET", body, accessToken, sig
   return payload;
 }
 
+/**
+ * Checks that `serverUrl` is a reachable, healthy BrowserSync server this
+ * extension can talk to. Resolves to { ok: true, version } or
+ * { ok: false, reason, version? }, where reason is one of:
+ *  - "unreachable": no response, timeout, or a non-JSON reply
+ *  - "not_browsersync": answered, but isn't a BrowserSync server
+ *  - "server_outdated": a BrowserSync server too old for this extension
+ *    (including pre-1.4 servers, whose /api/health had no service/version)
+ *  - "extension_outdated": the server no longer supports this extension
+ *  - "unhealthy": a BrowserSync server that reports a problem (e.g. its
+ *    database is down)
+ */
 export async function checkHealth(serverUrl, { timeoutMs = 5000 } = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let body;
   try {
-    const result = await request(serverUrl, "/api/health", { signal: controller.signal });
-    return result?.status === "ok";
-  } catch {
-    return false;
+    body = await request(serverUrl, "/api/health", { signal: controller.signal });
+  } catch (err) {
+    // A 503 from a BrowserSync server still carries its identity.
+    if (!(err instanceof ApiError)) return { ok: false, reason: "unreachable" };
+    body = err.body;
   } finally {
     clearTimeout(timeout);
   }
+
+  if (body?.service !== SERVICE_ID) {
+    // Servers before 1.4 answered just {"status":"ok"}.
+    const legacy = body && typeof body === "object" && body.status === "ok" && Object.keys(body).length === 1;
+    return { ok: false, reason: legacy ? "server_outdated" : "not_browsersync" };
+  }
+  const version = typeof body.version === "string" ? body.version : undefined;
+  if (!Number.isInteger(body.apiVersion) || body.apiVersion < API_VERSION) {
+    return { ok: false, reason: "server_outdated", version };
+  }
+  if (Number.isInteger(body.minApiVersion) && body.minApiVersion > API_VERSION) {
+    return { ok: false, reason: "extension_outdated", version };
+  }
+  if (body.status !== "ok") return { ok: false, reason: "unhealthy", version };
+  return { ok: true, version };
 }
 
 export function register(serverUrl, { email, password, passphraseVerifier, dekEnvelope, deviceLabel }) {
