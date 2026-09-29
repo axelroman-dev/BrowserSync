@@ -92,7 +92,7 @@ async function renderThenSync() {
 /** Shows the bookmarks merge/replace question that lives in the connect view (wired by connectForm.js). */
 function showFirstSyncChoice() {
   showView("connect");
-  for (const id of ["server-step", "connect-form", "save-passphrase-view", "device-setup-view", "forgot-password-view", "first-sync-error"]) {
+  for (const id of ["session-notice", "server-step", "connect-form", "save-passphrase-view", "device-setup-view", "forgot-password-view", "first-sync-error"]) {
     document.getElementById(id).hidden = true;
   }
   document.getElementById("first-sync-choice-view").hidden = false;
@@ -103,9 +103,10 @@ async function render() {
   if (!session.isLoggedIn) {
     showView("connect");
     // The connect view may still show a sub-step from an earlier visit
-    // (e.g. the merge/replace question before a logout) - start over at the
-    // server step.
-    connectForm.showServerStep();
+    // (e.g. the merge/replace question before a logout) - start over, going
+    // straight to "Log in" when this device already knows its server and
+    // account (see resumeKnownServer).
+    await connectForm.resumeKnownServer();
     return;
   }
   if (!session.isUnlocked) {
@@ -150,6 +151,7 @@ const connectForm = wireConnectForm(
     testConnectionBtn: document.getElementById("test-connection"),
     testStatus: document.getElementById("test-status"),
     healthSteps: document.getElementById("health-steps"),
+    sessionNotice: document.getElementById("session-notice"),
 
     savePassphraseView: document.getElementById("save-passphrase-view"),
     generatedPassphraseDisplay: document.getElementById("generated-passphrase"),

@@ -148,37 +148,67 @@ export function wireConnectForm(el, onConnected) {
   }
 
   let checking = false;
-  el.serverStep.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (checking) return;
-    const url = el.serverUrlInput.value.trim().replace(/\/+$/, "");
+  /**
+   * Health-checks `url` from the server step and moves on to the
+   * email/password form if it passes. `animate: false` skips the step-by-step
+   * checklist - used by resumeKnownServer(), where the server was already
+   * tested on an earlier visit. Resolves to whether the form was shown.
+   */
+  async function testServer(url, { animate = true } = {}) {
+    if (checking) return false;
     el.testStatus.hidden = true;
     if (!isValidUrl(url)) {
       el.healthSteps.hidden = true;
       showTestStatus(t("connectForm.testStatusInvalidUrl"), true);
-      return;
+      return false;
     }
     checking = true;
     el.testConnectionBtn.disabled = true;
     el.serverUrlInput.readOnly = true;
     el.testConnectionBtn.textContent = t("connectForm.healthCheckingBtn");
     try {
-      const health = await runHealthSteps(checkHealth(url));
+      const health = animate ? await runHealthSteps(checkHealth(url)) : await checkHealth(url);
       if (!health.ok) {
         showTestStatus(describeHealthFailure(health), true);
-        return;
+        return false;
       }
       currentServerUrl = url;
       el.serverHost.textContent = health.version ? `${new URL(url).host} (v${health.version})` : new URL(url).host;
       showMainForm();
       el.emailInput.focus();
+      return true;
     } finally {
       checking = false;
       el.testConnectionBtn.disabled = false;
       el.serverUrlInput.readOnly = false;
       el.testConnectionBtn.textContent = t("connectForm.testConnection");
     }
+  }
+
+  el.serverStep.addEventListener("submit", (e) => {
+    e.preventDefault();
+    testServer(el.serverUrlInput.value.trim().replace(/\/+$/, ""));
   });
+
+  /**
+   * Entry point for a device that was signed in before (logged out, or its
+   * session was revoked/expired): re-checks the saved server quietly and
+   * opens "Log in" with the last email prefilled, instead of making the user
+   * test the connection again. Falls back to the plain server step - showing
+   * why - if nothing is saved or the server doesn't pass the check.
+   */
+  async function resumeKnownServer() {
+    const { serverUrl, lastAccountEmail, sessionExpired } = await getAllLocal();
+    showServerStep();
+    if (el.sessionNotice) el.sessionNotice.hidden = !sessionExpired;
+    if (!serverUrl || !lastAccountEmail) return;
+    el.serverUrlInput.value = serverUrl;
+    if (!(await testServer(serverUrl, { animate: false }))) return;
+    mode = "login";
+    applyMode();
+    el.emailInput.value = lastAccountEmail;
+    el.passwordInput.focus();
+  }
 
   el.changeServerLink.addEventListener("click", (e) => {
     e.preventDefault();
@@ -205,6 +235,7 @@ export function wireConnectForm(el, onConnected) {
   // "this device already has bookmarks" check first - see firstSyncPrompt.js
   // for why this only ever fires on a device's genuine first bookmark sync.
   async function proceedToConnected() {
+    hideSessionNotice();
     if (el.firstSyncChoiceView && (await needsFirstSyncChoice())) {
       el.serverStep.hidden = true;
       el.form.hidden = true;
@@ -302,6 +333,7 @@ export function wireConnectForm(el, onConnected) {
 
   // --- Save-passphrase sub-view (shown once, right after registration) ---
   function showSavePassphraseView(passphrase) {
+    hideSessionNotice();
     el.form.hidden = true;
     el.savePassphraseView.hidden = false;
     el.generatedPassphraseDisplay.textContent = passphrase;
@@ -329,6 +361,7 @@ export function wireConnectForm(el, onConnected) {
 
   // --- Device-setup sub-view (shown once per new device, on first login) ---
   function showDeviceSetupView() {
+    hideSessionNotice();
     el.form.hidden = true;
     el.deviceSetupView.hidden = false;
     el.deviceSetupError.hidden = true;
@@ -406,6 +439,12 @@ export function wireConnectForm(el, onConnected) {
     view.classList.add("view-enter");
   }
 
+  // The "session was closed" notice only explains why the user is logging in
+  // again - gone as soon as that login succeeds.
+  function hideSessionNotice() {
+    if (el.sessionNotice) el.sessionNotice.hidden = true;
+  }
+
   function showError(message) {
     el.errorMessage.textContent = message;
     el.errorMessage.hidden = false;
@@ -428,5 +467,5 @@ export function wireConnectForm(el, onConnected) {
   });
 
   applyMode();
-  return { showServerStep };
+  return { showServerStep, resumeKnownServer };
 }

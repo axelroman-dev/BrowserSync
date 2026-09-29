@@ -93,6 +93,7 @@
     "reconnectDevice": "Reconectar este dispositivo",
     "deviceNeedsRepair": "Este dispositivo necesita configurarse de nuevo",
     "notYouLogout": "¿No eres tú? Cerrar sesión",
+    "sessionExpiredNotice": "Se cerró la sesión de este dispositivo (fue revocada o caducó). Vuelve a iniciar sesión para seguir sincronizando.",
     "serverLabel": "Servidor",
     "accountLabel": "Cuenta",
     "syncNow": "Sincronizar ahora",

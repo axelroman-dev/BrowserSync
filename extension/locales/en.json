@@ -93,6 +93,7 @@
     "reconnectDevice": "Reconnect this device",
     "deviceNeedsRepair": "This device needs setting up again",
     "notYouLogout": "Not you? Log out",
+    "sessionExpiredNotice": "This device's session was closed (it was revoked or expired). Log in again to resume syncing.",
     "serverLabel": "Server",
     "accountLabel": "Account",
     "syncNow": "Sync now",
