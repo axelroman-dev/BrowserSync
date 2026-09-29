@@ -107,6 +107,8 @@ export async function register({ serverUrl, email, password }) {
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
     currentDeviceId: tokens.deviceId,
+    lastAccountEmail: email,
+    sessionExpired: false,
   });
   await storeDeviceEnvelope(dek, password, email);
   await activateDEK(dek);
@@ -129,6 +131,8 @@ export async function login({ serverUrl, email, password }) {
     accessToken: result.accessToken,
     refreshToken: result.refreshToken,
     currentDeviceId: result.deviceId,
+    lastAccountEmail: email,
+    sessionExpired: false,
   });
 
   const { dekEnvelopePasswordCiphertext, dekEnvelopePasswordIv } = await getAllLocal();
@@ -224,6 +228,8 @@ export async function resetPassword({ serverUrl, email, passphrase, newPassword 
     accessToken: result.accessToken,
     refreshToken: result.refreshToken,
     currentDeviceId: result.deviceId,
+    lastAccountEmail: email,
+    sessionExpired: false,
   });
   await completeDeviceSetup({ email, password: newPassword, passphrase, dekEnvelope: result.dekEnvelope });
 }

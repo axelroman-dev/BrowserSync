@@ -199,6 +199,15 @@ input[type="email"], input[type="password"], input[type="text"], input[type="num
   .health-step.running .health-step-icon { animation: spin 1.4s linear infinite !important; }
 }
 
+.notice {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 7px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0 0 10px;
+}
+
 .error {
   background: var(--error-bg);
   color: var(--error-text);

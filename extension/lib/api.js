@@ -187,8 +187,10 @@ async function withAuthRetry(fn) {
           // "Session expired" line to show for it, and the popup never fell
           // back to the login screen on its own. Clearing it here means the
           // very next time the popup opens, render() sees isLoggedIn:false
-          // and shows the login form instead.
+          // and shows the login form instead - with a notice saying why
+          // (sessionExpired), rather than silently starting over.
           await clearAccountLocal();
+          await setLocal({ sessionExpired: true });
         }
         throw refreshErr;
       }

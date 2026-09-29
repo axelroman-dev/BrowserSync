@@ -85,6 +85,15 @@ const LOCAL_DEFAULTS = {
   // Hostnames where the save prompt is never shown - see neverSave.js.
   // Device preference, so it survives logout.
   passwordNeverSave: [],
+  // Email of the last account signed in on this device. Kept across logouts
+  // (like serverUrl) so the popup can reopen straight on "Log in" with it
+  // prefilled instead of making the user start over at the server step.
+  lastAccountEmail: null,
+  // Set when the server rejected this device's refresh token (revoked from
+  // the dashboard/another device, or expired) and api.js dropped the local
+  // session, so the popup can say why it's asking to log in again. Cleared
+  // by the next successful login.
+  sessionExpired: false,
 };
 
 export async function getLocal(keys) {

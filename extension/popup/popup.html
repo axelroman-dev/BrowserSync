@@ -21,6 +21,9 @@
 
     <!-- Shown when there's no account connected at all. -->
     <section id="connect-view" hidden>
+      <!-- Why the user is back here: the server rejected this device's session (revoked or expired) -->
+      <p id="session-notice" class="notice" data-i18n="popup.sessionExpiredNotice" hidden>This device's session was closed (it was revoked or expired). Log in again to resume syncing.</p>
+
       <!-- First step: pick and test the server before showing login/register -->
       <form id="server-step" novalidate>
         <h2 class="connect-title" data-i18n="connectForm.serverStepTitle">Connect to your server</h2>
