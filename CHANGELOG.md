@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/axelroman-dev/BrowserSync/compare/v2.0.0...v2.0.1) (2026-09-29)
+
+
+### Bug Fixes
+
+* explain closed sessions and reopen the popup on "Log in" ([#11](https://github.com/axelroman-dev/BrowserSync/issues/11)) ([85c1899](https://github.com/axelroman-dev/BrowserSync/commit/85c1899a5d75ee7eaf681052b0257cfc4ff86009))
+
 ## [2.0.0](https://github.com/axelroman-dev/BrowserSync/compare/v1.3.0...v2.0.0) (2026-09-25)
 
 
