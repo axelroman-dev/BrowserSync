@@ -262,17 +262,38 @@
     field.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
+  /** Fills the username/password pair around `field`. `onlyEmpty` leaves anything the user already typed alone. */
+  function fillLogin(field, { username, password }, onlyEmpty = false) {
+    const { usernameField, passwordField } = fieldPair(field);
+    if (usernameField && username && !(onlyEmpty && usernameField.value)) setFieldValue(usernameField, username);
+    // Absent on "email first" logins; that step only needs the username.
+    if (passwordField && !(onlyEmpty && passwordField.value)) setFieldValue(passwordField, password);
+  }
+
+  /** The field a fill without a menu should start from: the username field of the first login form, or its password field. */
+  function findLoginTarget() {
+    const passwordField = passwordFields()[0];
+    if (passwordField) return findUsernameField(passwordField) ?? passwordField;
+    return (
+      [...document.querySelectorAll("input")].find(
+        (el) => USERNAME_TYPES.has(el.type) && /\busername\b/.test(el.autocomplete) && isVisible(el),
+      ) ?? null
+    );
+  }
+
+  // The element last right-clicked, so "Autofill" from the context menu
+  // fills the form the user pointed at rather than the first one.
+  let contextTarget = null;
+  document.addEventListener("contextmenu", (event) => (contextTarget = event.target), true);
+
   chrome.runtime.onMessage.addListener((message) => {
     if (message?.type === "bs-fill") {
-      const field = menu?.field;
+      const field = message.source === "context" ? (isLoginField(contextTarget) ? contextTarget : findLoginTarget()) : menu?.field;
       closeMenu();
       // The service worker already matched the credential to this tab's
       // origin; checking again here covers a navigation in between.
       if (message.origin !== location.origin || !field?.isConnected) return;
-      const { usernameField, passwordField } = fieldPair(field);
-      if (usernameField && message.username) setFieldValue(usernameField, message.username);
-      // Absent on "email first" logins; that step only needs the username.
-      if (passwordField) setFieldValue(passwordField, message.password);
+      fillLogin(field, message);
     } else if (message?.type === "bs-fill-otp") {
       const field = menu?.field;
       closeMenu();
@@ -348,6 +369,53 @@
       () => {},
     );
   }
+
+  // ---- Autofill (opt-in) -------------------------------------------------
+  // Only while the user turned on "passwordAutofill" in the vault settings;
+  // the service worker checks the setting again before sending anything.
+  // Each login form is tried once, and the suggestion list is opened at most
+  // once per URL so a re-rendering page doesn't keep popping it up.
+
+  const autofillTried = new WeakSet();
+  let autofillAskedFor = null;
+  let autofillObserver = null;
+  let autofillTimer = null;
+
+  async function tryAutofill() {
+    const field = findLoginTarget();
+    if (!field || autofillTried.has(field)) return;
+    autofillTried.add(field);
+    const response = await chrome.runtime.sendMessage({ type: "cs-autofill" }).catch(() => null);
+    if (!field.isConnected || !isVisible(field)) return;
+    if (response?.fill) {
+      if (response.fill.origin === location.origin) fillLogin(field, response.fill, true);
+    } else if (response?.ask && !menu && autofillAskedFor !== location.href) {
+      autofillAskedFor = location.href;
+      openMenu(field, "login");
+    }
+  }
+
+  function setAutofill(enabled) {
+    if (!enabled) {
+      autofillObserver?.disconnect();
+      autofillObserver = null;
+      return;
+    }
+    if (autofillObserver) return;
+    // Login forms rendered later (single-page apps, "email first, password
+    // next" steps) are picked up here, debounced so busy pages stay cheap.
+    autofillObserver = new MutationObserver(() => {
+      clearTimeout(autofillTimer);
+      autofillTimer = setTimeout(tryAutofill, 400);
+    });
+    autofillObserver.observe(document.documentElement, { childList: true, subtree: true });
+    tryAutofill();
+  }
+
+  chrome.storage.local.get("passwordAutofill").then(({ passwordAutofill }) => setAutofill(Boolean(passwordAutofill)), () => {});
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.passwordAutofill) setAutofill(Boolean(changes.passwordAutofill.newValue));
+  });
 
   // A login field focused before this script ran (autofocus) gets its icon too.
   const initialKind = fieldKind(document.activeElement);

@@ -53,7 +53,7 @@ export async function syncContentScriptRegistration() {
   return granted;
 }
 
-function webOrigin(url) {
+export function webOrigin(url) {
   try {
     const parsed = new URL(url);
     return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.origin : null;
@@ -91,7 +91,7 @@ function closeInPage(tabId, target) {
 }
 
 /** Vault entries that should be offered on `pageUrl`, per each entry's URL-matching mode. */
-async function entriesForUrl(key, pageUrl) {
+export async function entriesForUrl(key, pageUrl) {
   const [entries, psl, { passwordMatchDefault }] = await Promise.all([
     listEntries(key),
     loadPublicSuffixList(),
@@ -208,6 +208,26 @@ async function handleFill(message, sender) {
   return { ok: true };
 }
 
+/**
+ * Opt-in autofill (the "passwordAutofill" setting), asked by the content
+ * script once a login form shows up. With exactly one saved account for the
+ * site it's sent straight back to be filled; with several the content script
+ * opens the usual suggestion list so the user picks one. Plain http pages are
+ * never filled unattended - they get the list instead.
+ */
+async function handleAutofill(sender) {
+  const origin = webOrigin(sender.tab.url);
+  const { passwordAutofill } = await getAllLocal();
+  if (!passwordAutofill || !origin) return {};
+  const key = await getActiveKey();
+  if (!key) return {};
+  const entries = await entriesForUrl(key, sender.tab.url);
+  if (!entries.length) return {};
+  if (entries.length > 1 || !origin.startsWith("https:")) return { ask: true };
+  const [entry] = entries;
+  return { fill: { origin, username: entry.username, password: entry.password } };
+}
+
 async function handleGetPending(sender) {
   const pending = await getPending(sender.tab.id);
   if (!pending) return { pending: null };
@@ -262,6 +282,8 @@ export function handleCredentialMessage(message, sender) {
       return isFromContentScript(sender) ? handleCapture(message, sender) : null;
     case "cs-check-pending":
       return isFromContentScript(sender) ? handleCheckPending(sender) : null;
+    case "cs-autofill":
+      return isFromContentScript(sender) ? handleAutofill(sender) : null;
     case "frame-get-suggestions":
       return isFromOurFrame(sender) ? handleGetSuggestions(message, sender) : null;
     case "frame-fill":

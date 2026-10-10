@@ -9,6 +9,7 @@ import { syncPasswords } from "./lib/passwordVault.js";
 import { getSession, getActiveKey } from "./lib/auth.js";
 import { handleCredentialMessage, syncContentScriptRegistration, forgetTab } from "./lib/pageCredentials.js";
 import { initI18n } from "./lib/i18n.js";
+import { refreshContextMenu, handleContextMenuClick } from "./lib/contextMenu.js";
 
 // So t() (used by a handful of translated error messages deep in
 // bookmarksSync.js/historySync.js/auth.js) resolves correctly for sync
@@ -39,21 +40,52 @@ chrome.runtime.onInstalled.addListener(async () => {
   await i18nReady;
   await ensureAlarm();
   await syncContentScriptRegistration();
+  refreshContextMenu();
   const session = await getSession();
   if (!session.isLoggedIn) {
     chrome.tabs.create({ url: chrome.runtime.getURL("onboarding/onboarding.html") });
   }
 });
 
-chrome.runtime.onStartup.addListener(ensureAlarm);
+chrome.runtime.onStartup.addListener(() => {
+  ensureAlarm();
+  refreshContextMenu();
+});
 
 // The in-page password content script is registered dynamically, only
 // while the user has granted the optional host permission (see
 // lib/pageCredentials.js) - and revoking it from chrome://extensions must
 // stop it too, not just the vault page's own toggle.
-chrome.permissions.onAdded.addListener(() => syncContentScriptRegistration());
-chrome.permissions.onRemoved.addListener(() => syncContentScriptRegistration());
+chrome.permissions.onAdded.addListener(() => {
+  syncContentScriptRegistration();
+  refreshContextMenu();
+});
+chrome.permissions.onRemoved.addListener(() => {
+  syncContentScriptRegistration();
+  refreshContextMenu();
+});
 chrome.tabs.onRemoved.addListener((tabId) => forgetTab(tabId));
+
+// The right-click menu lists the accounts for whatever tab is in front (see
+// lib/contextMenu.js), so it follows tab switches, navigations, the lock
+// state and vault edits.
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  i18nReady.then(() => handleContextMenuClick(info, tab)).catch(() => {});
+});
+chrome.tabs.onActivated.addListener(() => refreshContextMenu());
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (tab.active && (changeInfo.url || changeInfo.status === "complete")) refreshContextMenu();
+});
+chrome.windows.onFocusChanged.addListener((windowId) => {
+  if (windowId !== chrome.windows.WINDOW_ID_NONE) refreshContextMenu();
+});
+const MENU_LOCAL_KEYS = ["passwordVault", "passwordMatchDefault", "accessToken", "language"];
+chrome.storage.onChanged.addListener((changes, area) => {
+  const keys = Object.keys(changes);
+  if ((area === "session" && keys.includes("encryptionKeyRaw")) || (area === "local" && keys.some((k) => MENU_LOCAL_KEYS.includes(k)))) {
+    refreshContextMenu();
+  }
+});
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === SYNC_ALARM_NAME) {

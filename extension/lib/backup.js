@@ -22,7 +22,7 @@ const FORMAT = "browsersync-backup";
 const FORMAT_VERSION = 1;
 const PBKDF2_ITERATIONS = 600_000;
 export const MIN_BACKUP_PASSWORD_LENGTH = 8;
-const SETTINGS_KEYS = ["historyEnabled", "historyDays", "syncIntervalMinutes", "passwordMatchDefault", "language"];
+const SETTINGS_KEYS = ["historyEnabled", "historyDays", "syncIntervalMinutes", "passwordMatchDefault", "passwordAutofill", "language"];
 
 const clampInt = (value, min, max) => (Number.isInteger(value) && value >= min && value <= max ? value : undefined);
 
@@ -33,6 +33,7 @@ const SETTING_VALIDATORS = {
   historyDays: (value) => clampInt(value, 1, 3650),
   syncIntervalMinutes: (value) => clampInt(value, 5, 1440),
   passwordMatchDefault: (value) => (MATCH_MODES.includes(value) ? value : undefined),
+  passwordAutofill: (value) => (typeof value === "boolean" ? value : undefined),
   language: (value) => (["auto", "en", "es"].includes(value) ? value : undefined),
 };
 

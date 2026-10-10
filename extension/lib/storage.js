@@ -82,6 +82,10 @@ const LOCAL_DEFAULTS = {
   // How saved passwords match page URLs when an entry doesn't pick its own
   // mode - see lib/urlMatch.js.
   passwordMatchDefault: "domain",
+  // Fill logins as soon as the page shows the form (one saved account) or
+  // open the suggestion list right away (several). Off: only on a click of
+  // the key icon. See handleAutofill() in pageCredentials.js.
+  passwordAutofill: false,
   // Hostnames where the save prompt is never shown - see neverSave.js.
   // Device preference, so it survives logout.
   passwordNeverSave: [],
