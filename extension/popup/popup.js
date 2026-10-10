@@ -6,6 +6,7 @@ import { armConfirm } from "../lib/uiConfirm.js";
 import { needsFirstSyncChoice } from "../lib/firstSyncPrompt.js";
 import { wireSetupForm, renderSetupForm, isSetupComplete } from "../lib/setupForm.js";
 import { initI18n, t } from "../lib/i18n.js";
+import { mountGeneratorPanel } from "../lib/generatorPanel.js";
 
 // Resolves the language and translates every data-i18n* element already in
 // the popup's DOM before anything below runs - top-level await pauses the
@@ -267,6 +268,14 @@ document.getElementById("passwords-link").addEventListener("click", (e) => {
 document.getElementById("view-data-link").addEventListener("click", (e) => {
   e.preventDefault();
   chrome.tabs.create({ url: chrome.runtime.getURL("viewer/viewer.html") });
+});
+
+// Built on first open; reopening generates a fresh password.
+let popupGenerator = null;
+document.getElementById("generator-details").addEventListener("toggle", async (e) => {
+  if (!e.target.open) return;
+  if (popupGenerator) await popupGenerator.regenerate();
+  else popupGenerator = await mountGeneratorPanel(document.getElementById("popup-generator"));
 });
 
 document.getElementById("settings-toggle").addEventListener("click", () => {

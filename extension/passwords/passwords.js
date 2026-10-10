@@ -5,7 +5,7 @@
 // tab right after saving doesn't cut the upload short.
 import * as auth from "../lib/auth.js";
 import { getAllLocal, setLocal } from "../lib/storage.js";
-import { generatePassword } from "../lib/crypto.js";
+import { mountGeneratorPanel } from "../lib/generatorPanel.js";
 import { siteIconElement } from "../lib/favicon.js";
 import { parseTotp, generateTotp, formatTotp } from "../lib/totp.js";
 import { entriesToCsv, downloadFile, datedFilename } from "../lib/backup.js";
@@ -302,6 +302,7 @@ function openDialog(entry = null) {
   fields.notes.value = entry?.notes ?? "";
   fields.totp.value = entry?.totp ?? "";
   setPasswordVisible(false);
+  document.getElementById("entry-generator").hidden = true;
   showError(document.getElementById("entry-error"), "");
   dialog.showModal();
   (entry ? fields.password : fields.url).focus();
@@ -316,9 +317,25 @@ document.getElementById("entry-toggle-btn").addEventListener("click", () => {
   setPasswordVisible(fields.password.type === "password");
 });
 
-document.getElementById("entry-generate-btn").addEventListener("click", () => {
-  fields.password.value = generatePassword();
-  setPasswordVisible(true);
+// "Generate" opens the generator under the password field; "Use this
+// password" there copies the result into the field.
+let entryGenerator = null;
+document.getElementById("entry-generate-btn").addEventListener("click", async () => {
+  const container = document.getElementById("entry-generator");
+  if (!container.hidden) {
+    container.hidden = true;
+    return;
+  }
+  container.hidden = false;
+  if (entryGenerator) await entryGenerator.regenerate();
+  else
+    entryGenerator = await mountGeneratorPanel(container, {
+      onUse: (password) => {
+        fields.password.value = password;
+        setPasswordVisible(true);
+        container.hidden = true;
+      },
+    });
 });
 
 document.getElementById("entry-cancel-btn").addEventListener("click", () => dialog.close());

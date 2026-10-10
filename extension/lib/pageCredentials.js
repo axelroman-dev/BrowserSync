@@ -228,6 +228,15 @@ async function handleAutofill(sender) {
   return { fill: { origin, username: entry.username, password: entry.password } };
 }
 
+/** Fills a password generated in the in-page menu into the field it was opened on. */
+async function handleFillGenerated(message, sender) {
+  const origin = webOrigin(sender.tab.url);
+  const password = typeof message.password === "string" ? message.password : "";
+  if (!origin || !password || password.length > 512) return { ok: false };
+  await chrome.tabs.sendMessage(sender.tab.id, { type: "bs-fill-generated", origin, password }, { frameId: 0 });
+  return { ok: true };
+}
+
 async function handleGetPending(sender) {
   const pending = await getPending(sender.tab.id);
   if (!pending) return { pending: null };
@@ -288,6 +297,8 @@ export function handleCredentialMessage(message, sender) {
       return isFromOurFrame(sender) ? handleGetSuggestions(message, sender) : null;
     case "frame-fill":
       return isFromOurFrame(sender) ? handleFill(message, sender) : null;
+    case "frame-fill-generated":
+      return isFromOurFrame(sender) ? handleFillGenerated(message, sender) : null;
     case "frame-get-pending":
       return isFromOurFrame(sender) ? handleGetPending(sender) : null;
     case "frame-save-pending":

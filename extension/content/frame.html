@@ -15,6 +15,15 @@
   <section id="suggest-view" hidden>
     <div id="suggestions" class="suggestions"></div>
     <p id="suggest-message" class="message" hidden></p>
+    <!-- &generate=1 (password fields): a strong password from the generator, with its saved options -->
+    <div id="generate-section" class="generate-section" hidden>
+      <button type="button" id="generate-btn" class="generate-button" data-i18n="generator.inPageOffer">Generate a strong password</button>
+      <div id="generated-row" class="generated-row" hidden>
+        <code id="generated-password" class="generated-password"></code>
+        <button type="button" id="regenerate-btn" class="secondary-button" data-i18n-title="generator.regenerate" title="Regenerate">↻</button>
+        <button type="button" id="use-generated-btn" class="primary-button" data-i18n="generator.fill">Fill</button>
+      </div>
+    </div>
     <div class="footer">
       <button type="button" id="unlock-btn" class="primary-button" data-i18n="common.unlock" hidden>Unlock</button>
       <button type="button" id="manage-btn" class="link-button" data-i18n="inPage.manage">Manage passwords</button>

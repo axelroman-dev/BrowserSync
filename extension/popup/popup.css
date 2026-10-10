@@ -238,3 +238,7 @@ input[type="email"], input[type="password"], input[type="text"], input[type="num
 .hint.block { display: block; font-weight: normal; }
 
 
+
+.generator-details { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+.generator-details summary { cursor: pointer; font-weight: 600; margin-bottom: 10px; }
+.generator-details .generator input { margin-top: 0; }
