@@ -137,7 +137,9 @@
     "firstSyncChoicePending": "Este dispositivo tiene marcadores que nunca se sincronizaron con esta cuenta. Abre Ajustes y usa \"Restaurar marcadores desde el servidor\", o cierra sesión y vuelve a entrar, para resolver esto.",
     "openPasswords": "Contraseñas guardadas",
     "backup": "Exportar / importar copia de seguridad",
-    "confirmLogout": "¿Cerrar sesión? Clic otra vez"
+    "confirmLogout": "¿Cerrar sesión? Clic otra vez",
+    "tabSync": "Sincronización",
+    "tabGenerator": "Generador"
   },
   "onboarding": {
     "subtitle": "Sincroniza tus marcadores entre dispositivos, con cifrado de extremo a extremo.",

@@ -40,11 +40,42 @@ const views = {
   repair: document.getElementById("repair-view"),
   setup: document.getElementById("setup-view"),
   status: document.getElementById("status-view"),
+  generator: document.getElementById("generator-view"),
 };
 
+// Once connected and unlocked, the popup is a set of full-page tabs with a
+// bar at the bottom (like Bitwarden's). The connect/unlock/setup steps
+// stay full-screen without it.
+const TAB_VIEWS = ["status", "generator"];
+const tabBar = document.getElementById("tab-bar");
+let activeTab = "status";
+let popupGenerator = null;
+
 function showView(name) {
+  const tabbed = TAB_VIEWS.includes(name);
+  if (tabbed) activeTab = name;
   for (const [key, el] of Object.entries(views)) el.hidden = key !== name;
-  document.getElementById("settings-toggle").hidden = name !== "status";
+  tabBar.hidden = !tabbed;
+  document.body.classList.toggle("with-tabs", tabbed);
+  for (const tab of tabBar.querySelectorAll(".tab")) {
+    const selected = tab.dataset.tab === name;
+    tab.classList.toggle("active", selected);
+    tab.setAttribute("aria-selected", String(selected));
+  }
+  document.getElementById("settings-toggle").hidden = !tabbed;
+  if (name === "generator") showGenerator();
+}
+
+// Built on first open; coming back to the tab generates a fresh password.
+async function showGenerator() {
+  if (popupGenerator) await popupGenerator.regenerate();
+  else popupGenerator = await mountGeneratorPanel(document.getElementById("popup-generator"));
+}
+
+for (const tab of tabBar.querySelectorAll(".tab")) {
+  tab.addEventListener("click", () => {
+    if (tab.dataset.tab !== activeTab) showView(tab.dataset.tab);
+  });
 }
 
 function formatRelativeTime(ms) {
@@ -127,7 +158,8 @@ async function render() {
     await renderSetupForm();
     return;
   }
-  showView("status");
+  // Re-renders (after a sync, say) keep whichever tab the user is on.
+  showView(activeTab);
   await renderStatusView();
 }
 
@@ -268,14 +300,6 @@ document.getElementById("passwords-link").addEventListener("click", (e) => {
 document.getElementById("view-data-link").addEventListener("click", (e) => {
   e.preventDefault();
   chrome.tabs.create({ url: chrome.runtime.getURL("viewer/viewer.html") });
-});
-
-// Built on first open; reopening generates a fresh password.
-let popupGenerator = null;
-document.getElementById("generator-details").addEventListener("toggle", async (e) => {
-  if (!e.target.open) return;
-  if (popupGenerator) await popupGenerator.regenerate();
-  else popupGenerator = await mountGeneratorPanel(document.getElementById("popup-generator"));
 });
 
 document.getElementById("settings-toggle").addEventListener("click", () => {

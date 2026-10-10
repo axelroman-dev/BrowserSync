@@ -137,7 +137,9 @@
     "firstSyncChoicePending": "This device has bookmarks that were never synced with this account. Open Settings and use \"Restore bookmarks from server\", or log out and back in, to resolve this.",
     "openPasswords": "Saved passwords",
     "backup": "Export / import a backup",
-    "confirmLogout": "Log out? Click again"
+    "confirmLogout": "Log out? Click again",
+    "tabSync": "Sync",
+    "tabGenerator": "Generator"
   },
   "onboarding": {
     "subtitle": "Sync your bookmarks across devices, end-to-end encrypted.",
