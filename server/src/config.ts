@@ -29,4 +29,11 @@ export const config = {
   // more than one proxy in front; leave it at 0 if you expose this container
   // directly with no proxy at all, so a client can't spoof the header.
   trustProxyHops: Number(process.env.TRUST_PROXY_HOPS ?? 1),
+  // Development only: creates a fixed account on startup - see db/devSeed.ts.
+  devSeed: {
+    enabled: process.env.DEV_SEED === "true",
+    email: (process.env.DEV_SEED_EMAIL ?? "admin@browser.local").trim().toLowerCase(),
+    password: process.env.DEV_SEED_PASSWORD ?? "Admin123.",
+    passphrase: process.env.DEV_SEED_PASSPHRASE ?? "admin-browser-local-dev-0000",
+  },
 };

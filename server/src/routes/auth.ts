@@ -13,6 +13,7 @@ import {
 } from "../services/authService.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { authRateLimit } from "../middleware/rateLimit.js";
+import { isDevAccountEmail, isDevAccountId, isLocalRequest, rejectDevAccount } from "../middleware/devAccountLocalOnly.js";
 
 export const authRouter = Router();
 
@@ -74,6 +75,11 @@ authRouter.post("/register", authRateLimit, async (req, res) => {
     return;
   }
   const { email, password, passphraseVerifier, dekEnvelope, deviceLabel } = parsed.data;
+  // Reserved for the development account (see db/devSeed.ts), even where it hasn't been created.
+  if (isDevAccountEmail(email)) {
+    res.status(409).json({ error: "email_taken", message: "An account with this email already exists." });
+    return;
+  }
 
   const [existing] = await db
     .select({ id: users.id })
@@ -113,6 +119,10 @@ authRouter.post("/login", authRateLimit, async (req, res) => {
     return;
   }
   const { email, password, deviceLabel } = parsed.data;
+  if (isDevAccountEmail(email) && !isLocalRequest(req)) {
+    rejectDevAccount(res);
+    return;
+  }
 
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   const genericError = { error: "invalid_credentials", message: "Email or password is incorrect." };
@@ -178,6 +188,10 @@ authRouter.post("/reset-password", authRateLimit, async (req, res) => {
     return;
   }
   const { email, passphraseVerifier, newPassword } = parsed.data;
+  if (isDevAccountEmail(email) && !isLocalRequest(req)) {
+    rejectDevAccount(res);
+    return;
+  }
 
   const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   const genericError = { error: "invalid_credentials", message: "Email or recovery passphrase is incorrect." };
@@ -303,6 +317,11 @@ authRouter.post("/refresh", authRateLimit, async (req, res) => {
 
   if (!row || row.revokedAt || row.expiresAt < new Date()) {
     res.status(401).json({ error: "invalid_refresh_token", message: "Please log in again." });
+    return;
+  }
+
+  if (isDevAccountId(row.userId) && !isLocalRequest(req)) {
+    rejectDevAccount(res);
     return;
   }
 

@@ -9,6 +9,7 @@ import { config } from "./config.js";
 import { authRouter } from "./routes/auth.js";
 import { syncRouter } from "./routes/sync.js";
 import { healthRouter } from "./routes/health.js";
+import { seedDevAccount } from "./db/devSeed.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -51,6 +52,8 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
   console.error(err);
   res.status(500).json({ error: "internal_error", message: "Something went wrong." });
 });
+
+await seedDevAccount();
 
 app.listen(config.port, () => {
   console.log(`BrowserSync server listening on port ${config.port}`);

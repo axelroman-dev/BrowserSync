@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { verifyAccessToken } from "../services/authService.js";
+import { isDevAccountId, isLocalRequest, rejectDevAccount } from "./devAccountLocalOnly.js";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -22,11 +23,17 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return;
   }
 
+  let userId: string;
   try {
-    const payload = verifyAccessToken(header.slice("Bearer ".length));
-    req.userId = payload.userId;
-    next();
+    userId = verifyAccessToken(header.slice("Bearer ".length)).userId;
   } catch {
     res.status(401).json({ error: "invalid_token", message: "Access token is invalid or expired" });
+    return;
   }
+  if (isDevAccountId(userId) && !isLocalRequest(req)) {
+    rejectDevAccount(res);
+    return;
+  }
+  req.userId = userId;
+  next();
 }
