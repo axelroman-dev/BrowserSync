@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.1.0](https://github.com/axelroman-dev/BrowserSync/compare/v2.0.0...v2.1.0) (2026-10-10)
+
+
+### Features
+
+* bottom tab bar in the popup (Sync / Generator) ([#16](https://github.com/axelroman-dev/BrowserSync/issues/16)) ([089c81f](https://github.com/axelroman-dev/BrowserSync/commit/089c81f4a952cc9c12d27b2a55504db6b8ea8084))
+* configurable password generator (characters or EFF word passphrases) ([#15](https://github.com/axelroman-dev/BrowserSync/issues/15)) ([34d06de](https://github.com/axelroman-dev/BrowserSync/commit/34d06de5c136fb88a9428d5a49976ceca531483f))
+* opt-in autofill and right-click menu for saved passwords ([#13](https://github.com/axelroman-dev/BrowserSync/issues/13)) ([63118c8](https://github.com/axelroman-dev/BrowserSync/commit/63118c85a74dec589badef1931d4349e5fba5db4))
+* **server:** seed a local-only development account ([#14](https://github.com/axelroman-dev/BrowserSync/issues/14)) ([7b2e7d2](https://github.com/axelroman-dev/BrowserSync/commit/7b2e7d25a1a543d3e2c32710173bc0c60b670e8a))
+
+
+### Bug Fixes
+
+* explain closed sessions and reopen the popup on "Log in" ([#11](https://github.com/axelroman-dev/BrowserSync/issues/11)) ([85c1899](https://github.com/axelroman-dev/BrowserSync/commit/85c1899a5d75ee7eaf681052b0257cfc4ff86009))
+
 ## [2.0.0](https://github.com/axelroman-dev/BrowserSync/compare/v1.3.0...v2.0.0) (2026-09-25)
 
 
