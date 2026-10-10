@@ -192,12 +192,12 @@
 
   // ---- Extension iframes (menu + save prompt) ---------------------------
 
-  function createFrame(mode, width, height, kind = "login") {
+  function createFrame(mode, width, height, kind = "login", generate = false) {
     const host = document.createElement("browsersync-frame");
     host.style.cssText = `position:absolute;z-index:${Z_TOP};margin:0;padding:0;border:0;opacity:1;transform:none;filter:none;`;
     const shadow = host.attachShadow({ mode: "closed" });
     const iframe = document.createElement("iframe");
-    iframe.src = `${FRAME_URL}?mode=${mode}&kind=${kind}`;
+    iframe.src = `${FRAME_URL}?mode=${mode}&kind=${kind}${generate ? "&generate=1" : ""}`;
     iframe.style.cssText =
       `all:initial;display:block;width:${width}px;height:${height}px;border:1px solid #d7dbe0;` +
       "border-radius:10px;box-shadow:0 6px 24px rgb(0 0 0 / .18);";
@@ -209,7 +209,10 @@
 
   function openMenu(field, kind = "login") {
     closeMenu();
-    menu = { host: createFrame("suggest", 300, 190, kind), field };
+    // Password fields also get "Generate a strong password" (sign-up and
+    // change-password forms), which needs a little more room.
+    const generate = kind === "login" && field.type === "password";
+    menu = { host: createFrame("suggest", 300, generate ? 236 : 190, kind, generate), field };
     positionMenu();
   }
 
@@ -281,6 +284,18 @@
     );
   }
 
+  /**
+   * Fills a generated password into `field` and the password field right
+   * after it in the same form - the "confirm password" box on sign-up and
+   * change-password forms.
+   */
+  function fillNewPassword(field, password) {
+    const fields = passwordFields(field.form ?? document);
+    const index = fields.indexOf(field);
+    setFieldValue(field, password);
+    if (index >= 0 && fields[index + 1]) setFieldValue(fields[index + 1], password);
+  }
+
   // The element last right-clicked, so "Autofill" from the context menu
   // fills the form the user pointed at rather than the first one.
   let contextTarget = null;
@@ -294,6 +309,12 @@
       // origin; checking again here covers a navigation in between.
       if (message.origin !== location.origin || !field?.isConnected) return;
       fillLogin(field, message);
+    } else if (message?.type === "bs-fill-generated") {
+      const field = message.source === "context" ? contextTarget : menu?.field;
+      closeMenu();
+      if (message.origin !== location.origin || !field?.isConnected) return;
+      if (field instanceof HTMLInputElement && field.type === "password") fillNewPassword(field, message.password);
+      else if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) setFieldValue(field, message.password);
     } else if (message?.type === "bs-fill-otp") {
       const field = menu?.field;
       closeMenu();

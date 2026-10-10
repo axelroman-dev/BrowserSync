@@ -345,6 +345,30 @@
     "copyPassword": "Copiar contraseña",
     "copyCode": "Copiar código de verificación",
     "unlock": "Desbloquear para ver las contraseñas",
-    "noneForSite": "No hay contraseñas guardadas para {{site}}"
+    "noneForSite": "No hay contraseñas guardadas para {{site}}",
+    "generateCopy": "Generar contraseña (copiar)",
+    "generateFill": "Generar contraseña y rellenar"
+  },
+  "generator": {
+    "title": "Generador de contraseñas",
+    "regenerate": "Generar otra",
+    "typeChars": "Caracteres",
+    "typeWords": "Palabras",
+    "length": "Longitud",
+    "avoidAmbiguous": "Evitar caracteres parecidos (l, I, O, 0, 1)",
+    "wordCount": "Palabras",
+    "separator": "Separador",
+    "capitalize": "Mayúscula inicial",
+    "includeNumber": "Añadir un número",
+    "use": "Usar esta contraseña",
+    "strength": "{{level}} · {{bits}} bits",
+    "level": {
+      "weak": "Débil",
+      "fair": "Aceptable",
+      "strong": "Fuerte",
+      "veryStrong": "Muy fuerte"
+    },
+    "inPageOffer": "Generar una contraseña segura",
+    "fill": "Rellenar"
   }
 }

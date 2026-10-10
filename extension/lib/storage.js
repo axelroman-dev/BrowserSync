@@ -86,6 +86,9 @@ const LOCAL_DEFAULTS = {
   // open the suggestion list right away (several). Off: only on a click of
   // the key icon. See handleAutofill() in pageCredentials.js.
   passwordAutofill: false,
+  // Last options used in the password generator - see passwordGenerator.js.
+  // null means its defaults.
+  passwordGeneratorOptions: null,
   // Hostnames where the save prompt is never shown - see neverSave.js.
   // Device preference, so it survives logout.
   passwordNeverSave: [],

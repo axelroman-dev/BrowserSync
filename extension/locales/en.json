@@ -345,6 +345,30 @@
     "copyPassword": "Copy password",
     "copyCode": "Copy verification code",
     "unlock": "Unlock to see saved passwords",
-    "noneForSite": "No saved passwords for {{site}}"
+    "noneForSite": "No saved passwords for {{site}}",
+    "generateCopy": "Generate password (copy)",
+    "generateFill": "Generate password and fill"
+  },
+  "generator": {
+    "title": "Password generator",
+    "regenerate": "Regenerate",
+    "typeChars": "Characters",
+    "typeWords": "Words",
+    "length": "Length",
+    "avoidAmbiguous": "Avoid look-alikes (l, I, O, 0, 1)",
+    "wordCount": "Words",
+    "separator": "Separator",
+    "capitalize": "Capitalize words",
+    "includeNumber": "Add a number",
+    "use": "Use this password",
+    "strength": "{{level}} · {{bits}} bits",
+    "level": {
+      "weak": "Weak",
+      "fair": "Fair",
+      "strong": "Strong",
+      "veryStrong": "Very strong"
+    },
+    "inPageOffer": "Generate a strong password",
+    "fill": "Fill"
   }
 }

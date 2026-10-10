@@ -7,6 +7,7 @@
 // clicks until the frame has been genuinely visible for a moment.
 import { initI18n, t } from "../lib/i18n.js";
 import { siteIconElement } from "../lib/favicon.js";
+import { generatePassword, loadGeneratorOptions } from "../lib/passwordGenerator.js";
 
 await initI18n();
 
@@ -14,6 +15,8 @@ const params = new URLSearchParams(location.search);
 const mode = params.get("mode") === "save" ? "save" : "suggest";
 // "otp": opened from a verification-code field - lists entries with a 2FA secret and fills the current code.
 const kind = params.get("kind") === "otp" ? "otp" : "login";
+// Opened from a password field: also offer a generated password.
+const offerGenerate = params.get("generate") === "1";
 const openedAt = performance.now();
 const MIN_VISIBLE_MS = 500;
 
@@ -111,6 +114,29 @@ async function renderSuggest() {
   }
 }
 
+// Generated here, in the extension's own document, and only sent to the
+// page once the user clicks "Fill" - the site never sees the alternatives.
+function renderGenerate() {
+  document.getElementById("generate-section").hidden = false;
+  const row = document.getElementById("generated-row");
+  const output = document.getElementById("generated-password");
+  let password = "";
+  async function regenerate() {
+    ({ password } = await generatePassword(await loadGeneratorOptions()));
+    output.textContent = password;
+    output.title = password;
+  }
+  onSafeClick(document.getElementById("generate-btn"), async (event) => {
+    event.currentTarget.hidden = true;
+    await regenerate();
+    row.hidden = false;
+  });
+  onSafeClick(document.getElementById("regenerate-btn"), regenerate);
+  onSafeClick(document.getElementById("use-generated-btn"), () => {
+    if (password) send({ type: "frame-fill-generated", password });
+  });
+}
+
 async function renderSave() {
   document.getElementById("save-view").hidden = false;
   const { pending } = (await send({ type: "frame-get-pending" })) ?? {};
@@ -160,4 +186,7 @@ onSafeClick(document.getElementById("unlock-btn"), () => {
 });
 
 if (mode === "save") renderSave();
-else renderSuggest();
+else {
+  if (offerGenerate) renderGenerate();
+  renderSuggest();
+}
