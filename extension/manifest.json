@@ -23,7 +23,10 @@
         "alarms",
         "management",
         "scripting",
-        "favicon"
+        "favicon",
+        "contextMenus",
+        "offscreen",
+        "tabs"
     ],
     "optional_host_permissions": [
         "http://*/*",
@@ -34,7 +37,7 @@
         "48": "icons/icon48.png",
         "128": "icons/icon128.png"
     },
-    "minimum_chrome_version": "104",
+    "minimum_chrome_version": "109",
     "web_accessible_resources": [
         {
             "resources": [

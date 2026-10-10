@@ -225,7 +225,7 @@
     "importDone": "Imported {{added}} passwords ({{skipped}} skipped as duplicates or empty). The CSV file is NOT encrypted - delete it now.",
     "inPageTitle": "Suggest and save passwords on websites",
     "inPageOffHint": "Off. When on, a key icon appears in password fields with your saved accounts for that site, and BrowserSync offers to save new logins. Requires permission to access websites.",
-    "inPageOnHint": "On. Click the key icon in a password field to pick a saved account. Nothing is filled without your click.",
+    "inPageOnHint": "On. Click the key icon in a password field to pick a saved account.",
     "inPageEnable": "Turn on",
     "inPageDisable": "Turn off",
     "inPageEnabledNotice": "Turned on. Reload any tabs that were already open for it to work there. You may want to turn off the browser's own \"Offer to save passwords\" so you don't get two prompts.",
@@ -260,7 +260,13 @@
     "totpHint": "Optional. Paste the key or otpauth:// link the site gives you when you turn on two-step verification. Handy, but whoever opens your vault would then have both factors.",
     "totpInvalid": "invalid 2FA key",
     "totpInvalidInput": "That two-step verification key isn't valid. Paste the key (letters A-Z and digits 2-7) or the full otpauth:// link.",
-    "copyCode": "Copy code"
+    "copyCode": "Copy code",
+    "autofillLabel": "Autofill",
+    "autofillOff": "When I click the key icon",
+    "autofillOn": "When the page loads",
+    "autofillOffHint": "Nothing is filled without your click.",
+    "autofillOnHint": "With one saved account for the site, it's filled as soon as the login form appears (only on https). With several, the list opens so you pick one. Fields you already typed in are left alone.",
+    "autofillNeedsInPage": "Turn on suggestions on websites first."
   },
   "inPage": {
     "manage": "Manage passwords",
@@ -332,5 +338,13 @@
     "confirmForceRestore": "Replace this device's bookmarks with the synced ones? This device's current bookmarks will be lost.",
     "confirmForcePush": "Replace the synced bookmarks with this device's? The bookmarks currently synced will be lost on every device.",
     "loggingOut": "Logging out..."
+  },
+  "contextMenu": {
+    "fill": "Autofill",
+    "copyUsername": "Copy username",
+    "copyPassword": "Copy password",
+    "copyCode": "Copy verification code",
+    "unlock": "Unlock to see saved passwords",
+    "noneForSite": "No saved passwords for {{site}}"
   }
 }

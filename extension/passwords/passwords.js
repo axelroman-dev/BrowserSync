@@ -406,6 +406,7 @@ let inPageEnabled = false;
 
 async function renderInPageToggle() {
   inPageEnabled = await chrome.permissions.contains({ origins: HOST_ORIGINS });
+  await renderAutofill();
   document.getElementById("inpage-card").hidden = inPageEnabled;
   document.getElementById("inpage-status").textContent = inPageEnabled ? t("passwords.inPageOnHint") : t("passwords.inPageOffShort");
   document.getElementById("inpage-toggle").textContent = inPageEnabled ? t("passwords.inPageDisable") : t("passwords.inPageEnable");
@@ -427,6 +428,22 @@ async function setInPageEnabled(enable) {
   await renderInPageToggle();
   if (changed && enable) showError(document.getElementById("vault-notice"), t("passwords.inPageEnabledNotice"));
 }
+
+// Autofill rides on the in-page content script, so it's only offered while that's on.
+async function renderAutofill() {
+  const { passwordAutofill } = await getAllLocal();
+  const select = document.getElementById("autofill-select");
+  select.value = passwordAutofill ? "on" : "off";
+  select.disabled = !inPageEnabled;
+  document.getElementById("autofill-hint").textContent = !inPageEnabled
+    ? t("passwords.autofillNeedsInPage")
+    : t(passwordAutofill ? "passwords.autofillOnHint" : "passwords.autofillOffHint");
+}
+
+document.getElementById("autofill-select").addEventListener("change", async (e) => {
+  await setLocal({ passwordAutofill: e.target.value === "on" });
+  await renderAutofill();
+});
 
 document.getElementById("inpage-enable-btn").addEventListener("click", () => setInPageEnabled(true));
 

@@ -225,7 +225,7 @@
     "importDone": "Se importaron {{added}} contraseñas ({{skipped}} omitidas por duplicadas o vacías). El archivo CSV NO está cifrado: elimínalo ahora.",
     "inPageTitle": "Sugerir y guardar contraseñas en páginas web",
     "inPageOffHint": "Desactivado. Al activarlo aparece un icono de llave en los campos de contraseña con tus cuentas guardadas para ese sitio, y BrowserSync te ofrece guardar los nuevos inicios de sesión. Requiere permiso para acceder a las páginas web.",
-    "inPageOnHint": "Activado. Haz clic en el icono de llave de un campo de contraseña para elegir una cuenta guardada. Nada se rellena sin tu clic.",
+    "inPageOnHint": "Activado. Haz clic en el icono de llave de un campo de contraseña para elegir una cuenta guardada.",
     "inPageEnable": "Activar",
     "inPageDisable": "Desactivar",
     "inPageEnabledNotice": "Activado. Recarga las pestañas que ya estaban abiertas para que funcione en ellas. Puedes desactivar \"Ofrecer guardar contraseñas\" del propio navegador para no recibir dos avisos.",
@@ -260,7 +260,13 @@
     "totpHint": "Opcional. Pega la clave o el enlace otpauth:// que te da la web al activar la verificación en dos pasos. Es cómodo, pero quien abra tu bóveda tendría los dos factores.",
     "totpInvalid": "clave 2FA no válida",
     "totpInvalidInput": "Esa clave de verificación en dos pasos no es válida. Pega la clave (letras A-Z y números 2-7) o el enlace otpauth:// completo.",
-    "copyCode": "Copiar código"
+    "copyCode": "Copiar código",
+    "autofillLabel": "Autocompletar",
+    "autofillOff": "Al hacer clic en el icono de llave",
+    "autofillOn": "Al cargar la página",
+    "autofillOffHint": "Nada se rellena sin tu clic.",
+    "autofillOnHint": "Si hay una sola cuenta guardada para el sitio, se rellena en cuanto aparece el formulario (solo en https). Si hay varias, se abre la lista para que elijas. No se tocan los campos en los que ya escribiste.",
+    "autofillNeedsInPage": "Activa primero las sugerencias en las páginas web."
   },
   "inPage": {
     "manage": "Gestionar contraseñas",
@@ -332,5 +338,13 @@
     "confirmForceRestore": "¿Reemplazar los marcadores de este dispositivo por los sincronizados? Se perderán los marcadores actuales de este dispositivo.",
     "confirmForcePush": "¿Reemplazar los marcadores sincronizados por los de este dispositivo? Los marcadores sincronizados actualmente se perderán en todos los dispositivos.",
     "loggingOut": "Cerrando sesión..."
+  },
+  "contextMenu": {
+    "fill": "Autocompletar",
+    "copyUsername": "Copiar usuario",
+    "copyPassword": "Copiar contraseña",
+    "copyCode": "Copiar código de verificación",
+    "unlock": "Desbloquear para ver las contraseñas",
+    "noneForSite": "No hay contraseñas guardadas para {{site}}"
   }
 }
