@@ -1,36 +1,194 @@
 /* Password generator panel (lib/generatorPanel.js). Uses the host page's
-   --border/--muted/--accent variables and button classes. */
-.generator { display: flex; flex-direction: column; gap: 10px; }
-.gen-output-row { display: flex; gap: 6px; }
+   --border/--muted/--accent/--text variables (and --card-bg where the page
+   has one) and button classes. */
+.generator { display: flex; flex-direction: column; gap: 14px; }
+
+/* The password itself: a card with the actions inside and the strength
+   meter along its bottom edge. */
+.gen-display {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg, color-mix(in srgb, var(--text) 4%, transparent));
+}
+.gen-output-row { display: flex; align-items: flex-start; gap: 6px; }
 .gen-output {
   flex: 1;
   min-width: 0;
+  min-height: 2.6em;
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 13px;
+  font-size: 15px;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  word-break: break-all;
+  user-select: all;
+  color: var(--text);
 }
-.gen-output-row > button { flex: none; width: auto; margin: 0; padding-left: 12px; padding-right: 12px; }
-.gen-icon { min-width: 34px; }
+.gen-digit { color: #2f6fed; }
+.gen-symbol { color: #c2410c; }
+@media (prefers-color-scheme: dark) {
+  .gen-digit { color: #7aa7ff; }
+  .gen-symbol { color: #fb923c; }
+}
+.gen-display-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.gen-icon-button {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.gen-icon-button:hover { background: var(--border); color: var(--text); }
+.gen-icon-button.copied { color: #1a7f37; }
+.gen-icon-button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.3s;
+}
+.gen-icon-button:active svg { transform: rotate(-90deg); }
+
 .gen-strength { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
-.gen-meter { flex: 1; height: 5px; border-radius: 3px; background: var(--border); overflow: hidden; }
-.gen-meter-fill { display: block; height: 100%; border-radius: 3px; transition: width 0.15s; }
+.gen-meter { flex: 1; height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; }
+.gen-meter-fill { display: block; height: 100%; border-radius: 2px; transition: width 0.2s, background-color 0.2s; }
 .gen-meter-fill[data-level="weak"] { background: #d64545; }
 .gen-meter-fill[data-level="fair"] { background: #e0a030; }
 .gen-meter-fill[data-level="strong"] { background: #3aa55d; }
 .gen-meter-fill[data-level="veryStrong"] { background: #1e7f45; }
-.gen-type { display: flex; gap: 16px; font-size: 13px; }
-.gen-type label, .gen-check { display: inline-flex; align-items: center; gap: 5px; font-weight: normal; margin: 0; cursor: pointer; }
-.gen-options { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
-.gen-field { display: flex; align-items: center; gap: 8px; font-weight: normal; margin: 0; }
-.gen-field > span { min-width: 70px; }
-.gen-range { flex: 1; min-width: 0; }
-.generator input.gen-number { width: 56px; flex: none; }
-.generator input.gen-separator { width: 56px; flex: none; text-align: center; font-family: ui-monospace, monospace; }
-.gen-checks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+
+/* Characters / Words: a segmented control over two hidden radios. */
+.gen-type {
+  display: flex;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--border);
+}
+.gen-type label {
+  flex: 1;
+  margin: 0;
+  padding: 5px 0;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+.gen-type label:has(input:checked) {
+  background: var(--card-bg, var(--bg));
+  color: var(--text);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+}
+.gen-type label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+.gen-type input, .gen-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gen-options { display: flex; flex-direction: column; gap: 12px; font-size: 12px; }
+
+/* Length / word count: label and value on one line, slider below. */
+.gen-field { display: flex; flex-direction: column; gap: 6px; }
+.gen-field-head { display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
+.gen-range { width: 100%; accent-color: var(--accent); cursor: pointer; }
+.generator input.gen-number {
+  width: 52px;
+  flex: none;
+  padding: 3px 6px;
+  text-align: center;
+}
+.gen-field-inline { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; font-weight: 600; }
+.generator input.gen-separator { width: 52px; flex: none; padding: 3px 6px; text-align: center; font-family: ui-monospace, monospace; }
+
+/* Character sets: toggle chips. */
+.gen-checks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.gen-chip {
+  position: relative;
+  margin: 0;
+  padding: 6px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: center;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.gen-chip:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+.gen-chip:has(input:disabled) { cursor: not-allowed; }
+.gen-chip:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Other options: switches. */
+.gen-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  font-weight: normal;
+  cursor: pointer;
+}
+.gen-switch span { order: -1; }
+.generator .gen-switch input {
+  appearance: none;
+  position: relative;
+  width: 30px;
+  height: 17px;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 9px;
+  background: var(--border);
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.generator .gen-switch input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition: transform 0.15s;
+}
+.generator .gen-switch input:checked { background: var(--accent); }
+.generator .gen-switch input:checked::after { transform: translateX(13px); }
+.generator .gen-switch input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 .gen-use { align-self: flex-end; }
-/* Hosts style every input as a text box; undo that for the toggles. */
-.generator input[type="checkbox"], .generator input[type="radio"], .generator input[type="range"] {
-  width: auto;
+
+/* Hosts style every input as a text box; undo that for the slider. */
+.generator input[type="range"] {
   padding: 0;
   margin: 0;
   border: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gen-icon-button svg, .gen-meter-fill, .generator .gen-switch input, .generator .gen-switch input::after { transition: none; }
 }

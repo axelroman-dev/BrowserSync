@@ -1,0 +1,30 @@
+Sync your bookmarks, history and passwords between your own devices through a server you host yourself. Everything is encrypted on your device before it's uploaded, so the server (and whoever runs it) only ever stores ciphertext.
+
+Made for Chromium browsers without Chrome Sync (Brave, Vivaldi, Edge, Chromium, ...) and for anyone who'd rather not hand their data to Google.
+
+WHAT'S NEW IN 2.2.0
+  • A redesigned popup with four tabs: Sync, Passwords, Generator and Settings.
+  • Passwords tab: the logins for the site you're on come first. Search, add and edit entries, and copy a username, password or two-step code in one click.
+  • Settings tab: history, sync interval, website suggestions and autofill, plus Lock now and Log out.
+  • A clearer Sync tab that shows when the last and next sync happen and what's being synced.
+  • A redesigned password generator.
+  • Your server's address is remembered, so you don't have to type it again after logging out.
+
+FEATURES
+  • Bookmarks: two-way sync with merge, so moves, renames and deletions carry over.
+  • History: optional, with a configurable number of days to keep.
+  • Password manager: suggestions and a save prompt on websites, optional autofill, a right-click menu, two-step verification codes (TOTP), and CSV import from Chrome, Firefox or Bitwarden.
+  • Password generator: random characters or EFF word passphrases, with a strength meter.
+  • Linked devices: see and sign out the devices using your account.
+  • Encrypted backups you can export and restore.
+  • English and Spanish.
+
+PRIVACY BY DESIGN
+  • End-to-end encryption: your data key never leaves your devices unencrypted.
+  • A recovery passphrase, shown once, lets you set up new devices or reset your password. Nobody else can recover your data.
+  • No ads, no analytics, no tracking. Open source.
+
+REQUIREMENTS
+You need your own BrowserSync server, version 2.0.0 or newer. It's free and open source, and runs with Docker. Setup guide: https://github.com/axelroman-dev/BrowserSync
+
+Full release notes: https://github.com/axelroman-dev/BrowserSync/releases

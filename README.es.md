@@ -253,7 +253,7 @@ En la pestaña que se abrió (o en cualquier momento después, haciendo clic en 
 - ¿Olvidaste tu contraseña? Haz clic en "¿Olvidaste tu contraseña?" en la pantalla de
   inicio de sesión y usa tu passphrase de recuperación para fijar una nueva.
 - La sincronización de historial de navegación está desactivada por defecto.
-  Actívala en la configuración del popup (⚙) si la quieres, y define cuántos días de
+  Actívala en el tab **Ajustes** del popup si la quieres, y define cuántos días de
   historial mantener sincronizados.
 - Haz clic en **"Ver datos sincronizados"** en el popup para abrir una página que
   muestra exactamente qué hay guardado en el servidor para tu cuenta — tu árbol de
@@ -297,7 +297,7 @@ En la pestaña que se abrió (o en cualquier momento después, haciendo clic en 
 Lee [`PRIVACY.md`](PRIVACY.md) (o [`PRIVACY.es.md`](PRIVACY.es.md)) — explica, en
 lenguaje simple, exactamente qué se guarda, qué puede y no puede ver el
 administrador, y cómo borrar permanentemente tu cuenta y todos tus datos
-sincronizados cuando quieras (popup → ⚙ → "Eliminar cuenta y todos los datos
+sincronizados cuando quieras (popup → tab Ajustes → "Más ajustes" → "Eliminar cuenta y todos los datos
 sincronizados").
 
 ### Perfil personal vs. de trabajo

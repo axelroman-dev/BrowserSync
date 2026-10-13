@@ -16,7 +16,6 @@
           <option value="en" data-i18n="language.en">English</option>
           <option value="es" data-i18n="language.es">Español</option>
         </select>
-        <button id="settings-toggle" class="icon-button" data-i18n-title="popup.settingsTitle" title="Settings" hidden>⚙</button>
       </div>
     </header>
 
@@ -193,7 +192,6 @@
         <a href="#" class="quick-link" data-page="viewer/viewer.html" data-i18n="popup.viewSyncedData">View synced data</a>
         <a href="#" class="quick-link" data-page="devices/devices.html" data-i18n="popup.devicesLink">Devices</a>
         <a href="#" class="quick-link" data-page="backup/backup.html" data-i18n="popup.backupLink">Backup</a>
-        <a href="#" class="quick-link" data-page="settings/settings.html" data-i18n="popup.settingsTitle">Settings</a>
       </div>
     </section>
 
@@ -240,6 +238,58 @@
       </form>
     </section>
 
+    <!-- Settings tab: only what's changed often. Everything else (danger
+         zone, devices, backup) stays on settings/settings.html. Saves as
+         soon as something changes. -->
+    <section id="settings-view" class="settings-tab" hidden>
+      <h3 class="section-title" data-i18n="popup.settingsSync">Sync</h3>
+      <div class="settings-group">
+        <label class="switch-row">
+          <span data-i18n="popup.syncBrowsingHistory">Sync browsing history</span>
+          <input type="checkbox" id="set-history-enabled" class="switch" />
+        </label>
+        <label id="set-history-days-row" class="field-row">
+          <span data-i18n="popup.historyRetentionLabel">History retention (days)</span>
+          <input type="number" id="set-history-days" min="1" max="3650" />
+        </label>
+        <label class="field-row">
+          <span data-i18n="popup.syncEveryLabel">Sync every (minutes)</span>
+          <input type="number" id="set-sync-interval" min="5" max="1440" />
+        </label>
+      </div>
+
+      <h3 class="section-title" data-i18n="popup.settingsPasswords">Passwords</h3>
+      <div class="settings-group">
+        <label class="switch-row">
+          <span data-i18n="passwords.inPageTitle">Suggest and save passwords on websites</span>
+          <input type="checkbox" id="set-inpage" class="switch" />
+        </label>
+        <label class="field-row">
+          <span data-i18n="passwords.autofillLabel">Autofill</span>
+          <select id="set-autofill">
+            <option value="off" data-i18n="passwords.autofillOff">When I click the key icon</option>
+            <option value="on" data-i18n="passwords.autofillOn">When the page loads</option>
+          </select>
+        </label>
+        <p id="set-autofill-hint" class="hint" hidden></p>
+      </div>
+      <p id="set-error" class="error" hidden></p>
+
+      <h3 class="section-title" data-i18n="popup.settingsAccount">Account</h3>
+      <div class="settings-actions">
+        <button type="button" id="lock-btn" class="secondary-button" data-i18n="popup.lockNow">Lock now</button>
+        <button type="button" id="logout-btn" class="secondary-button logout-button" data-i18n="settings.logoutBtn">Log out</button>
+      </div>
+
+      <a href="#" id="more-settings-link" class="more-settings">
+        <span>
+          <strong data-i18n="popup.moreSettings">More settings</strong>
+          <span class="hint block" data-i18n="popup.moreSettingsHint">Devices, backup, restore bookmarks, delete account</span>
+        </span>
+        <span aria-hidden="true">›</span>
+      </a>
+    </section>
+
     <!-- Generator tab (lib/generatorPanel.js), built the first time it's opened. -->
     <section id="generator-view" hidden>
       <h2 class="tab-title" data-i18n="generator.title">Password generator</h2>
@@ -260,6 +310,10 @@
     <button type="button" class="tab" role="tab" data-tab="generator">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="10" width="18" height="11" rx="2"/><path d="M7 10V7a5 5 0 0 1 10 0v3"/><path d="M8 15.5h.01M12 15.5h.01M16 15.5h.01"/></svg>
       <span data-i18n="popup.tabGenerator">Generator</span>
+    </button>
+    <button type="button" class="tab" role="tab" data-tab="settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      <span data-i18n="popup.tabSettings">Settings</span>
     </button>
   </nav>
 

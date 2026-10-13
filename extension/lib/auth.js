@@ -25,6 +25,7 @@ import {
   clearAccountLocal,
   getEncryptionKeyRaw,
   setEncryptionKeyRaw,
+  clearEncryptionKey,
 } from "./storage.js";
 import { t } from "./i18n.js";
 
@@ -204,6 +205,15 @@ export async function unlock(password) {
  */
 export async function verifyPassword(password) {
   await unwrapWithPassword(password);
+}
+
+/**
+ * Forgets the in-memory DEK, as after a browser restart: the account stays
+ * signed in and keeps its local data, but nothing can be decrypted (or
+ * synced) until the password is entered again.
+ */
+export async function lock() {
+  await clearEncryptionKey();
 }
 
 export async function getActiveKey() {

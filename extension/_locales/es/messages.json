@@ -3,6 +3,6 @@
         "message": "BrowserSync - Self-Hosted"
     },
     "extDescription": {
-        "message": "Sincroniza marcadores e historial entre tus propios dispositivos a través de un servidor autoalojado, con cifrado de extremo a extremo del lado del cliente."
+        "message": "Sincroniza marcadores, historial y contraseñas entre tus dispositivos con tu propio servidor, cifrado de extremo a extremo."
     }
 }

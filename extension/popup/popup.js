@@ -8,6 +8,7 @@ import { wireSetupForm, renderSetupForm, isSetupComplete } from "../lib/setupFor
 import { initI18n, t } from "../lib/i18n.js";
 import { mountGeneratorPanel } from "../lib/generatorPanel.js";
 import { showPasswordsTab } from "./passwordsTab.js";
+import { wireSettingsTab, showSettingsTab } from "./settingsTab.js";
 
 // Resolves the language and translates every data-i18n* element already in
 // the popup's DOM before anything below runs - top-level await pauses the
@@ -46,12 +47,13 @@ const views = {
   status: document.getElementById("status-view"),
   passwords: document.getElementById("passwords-view"),
   generator: document.getElementById("generator-view"),
+  settings: document.getElementById("settings-view"),
 };
 
 // Once connected and unlocked, the popup is a set of full-page tabs with a
 // bar at the bottom (like Bitwarden's). The connect/unlock/setup steps
 // stay full-screen without it.
-const TAB_VIEWS = ["status", "passwords", "generator"];
+const TAB_VIEWS = ["status", "passwords", "generator", "settings"];
 const tabBar = document.getElementById("tab-bar");
 let activeTab = "status";
 let popupGenerator = null;
@@ -67,9 +69,9 @@ function showView(name) {
     tab.classList.toggle("active", selected);
     tab.setAttribute("aria-selected", String(selected));
   }
-  document.getElementById("settings-toggle").hidden = !tabbed;
   if (name === "generator") showGenerator();
   if (name === "passwords") showPasswordsTab();
+  if (name === "settings") showSettingsTab();
 }
 
 // Built on first open; coming back to the tab generates a fresh password.
@@ -276,6 +278,7 @@ document.getElementById("unlock-btn").addEventListener("click", async () => {
   }
   try {
     await auth.unlock(password);
+    document.getElementById("unlock-password").value = "";
     errorEl.hidden = true;
     await renderThenSync();
   } catch (err) {
@@ -360,9 +363,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && !views.status.hidden && relevant.some((key) => key in changes)) renderStatusView();
 });
 
-document.getElementById("settings-toggle").addEventListener("click", () => {
-  chrome.tabs.create({ url: chrome.runtime.getURL("settings/settings.html") });
-  window.close();
+// Lock / log out land back on the unlock or connect view, and logging back
+// in starts on the Sync tab again.
+wireSettingsTab(async () => {
+  activeTab = "status";
+  await render();
 });
 
 render();
