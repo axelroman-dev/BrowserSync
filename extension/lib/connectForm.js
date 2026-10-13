@@ -23,7 +23,7 @@ import * as auth from "./auth.js";
 import { checkHealth, ApiError, NetworkError } from "./api.js";
 import { needsFirstSyncChoice, applyFirstSyncChoice } from "./firstSyncPrompt.js";
 import { armConfirm } from "./uiConfirm.js";
-import { getAllLocal } from "./storage.js";
+import { getAllLocal, setLocal } from "./storage.js";
 import { t } from "./i18n.js";
 
 function describeConnectError(err) {
@@ -173,6 +173,10 @@ export function wireConnectForm(el, onConnected) {
         return false;
       }
       currentServerUrl = url;
+      // Remembered as soon as it passes, not only after a login: closing the
+      // popup to go look up a password mustn't mean typing the URL again.
+      // Only ever reached while logged out, so no live session points elsewhere.
+      await setLocal({ serverUrl: url });
       el.serverHost.textContent = health.version ? `${new URL(url).host} (v${health.version})` : new URL(url).host;
       showMainForm();
       el.emailInput.focus();
@@ -191,19 +195,21 @@ export function wireConnectForm(el, onConnected) {
   });
 
   /**
-   * Entry point for a device that was signed in before (logged out, or its
-   * session was revoked/expired): re-checks the saved server quietly and
-   * opens "Log in" with the last email prefilled, instead of making the user
-   * test the connection again. Falls back to the plain server step - showing
-   * why - if nothing is saved or the server doesn't pass the check.
+   * Entry point whenever this device already knows a server (logged out,
+   * session revoked/expired, or the popup was just closed after testing
+   * one): re-checks it quietly and skips straight to the form - "Log in"
+   * with the last email prefilled when there is one - instead of making the
+   * user test the connection again. Falls back to the plain server step if
+   * nothing is saved or the server doesn't pass the check.
    */
   async function resumeKnownServer() {
     const { serverUrl, lastAccountEmail, sessionExpired } = await getAllLocal();
     showServerStep();
     if (el.sessionNotice) el.sessionNotice.hidden = !sessionExpired;
-    if (!serverUrl || !lastAccountEmail) return;
+    if (!serverUrl) return;
     el.serverUrlInput.value = serverUrl;
     if (!(await testServer(serverUrl, { animate: false }))) return;
+    if (!lastAccountEmail) return;
     mode = "login";
     applyMode();
     el.emailInput.value = lastAccountEmail;

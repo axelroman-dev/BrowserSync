@@ -7,6 +7,7 @@ import { needsFirstSyncChoice } from "../lib/firstSyncPrompt.js";
 import { wireSetupForm, renderSetupForm, isSetupComplete } from "../lib/setupForm.js";
 import { initI18n, t } from "../lib/i18n.js";
 import { mountGeneratorPanel } from "../lib/generatorPanel.js";
+import { showPasswordsTab } from "./passwordsTab.js";
 
 // Resolves the language and translates every data-i18n* element already in
 // the popup's DOM before anything below runs - top-level await pauses the
@@ -21,6 +22,9 @@ await initI18n();
 // switches to the question directly, and renderStatusView() keeps a hint as
 // a fallback.
 let firstSyncChoicePending = false;
+
+// True while a "Sync now" click is running, so the status line says so.
+let syncing = false;
 
 // Runs a sync cycle via the background service worker instead of importing
 // syncOrchestrator directly - unlike this popup document, the service
@@ -40,13 +44,14 @@ const views = {
   repair: document.getElementById("repair-view"),
   setup: document.getElementById("setup-view"),
   status: document.getElementById("status-view"),
+  passwords: document.getElementById("passwords-view"),
   generator: document.getElementById("generator-view"),
 };
 
 // Once connected and unlocked, the popup is a set of full-page tabs with a
 // bar at the bottom (like Bitwarden's). The connect/unlock/setup steps
 // stay full-screen without it.
-const TAB_VIEWS = ["status", "generator"];
+const TAB_VIEWS = ["status", "passwords", "generator"];
 const tabBar = document.getElementById("tab-bar");
 let activeTab = "status";
 let popupGenerator = null;
@@ -64,6 +69,7 @@ function showView(name) {
   }
   document.getElementById("settings-toggle").hidden = !tabbed;
   if (name === "generator") showGenerator();
+  if (name === "passwords") showPasswordsTab();
 }
 
 // Built on first open; coming back to the tab generates a fresh password.
@@ -90,17 +96,57 @@ function formatRelativeTime(ms) {
   return t("popup.lastSyncDays", { days });
 }
 
+// Same name background.js gives the periodic sync alarm.
+const SYNC_ALARM_NAME = "browsersync-periodic-sync";
+
+function formatNextSync(alarm) {
+  if (!alarm) return "";
+  const minutes = Math.max(0, Math.round((alarm.scheduledTime - Date.now()) / 60000));
+  return minutes < 1 ? t("popup.nextSyncSoon") : t("popup.nextSyncIn", { minutes });
+}
+
+async function countBookmarks() {
+  const count = (nodes) => nodes.reduce((sum, node) => sum + (node.url ? 1 : 0) + count(node.children ?? []), 0);
+  return count(await chrome.bookmarks.getTree());
+}
+
+/** The "What's synced" list: one line per kind of data, with what this device has of it. */
+async function renderSyncedList(local) {
+  const bookmarks = await countBookmarks().catch(() => null);
+  document.getElementById("synced-bookmarks").textContent =
+    bookmarks === null ? t("popup.syncedOn") : t("popup.syncedBookmarkCount", { count: String(bookmarks) });
+
+  document.getElementById("synced-history").textContent = local.historyEnabled
+    ? t("popup.syncedHistoryDays", { days: String(local.historyDays) })
+    : t("popup.syncedOff");
+
+  const passwordsEl = document.getElementById("synced-passwords");
+  passwordsEl.classList.toggle("warn", Boolean(local.passwordsSyncError || local.passwordsPendingSync));
+  if (local.passwordsSyncError) {
+    passwordsEl.textContent = t("popup.syncedPasswordsError");
+    passwordsEl.title = local.passwordsSyncError;
+  } else {
+    passwordsEl.textContent = local.passwordsPendingSync ? t("popup.syncedPasswordsPending") : t("popup.syncedOn");
+    passwordsEl.title = "";
+  }
+}
+
 async function renderStatusView() {
   const session = await auth.getSession();
+  const local = await getAllLocal();
   document.getElementById("status-server").textContent = new URL(session.serverUrl).host;
   document.getElementById("status-account").textContent = session.accountEmail;
+  document.getElementById("account-avatar").textContent = (session.accountEmail?.[0] ?? "?").toUpperCase();
 
   const indicator = document.getElementById("sync-indicator");
   const text = document.getElementById("sync-text");
   const errorEl = document.getElementById("sync-error");
 
-  indicator.className = "dot " + (session.lastSyncStatus === "error" ? "dot-error" : "dot-ok");
+  indicator.className = "dot " + (session.lastSyncStatus === "error" ? "dot-error" : session.lastSyncAt ? "dot-ok" : "dot-idle");
   text.textContent = formatRelativeTime(session.lastSyncAt);
+  document.getElementById("sync-next").textContent = syncing
+    ? t("popup.syncing")
+    : formatNextSync(await chrome.alarms.get(SYNC_ALARM_NAME));
   if (session.lastSyncStatus === "error" && session.lastSyncError) {
     errorEl.textContent = session.lastSyncError;
     errorEl.hidden = false;
@@ -110,6 +156,7 @@ async function renderStatusView() {
   } else {
     errorEl.hidden = true;
   }
+  await renderSyncedList(local);
 }
 
 // Only syncs once render() actually lands on the status view: while the
@@ -158,8 +205,9 @@ async function render() {
     await renderSetupForm();
     return;
   }
-  // Re-renders (after a sync, say) keep whichever tab the user is on.
-  showView(activeTab);
+  // Re-renders (after a sync, say) keep whichever tab the user is on,
+  // without rebuilding it.
+  if (views[activeTab].hidden) showView(activeTab);
   await renderStatusView();
 }
 
@@ -285,21 +333,31 @@ document.getElementById("repair-cancel-link").addEventListener("click", (e) => {
 document.getElementById("sync-now-btn").addEventListener("click", async (e) => {
   const btn = e.currentTarget;
   btn.disabled = true;
-  btn.textContent = t("popup.syncing");
-  await syncNowInteractive();
+  btn.classList.add("spinning");
+  syncing = true;
   await renderStatusView();
-  btn.disabled = false;
-  btn.textContent = t("popup.syncNow");
+  try {
+    await syncNowInteractive();
+  } finally {
+    syncing = false;
+    btn.disabled = false;
+    btn.classList.remove("spinning");
+  }
+  await renderStatusView();
 });
 
-document.getElementById("passwords-link").addEventListener("click", (e) => {
-  e.preventDefault();
-  chrome.tabs.create({ url: chrome.runtime.getURL("passwords/passwords.html") });
-});
+for (const link of document.querySelectorAll(".quick-link")) {
+  link.addEventListener("click", (e) => {
+    e.preventDefault();
+    chrome.tabs.create({ url: chrome.runtime.getURL(link.dataset.page) });
+  });
+}
 
-document.getElementById("view-data-link").addEventListener("click", (e) => {
-  e.preventDefault();
-  chrome.tabs.create({ url: chrome.runtime.getURL("viewer/viewer.html") });
+// Keeps the status current while the popup stays open (a background sync
+// finishing, the vault being edited in another tab).
+chrome.storage.onChanged.addListener((changes, area) => {
+  const relevant = ["lastSyncAt", "lastSyncStatus", "passwordsPendingSync", "passwordsSyncError"];
+  if (area === "local" && !views.status.hidden && relevant.some((key) => key in changes)) renderStatusView();
 });
 
 document.getElementById("settings-toggle").addEventListener("click", () => {

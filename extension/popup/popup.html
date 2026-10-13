@@ -160,22 +160,84 @@
 
     <!-- Normal connected + unlocked view. -->
     <section id="status-view" hidden>
-      <dl class="status-grid">
-        <dt data-i18n="popup.serverLabel">Server</dt>
-        <dd id="status-server"></dd>
-        <dt data-i18n="popup.accountLabel">Account</dt>
-        <dd id="status-account"></dd>
-      </dl>
+      <div class="account-card">
+        <span id="account-avatar" class="account-avatar" aria-hidden="true"></span>
+        <div class="account-text">
+          <strong id="status-account"></strong>
+          <span id="status-server" class="muted"></span>
+        </div>
+      </div>
 
-      <div id="sync-status" class="sync-status">
+      <div id="sync-status" class="sync-card">
         <span id="sync-indicator" class="dot"></span>
-        <span id="sync-text" data-i18n="common.neverSynced">Never synced</span>
+        <div class="sync-card-text">
+          <strong id="sync-text" data-i18n="common.neverSynced">Never synced</strong>
+          <span id="sync-next" class="muted"></span>
+        </div>
+        <button type="button" id="sync-now-btn" class="sync-now-button" data-i18n-title="popup.syncNow" title="Sync now">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9"/><path d="M18.5 3v4.2h-4.2M5.5 21v-4.2h4.2"/></svg>
+          <span id="sync-now-label" data-i18n="popup.syncNow">Sync now</span>
+        </button>
       </div>
       <p id="sync-error" class="error" hidden></p>
 
-      <button id="sync-now-btn" class="primary-button" data-i18n="popup.syncNow">Sync now</button>
-      <a href="#" id="passwords-link" class="link" data-i18n="popup.openPasswords">Saved passwords</a>
-      <a href="#" id="view-data-link" class="link" data-i18n="popup.viewSyncedData">View synced data</a>
+      <h3 class="section-title" data-i18n="popup.whatSyncs">What's synced</h3>
+      <ul class="synced-list">
+        <li><span class="synced-name" data-i18n="popup.syncedBookmarks">Bookmarks</span><span id="synced-bookmarks" class="synced-value"></span></li>
+        <li><span class="synced-name" data-i18n="popup.syncedHistory">History</span><span id="synced-history" class="synced-value"></span></li>
+        <li><span class="synced-name" data-i18n="popup.syncedPasswords">Passwords</span><span id="synced-passwords" class="synced-value"></span></li>
+        <li><span class="synced-name" data-i18n="popup.syncedExtensions">Extensions list</span><span class="synced-value" data-i18n="popup.syncedOn">On</span></li>
+      </ul>
+
+      <div class="quick-links">
+        <a href="#" class="quick-link" data-page="viewer/viewer.html" data-i18n="popup.viewSyncedData">View synced data</a>
+        <a href="#" class="quick-link" data-page="devices/devices.html" data-i18n="popup.devicesLink">Devices</a>
+        <a href="#" class="quick-link" data-page="backup/backup.html" data-i18n="popup.backupLink">Backup</a>
+        <a href="#" class="quick-link" data-page="settings/settings.html" data-i18n="popup.settingsTitle">Settings</a>
+      </div>
+    </section>
+
+    <!-- Passwords tab: the vault in the popup. List, search, copy, and a
+         compact add/edit form; the full page keeps import/export/settings. -->
+    <section id="passwords-view" hidden>
+      <div id="pw-list-pane">
+        <div class="pw-toolbar">
+          <input id="pw-search" type="search" class="pw-search" data-i18n-placeholder="passwords.searchPlaceholder" placeholder="Search by site or username" />
+          <button type="button" id="pw-add-btn" class="pw-add-button" data-i18n-title="passwords.add" title="Add password">+</button>
+        </div>
+        <p id="pw-error" class="error" hidden></p>
+        <div id="pw-site-group" hidden>
+          <h3 id="pw-site-title" class="section-title"></h3>
+          <div id="pw-site-list" class="pw-list"></div>
+        </div>
+        <h3 id="pw-all-title" class="section-title" data-i18n="popup.pwAll">All passwords</h3>
+        <div id="pw-list" class="pw-list"></div>
+        <a href="#" id="passwords-link" class="link" data-i18n="popup.pwOpenFull">Open the full password manager</a>
+      </div>
+
+      <form id="pw-edit-pane" class="pw-edit" novalidate hidden>
+        <div class="pw-edit-header">
+          <button type="button" id="pw-back-btn" class="icon-button" data-i18n-title="common.cancel" title="Cancel">←</button>
+          <h2 id="pw-edit-title" class="tab-title" data-i18n="passwords.addTitle">Add password</h2>
+        </div>
+        <label for="pw-url" data-i18n="passwords.siteLabel">Site</label>
+        <input id="pw-url" type="text" autocomplete="off" placeholder="https://example.com" />
+        <label for="pw-username" data-i18n="passwords.usernameLabel">Username or email</label>
+        <input id="pw-username" type="text" autocomplete="off" />
+        <label for="pw-password" data-i18n="common.password">Password</label>
+        <div class="pw-password-row">
+          <input id="pw-password" type="password" autocomplete="new-password" />
+          <button type="button" id="pw-toggle-btn" class="secondary-button" data-i18n="passwords.show">Show</button>
+          <button type="button" id="pw-generate-btn" class="secondary-button" data-i18n-title="passwords.generate" title="Generate">↻</button>
+        </div>
+        <label for="pw-totp" data-i18n="passwords.totpLabel">Two-step verification (TOTP)</label>
+        <input id="pw-totp" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="passwords.totpPlaceholder" placeholder="Secret key or otpauth:// link" />
+        <label for="pw-notes" data-i18n="passwords.notesLabel">Notes</label>
+        <textarea id="pw-notes" rows="2"></textarea>
+        <p id="pw-edit-error" class="error" hidden></p>
+        <button type="submit" id="pw-save-btn" class="primary-button" data-i18n="passwords.save">Save</button>
+        <button type="button" id="pw-delete-btn" class="danger-button" data-i18n="passwords.delete" hidden>Delete</button>
+      </form>
     </section>
 
     <!-- Generator tab (lib/generatorPanel.js), built the first time it's opened. -->
@@ -190,6 +252,10 @@
     <button type="button" class="tab" role="tab" data-tab="status">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9"/><path d="M18.5 3v4.2h-4.2M5.5 21v-4.2h4.2"/></svg>
       <span data-i18n="popup.tabSync">Sync</span>
+    </button>
+    <button type="button" class="tab" role="tab" data-tab="passwords">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 20 3M16 7l3 3M14 9l2 2"/></svg>
+      <span data-i18n="popup.tabPasswords">Passwords</span>
     </button>
     <button type="button" class="tab" role="tab" data-tab="generator">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="10" width="18" height="11" rx="2"/><path d="M7 10V7a5 5 0 0 1 10 0v3"/><path d="M8 15.5h.01M12 15.5h.01M16 15.5h.01"/></svg>
