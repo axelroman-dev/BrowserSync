@@ -133,6 +133,12 @@ export async function clearAccountLocal() {
   // whole set. firstSyncPrompt.js's needsFirstSyncChoice() instead detects
   // a genuinely different account signing in (via lastSyncedAccountKey)
   // and resets this bookkeeping only then.
+  //
+  // lastAccountEmail is carried over from accountEmail here too, for
+  // sessions started before it existed - otherwise their next login would
+  // come up empty.
+  const { accountEmail } = await chrome.storage.local.get("accountEmail");
+  if (accountEmail) await chrome.storage.local.set({ lastAccountEmail: accountEmail });
   await chrome.storage.local.remove([
     "accountEmail",
     "accessToken",
