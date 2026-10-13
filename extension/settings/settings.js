@@ -1,9 +1,10 @@
-// Settings page, opened from the popup's gear icon (it used to be a panel
-// inside the popup itself, too cramped for the danger-zone actions). It's
-// also the only place to log out from once unlocked. Every destructive
+// Advanced settings page, opened from "More settings" in the popup's
+// Settings tab - which keeps the everyday settings (sync, in-page
+// passwords, lock/log out); this page has the rest, too cramped for the
+// popup (the danger-zone actions especially). Every destructive
 // action asks through confirmModal below rather than window.confirm().
 import * as auth from "../lib/auth.js";
-import { getAllLocal, setLocal } from "../lib/storage.js";
+import { getAllLocal } from "../lib/storage.js";
 import { initI18n, t } from "../lib/i18n.js";
 
 await initI18n();
@@ -42,33 +43,6 @@ function confirmModal({ title, message, confirmLabel }) {
 
 confirmDialog.addEventListener("click", (e) => {
   if (e.target === confirmDialog) confirmDialog.close();
-});
-
-// ---- Sync ------------------------------------------------------------------
-
-const historyEnabledInput = document.getElementById("history-enabled");
-
-function renderHistoryDays() {
-  document.getElementById("history-days-row").hidden = !historyEnabledInput.checked;
-}
-historyEnabledInput.addEventListener("change", renderHistoryDays);
-
-async function renderSyncForm() {
-  const settings = await getAllLocal();
-  historyEnabledInput.checked = settings.historyEnabled;
-  document.getElementById("history-days").value = settings.historyDays;
-  document.getElementById("sync-interval").value = settings.syncIntervalMinutes;
-  renderHistoryDays();
-}
-
-document.getElementById("sync-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const historyDays = Math.min(3650, Math.max(1, Number(document.getElementById("history-days").value) || 90));
-  const syncIntervalMinutes = Math.min(1440, Math.max(5, Number(document.getElementById("sync-interval").value) || 15));
-  await setLocal({ historyEnabled: historyEnabledInput.checked, historyDays, syncIntervalMinutes });
-  await chrome.runtime.sendMessage({ type: "refresh-alarm" });
-  await renderSyncForm();
-  show(document.getElementById("sync-notice"), t("settings.saved"));
 });
 
 // ---- Account ---------------------------------------------------------------
@@ -177,7 +151,6 @@ async function init() {
   if (!session.isLoggedIn) return showView("notConnected");
   document.getElementById("account-label").textContent = `${session.accountEmail} · ${new URL(session.serverUrl).host}`;
   showView("settings");
-  await renderSyncForm();
 }
 
 init();

@@ -233,7 +233,7 @@ On the tab that opened (or any time later, by clicking the toolbar icon):
   the popup will guide you through reconnecting it (password + passphrase again).
 - Forgot your password? Click "Forgot your password?" on the login screen and use your
   recovery passphrase to set a new one.
-- Browsing history sync is off by default. Turn it on in the popup's settings (⚙) if
+- Browsing history sync is off by default. Turn it on in the popup's **Settings** tab if
   you want it, and set how many days of history to keep synced.
 - Click **"View synced data"** in the popup to open a page showing exactly what's
   currently stored on the server for your account — your bookmark tree, your synced
@@ -271,7 +271,7 @@ On the tab that opened (or any time later, by clicking the toolbar icon):
 
 Read [`PRIVACY.md`](PRIVACY.md) — it explains, in plain language, exactly what's
 stored, what the admin can and can't see, and how to permanently delete your account
-and all your synced data whenever you want (popup → ⚙ → "Delete account and all synced
+and all your synced data whenever you want (popup → Settings tab → "More settings" → "Delete account and all synced
 data").
 
 ### Personal vs. work profile

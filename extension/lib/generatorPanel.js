@@ -23,15 +23,47 @@ function el(tag, props = {}, children = []) {
   return node;
 }
 
-function checkbox(name, labelText) {
+// Character sets render as toggle chips, the other options as switches -
+// both are plain checkboxes underneath, styled in generatorPanel.css.
+function checkbox(name, labelText, className = "gen-switch") {
   const input = el("input", { type: "checkbox", name });
-  return { input, row: el("label", { className: "gen-check" }, [input, el("span", { textContent: labelText })]) };
+  return { input, row: el("label", { className }, [input, el("span", { textContent: labelText })]) };
 }
 
 function rangeWithNumber(name, { min, max }) {
   const range = el("input", { type: "range", name, min, max, className: "gen-range" });
   const number = el("input", { type: "number", min, max, className: "gen-number", "aria-label": name });
   return { range, number };
+}
+
+/** A label + number on one line, the slider full width under it. */
+function sliderField(labelText, control) {
+  return el("div", { className: "gen-field" }, [
+    el("div", { className: "gen-field-head" }, [el("span", { textContent: labelText }), control.number]),
+    control.range,
+  ]);
+}
+
+const ICONS = {
+  regenerate: '<path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9"/><path d="M18.5 3v4.2h-4.2M5.5 21v-4.2h4.2"/>',
+  copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+};
+
+function iconButton(icon, title) {
+  const btn = el("button", { type: "button", className: "gen-icon-button", title, "aria-label": title });
+  btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[icon]}</svg>`;
+  return btn;
+}
+
+/** Fills `output` with the password, digits and symbols in their own colors so they're easy to tell apart. */
+function renderPassword(output, password) {
+  output.replaceChildren(
+    ...Array.from(password, (char) => {
+      const kind = /[0-9]/.test(char) ? "gen-digit" : /[A-Za-z]/.test(char) ? null : "gen-symbol";
+      return kind ? el("span", { className: kind, textContent: char }) : document.createTextNode(char);
+    }),
+  );
 }
 
 /**
@@ -43,9 +75,9 @@ export async function mountGeneratorPanel(container, { onUse } = {}) {
   let options = await loadGeneratorOptions();
   let current = "";
 
-  const output = el("input", { type: "text", readOnly: true, spellcheck: false, className: "gen-output", "aria-label": t("generator.title") });
-  const regenerateBtn = el("button", { type: "button", className: "secondary-button gen-icon", title: t("generator.regenerate"), textContent: "↻" });
-  const copyBtn = el("button", { type: "button", className: "secondary-button", textContent: t("common.copy") });
+  const output = el("div", { className: "gen-output", "aria-label": t("generator.title"), "aria-live": "polite" });
+  const regenerateBtn = iconButton("regenerate", t("generator.regenerate"));
+  const copyBtn = iconButton("copy", t("common.copy"));
   const meterFill = el("span", { className: "gen-meter-fill" });
   const strengthText = el("span", { className: "gen-strength-text" });
 
@@ -53,10 +85,10 @@ export async function mountGeneratorPanel(container, { onUse } = {}) {
   const typeWords = el("input", { type: "radio", name: "gen-type", value: "words" });
 
   const length = rangeWithNumber("length", LIMITS.length);
-  const lower = checkbox("lower", "a-z");
-  const upper = checkbox("upper", "A-Z");
-  const digits = checkbox("digits", "0-9");
-  const symbols = checkbox("symbols", "!@#$%");
+  const lower = checkbox("lower", "a-z", "gen-chip");
+  const upper = checkbox("upper", "A-Z", "gen-chip");
+  const digits = checkbox("digits", "0-9", "gen-chip");
+  const symbols = checkbox("symbols", "!@#$%", "gen-chip");
   const avoidAmbiguous = checkbox("avoidAmbiguous", t("generator.avoidAmbiguous"));
 
   const words = rangeWithNumber("words", LIMITS.words);
@@ -65,20 +97,22 @@ export async function mountGeneratorPanel(container, { onUse } = {}) {
   const includeNumber = checkbox("includeNumber", t("generator.includeNumber"));
 
   const charsOptions = el("div", { className: "gen-options" }, [
-    el("label", { className: "gen-field" }, [el("span", { textContent: t("generator.length") }), length.range, length.number]),
+    sliderField(t("generator.length"), length),
     el("div", { className: "gen-checks" }, [lower.row, upper.row, digits.row, symbols.row]),
     avoidAmbiguous.row,
   ]);
   const wordsOptions = el("div", { className: "gen-options" }, [
-    el("label", { className: "gen-field" }, [el("span", { textContent: t("generator.wordCount") }), words.range, words.number]),
-    el("label", { className: "gen-field" }, [el("span", { textContent: t("generator.separator") }), separator]),
+    sliderField(t("generator.wordCount"), words),
+    el("label", { className: "gen-field-inline" }, [el("span", { textContent: t("generator.separator") }), separator]),
     capitalize.row,
     includeNumber.row,
   ]);
 
   const panel = el("div", { className: "generator" }, [
-    el("div", { className: "gen-output-row" }, [output, regenerateBtn, copyBtn]),
-    el("div", { className: "gen-strength" }, [el("span", { className: "gen-meter" }, [meterFill]), strengthText]),
+    el("div", { className: "gen-display" }, [
+      el("div", { className: "gen-output-row" }, [output, el("div", { className: "gen-display-actions" }, [regenerateBtn, copyBtn])]),
+      el("div", { className: "gen-strength" }, [el("span", { className: "gen-meter" }, [meterFill]), strengthText]),
+    ]),
     el("div", { className: "gen-type", role: "radiogroup" }, [
       el("label", {}, [typeChars, el("span", { textContent: t("generator.typeChars") })]),
       el("label", {}, [typeWords, el("span", { textContent: t("generator.typeWords") })]),
@@ -112,7 +146,7 @@ export async function mountGeneratorPanel(container, { onUse } = {}) {
   async function regenerate() {
     const { password, bits } = await generatePassword(options);
     current = password;
-    output.value = password;
+    renderPassword(output, password);
     const level = strengthLevel(bits);
     meterFill.dataset.level = level;
     meterFill.style.width = `${Math.min(100, (bits / 128) * 100)}%`;
@@ -138,8 +172,14 @@ export async function mountGeneratorPanel(container, { onUse } = {}) {
   regenerateBtn.addEventListener("click", regenerate);
   copyBtn.addEventListener("click", async () => {
     await navigator.clipboard.writeText(current);
-    copyBtn.textContent = t("common.copied");
-    setTimeout(() => (copyBtn.textContent = t("common.copy")), 1200);
+    copyBtn.classList.add("copied");
+    copyBtn.querySelector("svg").innerHTML = ICONS.check;
+    copyBtn.title = t("common.copied");
+    setTimeout(() => {
+      copyBtn.classList.remove("copied");
+      copyBtn.querySelector("svg").innerHTML = ICONS.copy;
+      copyBtn.title = t("common.copy");
+    }, 1200);
   });
 
   syncControls();
