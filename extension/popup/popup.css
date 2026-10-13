@@ -419,7 +419,7 @@ body.with-tabs .popup { flex: 1; min-height: 0; overflow-y: auto; }
 }
 .field-row input[type="number"] { width: 64px; flex: none; padding: 4px 6px; text-align: center; }
 .field-row select {
-  max-width: 150px;
+  max-width: 75%;
   padding: 4px;
   border: 1px solid var(--border);
   border-radius: 6px;
