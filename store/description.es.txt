@@ -1,0 +1,30 @@
+Sincroniza tus marcadores, historial y contraseñas entre tus propios dispositivos a través de un servidor que tú mismo alojas. Todo se cifra en tu dispositivo antes de subirse, así que el servidor (y quien lo administre) solo guarda datos cifrados.
+
+Hecho para navegadores Chromium sin Chrome Sync (Brave, Vivaldi, Edge, Chromium, ...) y para quien prefiere no entregarle sus datos a Google.
+
+NOVEDADES EN 2.2.0
+  • Popup rediseñado con cuatro pestañas: Sync, Contraseñas, Generador y Ajustes.
+  • Pestaña Contraseñas: primero aparecen las cuentas del sitio en el que estás. Busca, agrega y edita entradas, y copia el usuario, la contraseña o el código de verificación en dos pasos con un clic.
+  • Pestaña Ajustes: historial, intervalo de sincronización, sugerencias en sitios web y autocompletado, además de Bloquear ahora y Cerrar sesión.
+  • Una pestaña Sync más clara: muestra cuándo fue la última sincronización, cuándo será la próxima y qué se sincroniza.
+  • Generador de contraseñas rediseñado.
+  • Se recuerda la dirección de tu servidor, así que no tienes que volver a escribirla al cerrar sesión.
+
+FUNCIONES
+  • Marcadores: sincronización en ambos sentidos con fusión, así que se conservan los movimientos, cambios de nombre y borrados.
+  • Historial: opcional, con la cantidad de días a conservar configurable.
+  • Gestor de contraseñas: sugerencias y aviso para guardar en sitios web, autocompletado opcional, menú de clic derecho, códigos de verificación en dos pasos (TOTP) e importación CSV desde Chrome, Firefox o Bitwarden.
+  • Generador de contraseñas: caracteres aleatorios o frases de palabras EFF, con medidor de seguridad.
+  • Dispositivos vinculados: consulta y cierra la sesión de los dispositivos que usan tu cuenta.
+  • Copias de seguridad cifradas que puedes exportar y restaurar.
+  • En español e inglés.
+
+PRIVACIDAD DESDE EL DISEÑO
+  • Cifrado de extremo a extremo: tu clave de datos nunca sale sin cifrar de tus dispositivos.
+  • Una frase de recuperación, que se muestra una sola vez, te permite configurar dispositivos nuevos o restablecer tu contraseña. Nadie más puede recuperar tus datos.
+  • Sin anuncios, sin analíticas, sin rastreo. Código abierto.
+
+REQUISITOS
+Necesitas tu propio servidor BrowserSync, versión 2.0.0 o posterior. Es gratuito, de código abierto y funciona con Docker. Guía de instalación: https://github.com/axelroman-dev/BrowserSync
+
+Notas completas de cada versión: https://github.com/axelroman-dev/BrowserSync/releases
