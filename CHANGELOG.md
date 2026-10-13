@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.0](https://github.com/axelroman-dev/BrowserSync/compare/v2.1.0...v2.2.0) (2026-10-13)
+
+
+### Features
+
+* passwords tab in the popup, remembered server URL and a richer Sync tab ([#17](https://github.com/axelroman-dev/BrowserSync/issues/17)) ([cb8df34](https://github.com/axelroman-dev/BrowserSync/commit/cb8df345c973376d76828f40bb8a9f1bd088c6b8))
+* Settings tab in the popup and a redesigned password generator ([#19](https://github.com/axelroman-dev/BrowserSync/issues/19)) ([48b2654](https://github.com/axelroman-dev/BrowserSync/commit/48b26548fdf2bb3c23ac76f5d81f0d20f88b4a98))
+
 ## [2.1.0](https://github.com/axelroman-dev/BrowserSync/compare/v2.0.0...v2.1.0) (2026-10-10)
 
 
