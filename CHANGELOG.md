@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.3.0](https://github.com/axelroman-dev/BrowserSync/compare/v2.2.0...v2.3.0) (2026-10-16)
+
+
+### Features
+
+* change the account password, Lock now on the Sync tab and onboarding/logout fixes ([#20](https://github.com/axelroman-dev/BrowserSync/issues/20)) ([12ef3ef](https://github.com/axelroman-dev/BrowserSync/commit/12ef3ef19c1804c7a3418578563cf60990194506))
+* in-page menu as wide as the field, open on focus, add an account from it ([#22](https://github.com/axelroman-dev/BrowserSync/issues/22)) ([29b31a2](https://github.com/axelroman-dev/BrowserSync/commit/29b31a26341542c633399fbbd16889cdac2c94fe))
+
 ## [2.2.0](https://github.com/axelroman-dev/BrowserSync/compare/v2.1.0...v2.2.0) (2026-10-13)
 
 
