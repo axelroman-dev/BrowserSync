@@ -1,12 +1,10 @@
 // Settings tab of the popup: the handful of settings that get changed often
-// (what syncs and how often, in-page passwords, autofill), lock and log
-// out. Each control saves as soon as it changes. The rest - devices, backup,
+// (what syncs and how often, in-page passwords, autofill). Each control
+// saves as soon as it changes. The rest - devices, backup, log out,
 // restoring/pushing bookmarks, deleting the account - stays on the full
-// settings page, linked at the bottom.
-import * as auth from "../lib/auth.js";
+// settings page, linked at the bottom. Lock lives on the Sync tab.
 import { getAllLocal, setLocal } from "../lib/storage.js";
 import { HOST_ORIGINS } from "../lib/pageCredentials.js";
-import { armConfirm } from "../lib/uiConfirm.js";
 import { t } from "../lib/i18n.js";
 
 const $ = (id) => document.getElementById(id);
@@ -73,35 +71,8 @@ $("set-autofill").addEventListener("change", async (e) => {
   await setLocal({ passwordAutofill: e.target.value === "on" });
 });
 
-/**
- * Wires the account buttons. `onSessionChange` re-renders the popup, which
- * lands on the unlock or connect view.
- */
-export function wireSettingsTab(onSessionChange) {
-  $("lock-btn").addEventListener("click", async () => {
-    await auth.lock();
-    await onSessionChange();
-  });
-
-  // Logging out deletes this device's local vault (see clearAccountLocal),
-  // so unsynced vault edits get a stronger warning.
-  const logoutBtn = $("logout-btn");
-  let pendingAtArm = false;
-  const confirmLogout = armConfirm(logoutBtn, () =>
-    pendingAtArm ? t("popup.confirmLogoutPending") : t("popup.confirmLogout"),
-  );
-  logoutBtn.addEventListener("click", async () => {
-    ({ passwordsPendingSync: pendingAtArm } = await getAllLocal());
-    if (!confirmLogout()) return;
-    logoutBtn.disabled = true;
-    try {
-      await auth.logout();
-      await onSessionChange();
-    } finally {
-      logoutBtn.disabled = false;
-    }
-  });
-
+/** Wires the link to the full settings page. */
+export function wireSettingsTab() {
   $("more-settings-link").addEventListener("click", (e) => {
     e.preventDefault();
     chrome.tabs.create({ url: chrome.runtime.getURL("settings/settings.html") });

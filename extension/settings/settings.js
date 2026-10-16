@@ -47,6 +47,15 @@ confirmDialog.addEventListener("click", (e) => {
 
 // ---- Account ---------------------------------------------------------------
 
+/**
+ * After logging out (or deleting the account) nothing on this page applies
+ * anymore, so the tab becomes the login screen instead of an empty page.
+ * replace() keeps Back from returning to the signed-out settings page.
+ */
+function goToLogin() {
+  location.replace(chrome.runtime.getURL("onboarding/onboarding.html"));
+}
+
 document.getElementById("logout-btn").addEventListener("click", async () => {
   // Logging out deletes this device's local password vault (see
   // clearAccountLocal), so unsynced vault edits get a stronger warning.
@@ -62,10 +71,44 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   btn.textContent = t("settings.loggingOut");
   try {
     await auth.logout();
-    await init();
+    goToLogin();
   } finally {
     btn.disabled = false;
     btn.textContent = t("settings.logoutBtn");
+  }
+});
+
+document.getElementById("change-password-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const currentInput = document.getElementById("current-password");
+  const newInput = document.getElementById("new-password");
+  const confirmInput = document.getElementById("confirm-new-password");
+  const statusEl = document.getElementById("change-password-status");
+  const errorEl = document.getElementById("change-password-error");
+  const btn = document.getElementById("change-password-btn");
+  show(statusEl);
+  show(errorEl);
+  if (!currentInput.value || !newInput.value || !confirmInput.value) return show(errorEl, t("connectForm.errFillEveryField"));
+  if (newInput.value.length < 8) return show(errorEl, t("connectForm.errNewPasswordTooShort"));
+  if (newInput.value !== confirmInput.value) return show(errorEl, t("settings.newPasswordsDontMatch"));
+  if (newInput.value === currentInput.value) return show(errorEl, t("settings.newPasswordSameAsCurrent"));
+  const confirmed = await confirmModal({
+    title: t("settings.changePasswordTitle"),
+    message: t("settings.confirmChangePassword"),
+    confirmLabel: t("settings.changePasswordBtn"),
+  });
+  if (!confirmed) return;
+  btn.disabled = true;
+  btn.textContent = t("settings.changingPassword");
+  try {
+    await auth.changePassword({ currentPassword: currentInput.value, newPassword: newInput.value });
+    currentInput.value = newInput.value = confirmInput.value = "";
+    show(statusEl, t("settings.passwordChanged"));
+  } catch (err) {
+    show(errorEl, err.message || t("settings.couldNotChangePassword"));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = t("settings.changePasswordBtn");
   }
 });
 
@@ -136,7 +179,7 @@ document.getElementById("delete-form").addEventListener("submit", async (e) => {
   if (!confirmed) return;
   try {
     await auth.deleteAccount(passwordInput.value);
-    await init();
+    goToLogin();
   } catch (err) {
     show(errorEl, err.message || t("popup.couldNotDeleteAccount"));
   } finally {

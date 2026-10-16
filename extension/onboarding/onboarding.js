@@ -71,6 +71,10 @@ wireSetupForm(async () => {
   // after this tab is gone, and the popup shows how it went.
   chrome.runtime.sendMessage({ type: "run-sync" }).catch(() => {});
   const tab = await chrome.tabs.getCurrent();
-  if (tab?.id !== undefined) await chrome.tabs.remove(tab.id);
-  else window.close();
+  if (tab?.id === undefined) return window.close();
+  // Closing the window's last tab closes the window - and the whole
+  // browser if it's the only one - so leave a new tab page behind first.
+  const windowTabs = await chrome.tabs.query({ windowId: tab.windowId });
+  if (windowTabs.length === 1) await chrome.tabs.create({ windowId: tab.windowId });
+  await chrome.tabs.remove(tab.id);
 });

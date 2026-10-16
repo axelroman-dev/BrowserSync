@@ -121,6 +121,18 @@ export function resetPassword(serverUrl, { email, passphraseVerifier, newPasswor
   });
 }
 
+/** Changes the signed-in account's password, signing out every device except `currentDeviceId`. */
+export async function changePassword({ currentPassword, newPassword, currentDeviceId }) {
+  const { serverUrl } = await getAllLocal();
+  return withAuthRetry((accessToken) =>
+    request(serverUrl, "/api/auth/change-password", {
+      method: "POST",
+      accessToken,
+      body: { currentPassword, newPassword, currentDeviceId },
+    }),
+  );
+}
+
 /** Fetches the account's server-stored (passphrase-wrapped) DEK envelope on demand. */
 export async function getDekEnvelope() {
   const { serverUrl } = await getAllLocal();

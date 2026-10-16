@@ -363,11 +363,14 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && !views.status.hidden && relevant.some((key) => key in changes)) renderStatusView();
 });
 
-// Lock / log out land back on the unlock or connect view, and logging back
-// in starts on the Sync tab again.
-wireSettingsTab(async () => {
+// Locking lands back on the unlock view, and unlocking starts on the Sync
+// tab again.
+document.getElementById("lock-btn").addEventListener("click", async () => {
+  await auth.lock();
   activeTab = "status";
   await render();
 });
+
+wireSettingsTab();
 
 render();

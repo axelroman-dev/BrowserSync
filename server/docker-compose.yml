@@ -1,3 +1,7 @@
+# Fixed project name so containers show up as browsersync-db-1 /
+# browsersync-app-1 instead of taking the folder name ("server-...").
+name: browsersync
+
 services:
   db:
     image: postgres:16-alpine

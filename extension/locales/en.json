@@ -164,10 +164,9 @@
     "tabSettings": "Settings",
     "settingsSync": "Sync",
     "settingsPasswords": "Passwords",
-    "settingsAccount": "Account",
     "lockNow": "Lock now",
     "moreSettings": "More settings",
-    "moreSettingsHint": "Devices, backup, restore bookmarks, delete account",
+    "moreSettingsHint": "Devices, backup, log out, delete account",
     "confirmLogoutPending": "Unsynced passwords will be lost - click again"
   },
   "onboarding": {
@@ -368,7 +367,19 @@
     "confirmDeleteAccount": "Permanently delete your account and all synced data? This cannot be undone.",
     "confirmForceRestore": "Replace this device's bookmarks with the synced ones? This device's current bookmarks will be lost.",
     "confirmForcePush": "Replace the synced bookmarks with this device's? The bookmarks currently synced will be lost on every device.",
-    "loggingOut": "Logging out..."
+    "loggingOut": "Logging out...",
+    "changePasswordTitle": "Change password",
+    "changePasswordHint": "Your other devices will be signed out and need the new password to log in again. Your recovery passphrase doesn't change.",
+    "currentPasswordPlaceholder": "Current password",
+    "newPasswordPlaceholder": "New password (at least 8 characters)",
+    "confirmNewPasswordPlaceholder": "Repeat the new password",
+    "changePasswordBtn": "Change",
+    "changingPassword": "Changing...",
+    "confirmChangePassword": "Change your account password? Every other device will be signed out.",
+    "passwordChanged": "Password changed. Other devices will need the new password to log in again.",
+    "couldNotChangePassword": "Could not change the password.",
+    "newPasswordsDontMatch": "The new passwords don't match.",
+    "newPasswordSameAsCurrent": "The new password must be different from the current one."
   },
   "contextMenu": {
     "fill": "Autofill",
