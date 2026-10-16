@@ -8,17 +8,6 @@
 </head>
 <body>
   <main class="popup">
-    <header>
-      <span class="brand">BrowserSync</span>
-      <div class="header-actions">
-        <select id="language-select" class="language-select">
-          <option value="auto" data-i18n="language.auto">Auto</option>
-          <option value="en" data-i18n="language.en">English</option>
-          <option value="es" data-i18n="language.es">Español</option>
-        </select>
-      </div>
-    </header>
-
     <!-- Shown when there's no account connected at all. -->
     <section id="connect-view" hidden>
       <!-- Why the user is back here: the server rejected this device's session (revoked or expired) -->
@@ -203,6 +192,7 @@
          compact add/edit form; the full page keeps import/export/settings. -->
     <section id="passwords-view" hidden>
       <div id="pw-list-pane">
+        <h2 class="tab-title" data-i18n="popup.tabPasswords">Passwords</h2>
         <div class="pw-toolbar">
           <input id="pw-search" type="search" class="pw-search" data-i18n-placeholder="passwords.searchPlaceholder" placeholder="Search by site or username" />
           <button type="button" id="pw-add-btn" class="pw-add-button" data-i18n-title="passwords.add" title="Add password">+</button>
@@ -272,6 +262,7 @@
           <span data-i18n="passwords.autofillLabel">Autofill</span>
           <select id="set-autofill">
             <option value="off" data-i18n="passwords.autofillOff">When I click the key icon</option>
+            <option value="focus" data-i18n="passwords.autofillFocus">When I focus a login field</option>
             <option value="on" data-i18n="passwords.autofillOn">When the page loads</option>
           </select>
         </label>

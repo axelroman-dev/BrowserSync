@@ -33,7 +33,7 @@ const SETTING_VALIDATORS = {
   historyDays: (value) => clampInt(value, 1, 3650),
   syncIntervalMinutes: (value) => clampInt(value, 5, 1440),
   passwordMatchDefault: (value) => (MATCH_MODES.includes(value) ? value : undefined),
-  passwordAutofill: (value) => (typeof value === "boolean" ? value : undefined),
+  passwordAutofill: (value) => (typeof value === "boolean" || value === "focus" ? value : undefined),
   language: (value) => (["auto", "en", "es"].includes(value) ? value : undefined),
 };
 

@@ -218,7 +218,8 @@ async function handleFill(message, sender) {
 async function handleAutofill(sender) {
   const origin = webOrigin(sender.tab.url);
   const { passwordAutofill } = await getAllLocal();
-  if (!passwordAutofill || !origin) return {};
+  // Only the "when the page loads" mode; "focus" just opens the list in the page.
+  if (passwordAutofill !== true || !origin) return {};
   const key = await getActiveKey();
   if (!key) return {};
   const entries = await entriesForUrl(key, sender.tab.url);
@@ -226,6 +227,18 @@ async function handleAutofill(sender) {
   if (entries.length > 1 || !origin.startsWith("https:")) return { ask: true };
   const [entry] = entries;
   return { fill: { origin, username: entry.username, password: entry.password } };
+}
+
+/**
+ * "Add account" in the in-page menu: the popup's add form, opened in a
+ * small window of its own (an extension popup can't be opened from a page),
+ * starting on the site the menu was shown on.
+ */
+async function handleAddLogin(sender) {
+  if (!webOrigin(sender.tab.url)) return { ok: false };
+  const url = chrome.runtime.getURL(`popup/popup.html?add=${encodeURIComponent(sender.tab.url)}`);
+  await chrome.windows.create({ url, type: "popup", width: 360, height: 600, focused: true });
+  return { ok: true };
 }
 
 /** Fills a password generated in the in-page menu into the field it was opened on. */
@@ -309,6 +322,8 @@ export function handleCredentialMessage(message, sender) {
       return isFromOurFrame(sender) ? clearPending(sender.tab.id).then(() => ({ ok: true })) : null;
     case "frame-close":
       return isFromOurFrame(sender) ? closeInPage(sender.tab.id, message.target).then(() => ({ ok: true })) : null;
+    case "frame-add-login":
+      return isFromOurFrame(sender) ? handleAddLogin(sender) : null;
     case "frame-open-vault":
       return isFromOurFrame(sender)
         ? chrome.tabs.create({ url: chrome.runtime.getURL("passwords/passwords.html") }).then(() => ({ ok: true }))

@@ -16,7 +16,7 @@ function showError(message) {
 
 async function renderAutofill(inPageEnabled) {
   const { passwordAutofill } = await getAllLocal();
-  $("set-autofill").value = passwordAutofill ? "on" : "off";
+  $("set-autofill").value = passwordAutofill === "focus" ? "focus" : passwordAutofill ? "on" : "off";
   // Autofill rides on the in-page content script, so it's only offered while that's on.
   $("set-autofill").disabled = !inPageEnabled;
   $("set-autofill-hint").textContent = t("passwords.autofillNeedsInPage");
@@ -68,7 +68,8 @@ $("set-inpage").addEventListener("change", async (e) => {
 });
 
 $("set-autofill").addEventListener("change", async (e) => {
-  await setLocal({ passwordAutofill: e.target.value === "on" });
+  const { value } = e.target;
+  await setLocal({ passwordAutofill: value === "focus" ? "focus" : value === "on" });
 });
 
 /** Wires the link to the full settings page. */

@@ -32,6 +32,9 @@ let entries = [];
 let editingId = null;
 let clipboardTimer = null;
 let activeTabUrl = null;
+// Opened as the "Add account" window from the in-page menu: only the add
+// form is used, and the window closes once it's saved or cancelled.
+let popoutAdd = false;
 
 function showError(el, message) {
   el.textContent = message;
@@ -215,6 +218,7 @@ function openEditor(entry = null) {
 }
 
 function closeEditor() {
+  if (popoutAdd) return window.close();
   for (const field of Object.values(fields)) field.value = "";
   editingId = null;
   showPane(false);
@@ -227,9 +231,10 @@ async function mutate(fn) {
     showError($("pw-edit-error"), err.message || t("common.somethingWentWrong"));
     return;
   }
+  // Before closeEditor(), which closes the "Add account" window.
+  requestSync();
   closeEditor();
   await loadEntries();
-  requestSync();
 }
 
 $("pw-toggle-btn").addEventListener("click", () => setPasswordVisible(fields.password.type === "password"));
@@ -297,10 +302,20 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
-/** Called each time the tab is opened. */
-export async function showPasswordsTab() {
+/**
+ * Called each time the tab is opened. `addFor` (a page URL) opens straight
+ * on the add form for that page - the "Add account" window.
+ */
+export async function showPasswordsTab({ addFor = null } = {}) {
   closeEditor();
   $("pw-search").value = "";
+  if (addFor) {
+    activeTabUrl = addFor;
+    await loadEntries();
+    openEditor();
+    popoutAdd = true;
+    return;
+  }
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true }).catch(() => []);
   activeTabUrl = /^https?:/i.test(tab?.url ?? "") ? tab.url : null;
   await loadEntries();
