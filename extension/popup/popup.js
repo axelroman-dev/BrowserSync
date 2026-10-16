@@ -54,6 +54,14 @@ const views = {
 // bar at the bottom (like Bitwarden's). The connect/unlock/setup steps
 // stay full-screen without it.
 const TAB_VIEWS = ["status", "passwords", "generator", "settings"];
+// popup.html?add=<page URL>: the "Add account" window opened from the
+// in-page menu (see handleAddLogin in pageCredentials.js). It goes through
+// the usual unlock steps, then shows only the add form for that page.
+const addFor = (() => {
+  const value = new URLSearchParams(location.search).get("add");
+  return value && /^https?:/i.test(value) ? value : null;
+})();
+if (addFor) document.body.classList.add("popout");
 const tabBar = document.getElementById("tab-bar");
 let activeTab = "status";
 let popupGenerator = null;
@@ -70,7 +78,7 @@ function showView(name) {
     tab.setAttribute("aria-selected", String(selected));
   }
   if (name === "generator") showGenerator();
-  if (name === "passwords") showPasswordsTab();
+  if (name === "passwords") showPasswordsTab({ addFor });
   if (name === "settings") showSettingsTab();
 }
 
@@ -205,6 +213,10 @@ async function render() {
   if (!(await isSetupComplete())) {
     showView("setup");
     await renderSetupForm();
+    return;
+  }
+  if (addFor) {
+    if (views.passwords.hidden) showView("passwords");
     return;
   }
   // Re-renders (after a sync, say) keep whichever tab the user is on,

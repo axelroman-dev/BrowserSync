@@ -16,6 +16,11 @@
   let menu = null; // { host, field }
   let savePrompt = null;
   let lastCapture = null;
+  // The "passwordAutofill" setting: false (key icon only), "focus" or true (page load).
+  let autofillMode = false;
+  // True while this script fills fields itself: filling focuses each field,
+  // which must not reopen the list in "focus" mode.
+  let filling = false;
 
   // ---- Field detection -------------------------------------------------
 
@@ -156,14 +161,15 @@
     iconHost.style.left = `${rect.right + window.scrollX - 22 - 6}px`;
   }
 
-  document.addEventListener(
-    "focusin",
-    (event) => {
-      const kind = fieldKind(event.target);
-      if (kind) showIcon(event.target, kind);
-    },
-    true,
-  );
+  /** Shows the key icon in a focused login field and, in "focus" mode, opens the list too. */
+  function onFieldFocus(field) {
+    const kind = fieldKind(field);
+    if (!kind) return;
+    showIcon(field, kind);
+    if (autofillMode === "focus" && !filling && menu?.field !== field) openMenu(field, kind);
+  }
+
+  document.addEventListener("focusin", (event) => onFieldFocus(event.target), true);
   document.addEventListener(
     "focusout",
     () => {
@@ -171,7 +177,13 @@
       // password fields just moves the icon (focusin above) - anything else
       // hides it. Clicking the icon itself never takes the focus.
       setTimeout(() => {
-        if (!fieldKind(document.activeElement)) hideIcon();
+        const active = document.activeElement;
+        if (fieldKind(active)) return;
+        hideIcon();
+        // Focus moved on to something else in the page (Tab, a click
+        // elsewhere): the list goes too. Clicking into the list itself
+        // focuses its frame host, which keeps it open.
+        if (menu && active !== menu.host) closeMenu();
       }, 0);
     },
     true,
@@ -192,14 +204,20 @@
 
   // ---- Extension iframes (menu + save prompt) ---------------------------
 
+  // The suggestions menu matches the field's width (like Bitwarden's inline
+  // menu), but never gets narrower than its contents need.
+  const MENU_MIN_WIDTH = 260;
+
   function createFrame(mode, width, height, kind = "login", generate = false) {
     const host = document.createElement("browsersync-frame");
-    host.style.cssText = `position:absolute;z-index:${Z_TOP};margin:0;padding:0;border:0;opacity:1;transform:none;filter:none;`;
+    host.style.cssText =
+      `position:absolute;z-index:${Z_TOP};width:${width}px;margin:0;padding:0;border:0;` +
+      "opacity:1;transform:none;filter:none;";
     const shadow = host.attachShadow({ mode: "closed" });
     const iframe = document.createElement("iframe");
     iframe.src = `${FRAME_URL}?mode=${mode}&kind=${kind}${generate ? "&generate=1" : ""}`;
     iframe.style.cssText =
-      `all:initial;display:block;width:${width}px;height:${height}px;border:1px solid #d7dbe0;` +
+      `all:initial;display:block;box-sizing:border-box;width:100%;height:${height}px;border:1px solid #d7dbe0;` +
       "border-radius:10px;box-shadow:0 6px 24px rgb(0 0 0 / .18);";
     iframe.setAttribute("allowtransparency", "false");
     shadow.appendChild(iframe);
@@ -212,14 +230,16 @@
     // Password fields also get "Generate a strong password" (sign-up and
     // change-password forms), which needs a little more room.
     const generate = kind === "login" && field.type === "password";
-    menu = { host: createFrame("suggest", 300, generate ? 236 : 190, kind, generate), field };
+    menu = { host: createFrame("suggest", MENU_MIN_WIDTH, generate ? 236 : 190, kind, generate), field };
     positionMenu();
   }
 
   function positionMenu() {
     if (!menu.field.isConnected) return closeMenu();
     const rect = menu.field.getBoundingClientRect();
-    const left = Math.min(rect.left, window.innerWidth - 310);
+    const width = Math.min(Math.max(rect.width, MENU_MIN_WIDTH), window.innerWidth - 8);
+    const left = Math.min(rect.left, window.innerWidth - width - 4);
+    menu.host.style.width = `${width}px`;
     menu.host.style.top = `${rect.bottom + window.scrollY + 4}px`;
     menu.host.style.left = `${Math.max(4, left) + window.scrollX}px`;
   }
@@ -245,7 +265,9 @@
   document.addEventListener(
     "mousedown",
     (event) => {
-      if (menu && !event.composedPath().includes(menu.host)) closeMenu();
+      // Clicking back into the field the list belongs to (to move the
+      // caret, say) keeps it open.
+      if (menu && event.target !== menu.field && !event.composedPath().includes(menu.host)) closeMenu();
     },
     true,
   );
@@ -259,7 +281,12 @@
   // .value directly would be silently reverted on their next render.
   const nativeValueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
   function setFieldValue(field, value) {
-    field.focus();
+    filling = true;
+    try {
+      field.focus();
+    } finally {
+      filling = false;
+    }
     nativeValueSetter.call(field, value);
     field.dispatchEvent(new Event("input", { bubbles: true }));
     field.dispatchEvent(new Event("change", { bubbles: true }));
@@ -392,7 +419,7 @@
   }
 
   // ---- Autofill (opt-in) -------------------------------------------------
-  // Only while the user turned on "passwordAutofill" in the vault settings;
+  // Only while "passwordAutofill" is true ("when the page loads");
   // the service worker checks the setting again before sending anything.
   // Each login form is tried once, and the suggestion list is opened at most
   // once per URL so a re-rendering page doesn't keep popping it up.
@@ -433,13 +460,23 @@
     tryAutofill();
   }
 
-  chrome.storage.local.get("passwordAutofill").then(({ passwordAutofill }) => setAutofill(Boolean(passwordAutofill)), () => {});
+  function applyAutofillMode(value) {
+    autofillMode = value === "focus" ? "focus" : value === true;
+    setAutofill(autofillMode === true);
+  }
+
+  chrome.storage.local.get("passwordAutofill").then(
+    ({ passwordAutofill }) => {
+      applyAutofillMode(passwordAutofill);
+      // A login field focused before this script ran (autofocus) gets its
+      // icon too - and, in "focus" mode, its list.
+      onFieldFocus(document.activeElement);
+    },
+    () => onFieldFocus(document.activeElement),
+  );
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.passwordAutofill) setAutofill(Boolean(changes.passwordAutofill.newValue));
+    if (area === "local" && changes.passwordAutofill) applyAutofillMode(changes.passwordAutofill.newValue);
   });
 
-  // A login field focused before this script ran (autofocus) gets its icon too.
-  const initialKind = fieldKind(document.activeElement);
-  if (initialKind) showIcon(document.activeElement, initialKind);
   checkPendingSave();
 })();

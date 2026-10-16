@@ -52,21 +52,6 @@ body {
 
 .popup { padding: 16px; }
 
-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.brand { font-weight: 700; font-size: 15px; }
-
-.header-actions { display: flex; align-items: center; gap: 8px; }
-
-.language-select {
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--muted);
-  font-size: 11px;
-  padding: 2px 4px;
-  cursor: pointer;
-}
-
 .connect-title { margin: 0 0 4px; font-size: 14px; font-weight: 700; }
 
 .icon-button {
@@ -372,6 +357,12 @@ body.with-tabs {
   flex-direction: column;
 }
 body.with-tabs .popup { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* The "Add account" window (popup.html?add=...): fills its window and shows
+   only the add form, without the tab bar. */
+body.popout { width: auto; max-height: none; min-height: 100vh; }
+body.popout.with-tabs { height: 100vh; }
+body.popout .tab-bar { display: none; }
 
 .tab-title { margin: 0 0 12px; font-size: 14px; font-weight: 700; }
 #popup-generator .generator input { margin-top: 0; }

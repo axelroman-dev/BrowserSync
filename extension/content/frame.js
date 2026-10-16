@@ -95,6 +95,7 @@ async function renderSuggest() {
   if (!suggestions.length) {
     message.textContent = t(kind === "otp" ? "inPage.noCodesForSite" : "inPage.noneForSite", { site: hostOf(response?.origin) });
     message.hidden = false;
+    if (kind === "login") document.getElementById("add-btn").hidden = false;
     return;
   }
   for (const suggestion of suggestions) {
@@ -178,6 +179,11 @@ async function renderSave() {
 
 onSafeClick(document.getElementById("manage-btn"), () => {
   send({ type: "frame-open-vault" });
+  close();
+});
+// Opens the popup's add form in its own small window, for this site.
+onSafeClick(document.getElementById("add-btn"), () => {
+  send({ type: "frame-add-login" });
   close();
 });
 onSafeClick(document.getElementById("unlock-btn"), () => {

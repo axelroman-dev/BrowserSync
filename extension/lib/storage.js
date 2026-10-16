@@ -82,9 +82,13 @@ const LOCAL_DEFAULTS = {
   // How saved passwords match page URLs when an entry doesn't pick its own
   // mode - see lib/urlMatch.js.
   passwordMatchDefault: "domain",
-  // Fill logins as soon as the page shows the form (one saved account) or
-  // open the suggestion list right away (several). Off: only on a click of
-  // the key icon. See handleAutofill() in pageCredentials.js.
+  // When the in-page suggestions come up. false: only on a click of the key
+  // icon. "focus": the suggestion list opens as soon as a login field gets
+  // focus (see content/credentials.js). true: logins are filled as soon as
+  // the page shows the form (one saved account) or the list opens right
+  // away (several) - see handleAutofill() in pageCredentials.js. Kept as
+  // false/true for the two original modes so older settings and backups
+  // still read the same.
   passwordAutofill: false,
   // Last options used in the password generator - see passwordGenerator.js.
   // null means its defaults.
