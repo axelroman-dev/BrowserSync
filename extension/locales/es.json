@@ -164,10 +164,9 @@
     "tabSettings": "Ajustes",
     "settingsSync": "Sincronización",
     "settingsPasswords": "Contraseñas",
-    "settingsAccount": "Cuenta",
     "lockNow": "Bloquear ahora",
     "moreSettings": "Más ajustes",
-    "moreSettingsHint": "Dispositivos, copia de seguridad, restaurar marcadores, eliminar cuenta",
+    "moreSettingsHint": "Dispositivos, copia de seguridad, cerrar sesión, eliminar cuenta",
     "confirmLogoutPending": "Se perderán contraseñas sin sincronizar - clic otra vez"
   },
   "onboarding": {
@@ -368,7 +367,19 @@
     "confirmDeleteAccount": "¿Eliminar para siempre tu cuenta y todos los datos sincronizados? No se puede deshacer.",
     "confirmForceRestore": "¿Reemplazar los marcadores de este dispositivo por los sincronizados? Se perderán los marcadores actuales de este dispositivo.",
     "confirmForcePush": "¿Reemplazar los marcadores sincronizados por los de este dispositivo? Los marcadores sincronizados actualmente se perderán en todos los dispositivos.",
-    "loggingOut": "Cerrando sesión..."
+    "loggingOut": "Cerrando sesión...",
+    "changePasswordTitle": "Cambiar contraseña",
+    "changePasswordHint": "Se cerrará la sesión en tus otros dispositivos y necesitarán la nueva contraseña para volver a entrar. Tu frase de recuperación no cambia.",
+    "currentPasswordPlaceholder": "Contraseña actual",
+    "newPasswordPlaceholder": "Nueva contraseña (mínimo 8 caracteres)",
+    "confirmNewPasswordPlaceholder": "Repite la nueva contraseña",
+    "changePasswordBtn": "Cambiar",
+    "changingPassword": "Cambiando...",
+    "confirmChangePassword": "¿Cambiar la contraseña de tu cuenta? Se cerrará la sesión en todos los demás dispositivos.",
+    "passwordChanged": "Contraseña cambiada. Los demás dispositivos necesitarán la nueva contraseña para volver a entrar.",
+    "couldNotChangePassword": "No se pudo cambiar la contraseña.",
+    "newPasswordsDontMatch": "Las nuevas contraseñas no coinciden.",
+    "newPasswordSameAsCurrent": "La nueva contraseña debe ser distinta de la actual."
   },
   "contextMenu": {
     "fill": "Autocompletar",

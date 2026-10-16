@@ -244,6 +244,28 @@ export async function resetPassword({ serverUrl, email, passphrase, newPassword 
   await completeDeviceSetup({ email, password: newPassword, passphrase, dekEnvelope: result.dekEnvelope });
 }
 
+/**
+ * Changes the account password while signed in. The current password is
+ * checked locally first (it must unwrap this device's envelope), then on the
+ * server; afterwards this device's envelope is re-wrapped under the new
+ * password so unlocking keeps working without the recovery passphrase.
+ * Every other device is signed out by the server. Returns how many.
+ */
+export async function changePassword({ currentPassword, newPassword }) {
+  const dek = await unwrapWithPassword(currentPassword);
+  const { accountEmail, currentDeviceId } = await getAllLocal();
+  let result;
+  try {
+    result = await api.changePassword({ currentPassword, newPassword, currentDeviceId });
+  } catch (err) {
+    if (err instanceof api.ApiError && err.status === 403) throw new WrongSecretError(t("errors.wrongPassword"));
+    throw err;
+  }
+  await storeDeviceEnvelope(dek, newPassword, accountEmail);
+  await activateDEK(dek);
+  return { revokedCount: result.revokedCount };
+}
+
 /** Logs out of the current server/account only. Other devices/logins are untouched. */
 export async function logout() {
   const { serverUrl, refreshToken } = await getAllLocal();

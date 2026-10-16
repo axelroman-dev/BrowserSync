@@ -218,6 +218,58 @@ authRouter.post("/reset-password", authRateLimit, async (req, res) => {
   res.json({ dekEnvelope: { ciphertext: user.dekEnvelopeCiphertext, iv: user.dekEnvelopeIv } });
 });
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: passwordSchema,
+  // The caller's own refresh_tokens row (see issueTokenPair's deviceId), kept
+  // signed in while every other device is revoked.
+  currentDeviceId: z.string().uuid().optional(),
+});
+
+// Signed-in counterpart to /reset-password: proves ownership with the
+// current password instead of the recovery passphrase. The DEK and its
+// server-side passphrase envelope are untouched - only the login password
+// changes; the caller re-wraps its own local envelope under the new one.
+authRouter.post("/change-password", authRateLimit, requireAuth, async (req, res) => {
+  const parsed = changePasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "invalid_input", message: parsed.error.issues[0]?.message ?? "Invalid input" });
+    return;
+  }
+  const { currentPassword, newPassword, currentDeviceId } = parsed.data;
+
+  const [user] = await db.select().from(users).where(eq(users.id, req.userId!)).limit(1);
+  if (!user) {
+    res.status(404).json({ error: "not_found" });
+    return;
+  }
+
+  // 403 rather than 401: a 401 makes the client's withAuthRetry treat it as
+  // an expired access token and refresh/retry for nothing.
+  const valid = await verifyPassword(user.passwordHash, currentPassword);
+  if (!valid) {
+    res.status(403).json({ error: "invalid_credentials", message: "Current password is incorrect." });
+    return;
+  }
+
+  const newPasswordHash = await hashPassword(newPassword);
+  await db.update(users).set({ passwordHash: newPasswordHash }).where(eq(users.id, user.id));
+
+  // Same reasoning as /reset-password: other devices' local envelopes are
+  // still wrapped under the old password, so they're signed out and rebuild
+  // theirs on their next login. Only the device making the change stays.
+  const othersFilter = currentDeviceId
+    ? and(eq(refreshTokens.userId, user.id), isNull(refreshTokens.revokedAt), ne(refreshTokens.id, currentDeviceId))
+    : and(eq(refreshTokens.userId, user.id), isNull(refreshTokens.revokedAt));
+  const revoked = await db
+    .update(refreshTokens)
+    .set({ revokedAt: new Date() })
+    .where(othersFilter)
+    .returning({ id: refreshTokens.id });
+
+  res.json({ revokedCount: revoked.length });
+});
+
 // Lists every device (non-revoked, non-expired refresh token) currently
 // signed into this account, so the account owner can see what's linked and
 // revoke anything they don't recognize/still use without having to log out

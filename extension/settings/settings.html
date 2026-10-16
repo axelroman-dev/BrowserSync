@@ -49,6 +49,18 @@
           </div>
           <a href="../backup/backup.html" class="secondary-button button-link" data-i18n="passwords.backupOpen">Open</a>
         </div>
+        <form id="change-password-form" class="setting-row" novalidate>
+          <div class="setting-text">
+            <strong data-i18n="settings.changePasswordTitle">Change password</strong>
+            <p class="hint" data-i18n="settings.changePasswordHint">Your other devices will be signed out and need the new password to log in again. Your recovery passphrase doesn't change.</p>
+            <input id="current-password" type="password" autocomplete="current-password" data-i18n-placeholder="settings.currentPasswordPlaceholder" placeholder="Current password" />
+            <input id="new-password" type="password" autocomplete="new-password" minlength="8" data-i18n-placeholder="settings.newPasswordPlaceholder" placeholder="New password (at least 8 characters)" />
+            <input id="confirm-new-password" type="password" autocomplete="new-password" data-i18n-placeholder="settings.confirmNewPasswordPlaceholder" placeholder="Repeat the new password" />
+            <p id="change-password-status" class="notice" hidden></p>
+            <p id="change-password-error" class="error" hidden></p>
+          </div>
+          <button type="submit" id="change-password-btn" class="secondary-button" data-i18n="settings.changePasswordBtn">Change</button>
+        </form>
         <div class="setting-row">
           <div class="setting-text">
             <strong data-i18n="settings.logoutTitle">Log out</strong>
