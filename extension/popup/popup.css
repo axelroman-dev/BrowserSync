@@ -228,7 +228,15 @@ input[type="email"], input[type="password"], input[type="text"], input[type="num
   background: var(--accent); color: var(--accent-contrast);
   font-weight: 700; font-size: 15px;
 }
-.account-text { display: flex; flex-direction: column; min-width: 0; }
+.account-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.lock-button {
+  display: inline-flex; align-items: center; gap: 5px;
+  width: auto; margin-top: 0; padding: 6px 9px; flex-shrink: 0;
+}
+.lock-button svg {
+  width: 13px; height: 13px;
+  fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+}
 .account-text strong, .account-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-text span { font-size: 11px; }
 
@@ -457,9 +465,6 @@ body.with-tabs .popup { flex: 1; min-height: 0; overflow-y: auto; }
 .switch:checked::after { transform: translateX(13px); }
 .switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.settings-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.settings-actions .secondary-button { margin-top: 0; }
-.logout-button { color: var(--danger); }
 
 .more-settings {
   display: flex;
