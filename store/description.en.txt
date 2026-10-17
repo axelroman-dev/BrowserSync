@@ -2,20 +2,22 @@ Sync your bookmarks, history and passwords between your own devices through a se
 
 Made for Chromium browsers without Chrome Sync (Brave, Vivaldi, Edge, Chromium, ...) and for anyone who'd rather not hand their data to Google.
 
-WHAT'S NEW IN 2.2.0
-  • A redesigned popup with four tabs: Sync, Passwords, Generator and Settings.
-  • Passwords tab: the logins for the site you're on come first. Search, add and edit entries, and copy a username, password or two-step code in one click.
-  • Settings tab: history, sync interval, website suggestions and autofill, plus Lock now and Log out.
-  • A clearer Sync tab that shows when the last and next sync happen and what's being synced.
-  • A redesigned password generator.
-  • Your server's address is remembered, so you don't have to type it again after logging out.
+WHAT'S NEW IN 2.4.0
+  • Change your account password from Settings. Your other devices are signed out, and your recovery passphrase stays the same.
+  • New autofill option: open the suggestion list as soon as you click into a login field.
+  • The suggestion list on websites is now as wide as the field.
+  • "Add account" right from the suggestion list on sites with nothing saved yet. It opens a small window with the site already filled in.
+  • A cleaner popup: Lock now sits at the top of the Sync tab. Log out and the language are in More settings.
+  • Deleting your account now happens on your server's account page, linked from More settings, so it can't be done by mistake in the extension.
+  • Clearer sync errors: if a reverse proxy rejects an upload as too large, the extension says so and explains how to fix it.
+  • Finishing the first setup no longer closes the browser when it was the only tab open.
 
 FEATURES
   • Bookmarks: two-way sync with merge, so moves, renames and deletions carry over.
   • History: optional, with a configurable number of days to keep.
-  • Password manager: suggestions and a save prompt on websites, optional autofill, a right-click menu, two-step verification codes (TOTP), and CSV import from Chrome, Firefox or Bitwarden.
+  • Password manager: suggestions and a save prompt on websites, add accounts right from the page, optional autofill (on click, on focus or on page load), a right-click menu, two-step verification codes (TOTP), and CSV import from Chrome, Firefox or Bitwarden.
   • Password generator: random characters or EFF word passphrases, with a strength meter.
-  • Linked devices: see and sign out the devices using your account.
+  • Your account: change your password, and see and sign out the devices using your account.
   • Encrypted backups you can export and restore.
   • English and Spanish.
 
@@ -25,6 +27,6 @@ PRIVACY BY DESIGN
   • No ads, no analytics, no tracking. Open source.
 
 REQUIREMENTS
-You need your own BrowserSync server, version 2.0.0 or newer. It's free and open source, and runs with Docker. Setup guide: https://github.com/axelroman-dev/BrowserSync
+You need your own BrowserSync server, version 2.0.0 or newer (2.3.0 or newer to change your password). It's free and open source, and runs with Docker. Setup guide: https://github.com/axelroman-dev/BrowserSync
 
 Full release notes: https://github.com/axelroman-dev/BrowserSync/releases

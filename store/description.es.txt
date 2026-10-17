@@ -2,20 +2,22 @@ Sincroniza tus marcadores, historial y contraseñas entre tus propios dispositiv
 
 Hecho para navegadores Chromium sin Chrome Sync (Brave, Vivaldi, Edge, Chromium, ...) y para quien prefiere no entregarle sus datos a Google.
 
-NOVEDADES EN 2.2.0
-  • Popup rediseñado con cuatro pestañas: Sync, Contraseñas, Generador y Ajustes.
-  • Pestaña Contraseñas: primero aparecen las cuentas del sitio en el que estás. Busca, agrega y edita entradas, y copia el usuario, la contraseña o el código de verificación en dos pasos con un clic.
-  • Pestaña Ajustes: historial, intervalo de sincronización, sugerencias en sitios web y autocompletado, además de Bloquear ahora y Cerrar sesión.
-  • Una pestaña Sync más clara: muestra cuándo fue la última sincronización, cuándo será la próxima y qué se sincroniza.
-  • Generador de contraseñas rediseñado.
-  • Se recuerda la dirección de tu servidor, así que no tienes que volver a escribirla al cerrar sesión.
+NOVEDADES EN 2.4.0
+  • Cambia la contraseña de tu cuenta desde Ajustes. Se cierra la sesión en tus otros dispositivos y tu frase de recuperación no cambia.
+  • Nueva opción de autocompletado: abre la lista de sugerencias en cuanto entras en un campo de inicio de sesión.
+  • La lista de sugerencias en los sitios web ahora tiene el ancho del campo.
+  • "Añadir cuenta" directamente desde la lista de sugerencias en sitios donde aún no tienes nada guardado. Abre una ventana pequeña con el sitio ya rellenado.
+  • Un popup más limpio: Bloquear ahora está arriba en la pestaña Sync. Cerrar sesión y el idioma están en Más ajustes.
+  • Eliminar tu cuenta ahora se hace en la página de tu cuenta en el servidor, enlazada desde Más ajustes, para que no pueda pasar por error en la extensión.
+  • Errores de sincronización más claros: si un proxy inverso rechaza una subida por tamaño, la extensión lo dice y explica cómo arreglarlo.
+  • Terminar la configuración inicial ya no cierra el navegador cuando era la única pestaña abierta.
 
 FUNCIONES
   • Marcadores: sincronización en ambos sentidos con fusión, así que se conservan los movimientos, cambios de nombre y borrados.
   • Historial: opcional, con la cantidad de días a conservar configurable.
-  • Gestor de contraseñas: sugerencias y aviso para guardar en sitios web, autocompletado opcional, menú de clic derecho, códigos de verificación en dos pasos (TOTP) e importación CSV desde Chrome, Firefox o Bitwarden.
+  • Gestor de contraseñas: sugerencias y aviso para guardar en sitios web, añadir cuentas desde la propia página, autocompletado opcional (al hacer clic, al entrar en el campo o al cargar la página), menú de clic derecho, códigos de verificación en dos pasos (TOTP) e importación CSV desde Chrome, Firefox o Bitwarden.
   • Generador de contraseñas: caracteres aleatorios o frases de palabras EFF, con medidor de seguridad.
-  • Dispositivos vinculados: consulta y cierra la sesión de los dispositivos que usan tu cuenta.
+  • Tu cuenta: cambia tu contraseña, y consulta y cierra la sesión de los dispositivos que la usan.
   • Copias de seguridad cifradas que puedes exportar y restaurar.
   • En español e inglés.
 
@@ -25,6 +27,6 @@ PRIVACIDAD DESDE EL DISEÑO
   • Sin anuncios, sin analíticas, sin rastreo. Código abierto.
 
 REQUISITOS
-Necesitas tu propio servidor BrowserSync, versión 2.0.0 o posterior. Es gratuito, de código abierto y funciona con Docker. Guía de instalación: https://github.com/axelroman-dev/BrowserSync
+Necesitas tu propio servidor BrowserSync, versión 2.0.0 o posterior (2.3.0 o posterior para cambiar tu contraseña). Es gratuito, de código abierto y funciona con Docker. Guía de instalación: https://github.com/axelroman-dev/BrowserSync
 
 Notas completas de cada versión: https://github.com/axelroman-dev/BrowserSync/releases
