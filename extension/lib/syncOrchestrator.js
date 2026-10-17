@@ -15,9 +15,15 @@ import { syncExtensionsList } from "./extensionsList.js";
 import { syncPasswords } from "./passwordVault.js";
 import { NetworkError, ApiError } from "./api.js";
 import { needsFirstSyncChoice } from "./firstSyncPrompt.js";
+import { t } from "./i18n.js";
 
 function describeError(err) {
   if (err?.code === "decrypt_failed") return "Could not decrypt synced data - try unlocking again from the popup.";
+  // A NetworkError with a status is a non-JSON reply - almost always a
+  // reverse proxy answering instead of BrowserSync. 413 is the common one:
+  // nginx's default client_max_body_size (1 MB) rejects larger uploads.
+  if (err instanceof NetworkError && err.status === 413) return t("errors.uploadTooLarge");
+  if (err instanceof NetworkError && err.status) return t("errors.proxyResponse", { status: String(err.status) });
   if (err instanceof NetworkError) return "Could not reach the server. Check your connection.";
   if (err instanceof ApiError && err.status === 401) return "Session expired. Please log in again.";
   if (err instanceof ApiError) return err.message || "The server rejected the sync request.";

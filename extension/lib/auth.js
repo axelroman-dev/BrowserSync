@@ -291,9 +291,3 @@ export async function switchServer(newServerUrl) {
   }
   await setLocal({ serverUrl: newServerUrl });
 }
-
-export async function deleteAccount(password) {
-  const { serverUrl, accessToken } = await getAllLocal();
-  await api.deleteAccount(serverUrl, { accessToken, password });
-  await clearAccountLocal();
-}

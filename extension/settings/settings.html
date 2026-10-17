@@ -94,15 +94,13 @@
           <button type="button" id="force-push-btn" class="danger-button" data-i18n="popup.pushNow">Push now</button>
         </div>
 
-        <form id="delete-form" class="setting-row" novalidate>
+        <div class="setting-row">
           <div class="setting-text">
-            <strong data-i18n="popup.deleteAccountSummary">Delete account and all synced data</strong>
-            <p class="hint" data-i18n="popup.deleteAccountHint">This permanently deletes your account and every synced blob from the server. It cannot be undone.</p>
-            <input id="delete-password" type="password" autocomplete="current-password" data-i18n-placeholder="popup.confirmPasswordPlaceholder" placeholder="Confirm your password" />
-            <p id="delete-error" class="error" hidden></p>
+            <strong data-i18n="settings.deleteAccountTitle">Delete account</strong>
+            <p class="hint" data-i18n="settings.deleteAccountHint">Done from your server's account page, so it can't happen by mistake here. It permanently deletes your account and all synced data.</p>
           </div>
-          <button type="submit" class="danger-button" data-i18n="popup.deleteMyAccount">Delete my account</button>
-        </form>
+          <a id="account-page-link" class="danger-button button-link" target="_blank" rel="noopener" data-i18n="settings.openAccountPage">Open account page</a>
+        </div>
       </div>
     </section>
   </main>

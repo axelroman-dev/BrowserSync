@@ -88,6 +88,17 @@ usuarios la URL HTTPS resultante (ej. `https://sync.tudominio.com`) — eso es l
 va en el campo "servidor self-hosted" de la extensión, y lo que deberías dejar fijo
 como `OFFICIAL_SERVER_URL` en `extension/config.js` antes de distribuir la extensión.
 
+**Tamaño de subida:** los datos sincronizados se suben en una petición por tipo (el
+historial suele ser el más grande), hasta `MAX_BLOB_BYTES` (5 MB por defecto). nginx
+rechaza por defecto los cuerpos de más de 1 MB, y en la extensión eso se ve como una
+sincronización fallida (HTTP 413), así que sube el límite en el bloque `server`:
+
+```nginx
+client_max_body_size 10m;
+```
+
+En Nginx Proxy Manager, pon esa línea en la pestaña **Advanced** del proxy host.
+
 ### Backups
 
 ```bash
@@ -297,8 +308,8 @@ En la pestaña que se abrió (o en cualquier momento después, haciendo clic en 
 Lee [`PRIVACY.md`](PRIVACY.md) (o [`PRIVACY.es.md`](PRIVACY.es.md)) — explica, en
 lenguaje simple, exactamente qué se guarda, qué puede y no puede ver el
 administrador, y cómo borrar permanentemente tu cuenta y todos tus datos
-sincronizados cuando quieras (popup → tab Ajustes → "Más ajustes" → "Eliminar cuenta y todos los datos
-sincronizados").
+sincronizados cuando quieras (la página de tu cuenta en el servidor, en `/dashboard/` → "Eliminar mi cuenta",
+enlazada desde popup → tab Ajustes → "Más ajustes" → "Abrir página de la cuenta").
 
 ### Perfil personal vs. de trabajo
 

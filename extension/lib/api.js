@@ -110,10 +110,6 @@ export function logout(serverUrl, refreshToken) {
   return request(serverUrl, "/api/auth/logout", { method: "POST", body: { refreshToken } });
 }
 
-export function deleteAccount(serverUrl, { accessToken, password }) {
-  return request(serverUrl, "/api/auth/account", { method: "DELETE", accessToken, body: { password } });
-}
-
 export function resetPassword(serverUrl, { email, passphraseVerifier, newPassword }) {
   return request(serverUrl, "/api/auth/reset-password", {
     method: "POST",

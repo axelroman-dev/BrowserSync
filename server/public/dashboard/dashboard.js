@@ -1081,7 +1081,23 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
 
 document.getElementById("logout-btn").addEventListener("click", confirmAndLogout);
 
+// The server's own version, next to the brand - shown before logging in
+// too, since /api/health needs no session. Best effort: hidden on failure.
+async function showServerVersion() {
+  try {
+    const { version } = await fetch("/api/health").then((res) => res.json());
+    if (!version) return;
+    const el = document.getElementById("server-version");
+    el.textContent = `v${version}`;
+    el.title = t("dashboard.serverVersion", { version });
+    el.hidden = false;
+  } catch {
+    // Leave it hidden.
+  }
+}
+
 async function init() {
+  showServerVersion();
   if (!session) {
     showView(false);
     return;

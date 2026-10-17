@@ -83,6 +83,17 @@ the resulting HTTPS URL (e.g. `https://sync.yourdomain.com`) — that's what goe
 extension's "self-hosted server" field, and what you should hardcode as
 `OFFICIAL_SERVER_URL` in `extension/config.js` before distributing the extension.
 
+**Upload size:** synced data is uploaded in one request per kind (history is usually
+the biggest), up to `MAX_BLOB_BYTES` (5 MB by default). nginx rejects request bodies
+over 1 MB by default, which shows up in the extension as a failed sync (HTTP 413), so
+raise the limit in the server block:
+
+```nginx
+client_max_body_size 10m;
+```
+
+In Nginx Proxy Manager, put that line in the proxy host's **Advanced** tab.
+
 ### Backups
 
 ```bash
@@ -271,8 +282,8 @@ On the tab that opened (or any time later, by clicking the toolbar icon):
 
 Read [`PRIVACY.md`](PRIVACY.md) — it explains, in plain language, exactly what's
 stored, what the admin can and can't see, and how to permanently delete your account
-and all your synced data whenever you want (popup → Settings tab → "More settings" → "Delete account and all synced
-data").
+and all your synced data whenever you want (your server's account page at `/dashboard/` → "Delete my account",
+linked from popup → Settings tab → "More settings" → "Open account page").
 
 ### Personal vs. work profile
 

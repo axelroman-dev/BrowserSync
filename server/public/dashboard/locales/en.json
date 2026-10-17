@@ -18,6 +18,7 @@
   },
   "dashboard": {
     "brand": "BrowserSync",
+    "serverVersion": "Server version {{version}}",
     "logOut": "Log out",
     "loginTitle": "Log in to your account",
     "loginHint": "Account status (linked devices, sync versions) is visible right away. Your synced data stays end-to-end encrypted and is never visible to the server - you can optionally decrypt it right here in your browser with your recovery passphrase.",

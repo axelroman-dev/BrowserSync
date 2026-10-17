@@ -48,7 +48,7 @@ confirmDialog.addEventListener("click", (e) => {
 // ---- Account ---------------------------------------------------------------
 
 /**
- * After logging out (or deleting the account) nothing on this page applies
+ * After logging out nothing on this page applies
  * anymore, so the tab becomes the login screen instead of an empty page.
  * replace() keeps Back from returning to the signed-out settings page.
  */
@@ -165,34 +165,14 @@ document.getElementById("force-push-btn").addEventListener("click", (e) =>
   }),
 );
 
-document.getElementById("delete-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const passwordInput = document.getElementById("delete-password");
-  const errorEl = document.getElementById("delete-error");
-  show(errorEl);
-  if (!passwordInput.value) return show(errorEl, t("popup.enterPasswordToConfirm"));
-  const confirmed = await confirmModal({
-    title: t("popup.deleteAccountSummary"),
-    message: t("settings.confirmDeleteAccount"),
-    confirmLabel: t("popup.deleteMyAccount"),
-  });
-  if (!confirmed) return;
-  try {
-    await auth.deleteAccount(passwordInput.value);
-    goToLogin();
-  } catch (err) {
-    show(errorEl, err.message || t("popup.couldNotDeleteAccount"));
-  } finally {
-    passwordInput.value = "";
-  }
-});
-
 // ---- Session ---------------------------------------------------------------
 
 async function init() {
   const session = await auth.getSession();
   if (!session.isLoggedIn) return showView("notConnected");
   document.getElementById("account-label").textContent = `${session.accountEmail} · ${new URL(session.serverUrl).host}`;
+  // Deleting the account lives on the server's own dashboard (public/dashboard/).
+  document.getElementById("account-page-link").href = new URL("/dashboard/", session.serverUrl).href;
   showView("settings");
 }
 

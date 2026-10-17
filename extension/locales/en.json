@@ -13,7 +13,9 @@
     "partialSyncFailure": "Synced, but {{count}} bookmark(s) could not be applied (often a temporary Chrome bookmark rate limit) - try syncing again in a minute.",
     "decryptFailedPasswords": "Could not decrypt your saved passwords - try unlocking again from the popup.",
     "passwordsServerOutdated": "This server doesn't support saved passwords yet - update your BrowserSync server to sync them.",
-    "passwordsSyncConflict": "Other devices kept changing your passwords during this sync - it will retry later."
+    "passwordsSyncConflict": "Other devices kept changing your passwords during this sync - it will retry later.",
+    "uploadTooLarge": "The upload was rejected as too large (HTTP 413). This usually comes from a reverse proxy in front of the server - in nginx, raise client_max_body_size (e.g. to 10m).",
+    "proxyResponse": "The server, or a proxy in front of it, answered HTTP {{status}} instead of BrowserSync. Check the server and its reverse proxy."
   },
   "common": {
     "email": "Email",
@@ -118,12 +120,6 @@
     "pushedStatus": "This device's bookmarks are now what's synced.",
     "confirmForcePush": "Click again to confirm - synced bookmarks will be lost",
     "couldNotPush": "Could not push bookmarks.",
-    "deleteAccountSummary": "Delete account and all synced data",
-    "deleteAccountHint": "This permanently deletes your account and every synced blob from the server. It cannot be undone.",
-    "confirmPasswordPlaceholder": "Confirm your password",
-    "deleteMyAccount": "Delete my account",
-    "enterPasswordToConfirm": "Enter your password to confirm.",
-    "couldNotDeleteAccount": "Could not delete account.",
     "serverRequiredHint": "No official hosted server is available yet - enter your own server's URL and test the connection.",
     "savePassphraseHint": "The only way to set up other devices or reset your password. Save it in a password manager - if lost, nobody can recover your data.",
     "deviceSetupHint": "Enter your recovery passphrase once - after this, your password alone unlocks BrowserSync here.",
@@ -366,7 +362,6 @@
     "confirmLogout": "Log out of BrowserSync on this device?",
     "confirmLogoutPending": "Some password changes haven't synced yet and will be lost if you log out now. Log out anyway?",
     "dangerTitle": "Danger zone",
-    "confirmDeleteAccount": "Permanently delete your account and all synced data? This cannot be undone.",
     "confirmForceRestore": "Replace this device's bookmarks with the synced ones? This device's current bookmarks will be lost.",
     "confirmForcePush": "Replace the synced bookmarks with this device's? The bookmarks currently synced will be lost on every device.",
     "loggingOut": "Logging out...",
@@ -381,7 +376,10 @@
     "passwordChanged": "Password changed. Other devices will need the new password to log in again.",
     "couldNotChangePassword": "Could not change the password.",
     "newPasswordsDontMatch": "The new passwords don't match.",
-    "newPasswordSameAsCurrent": "The new password must be different from the current one."
+    "newPasswordSameAsCurrent": "The new password must be different from the current one.",
+    "deleteAccountTitle": "Delete account",
+    "deleteAccountHint": "Done from your server's account page, so it can't happen by mistake here. It permanently deletes your account and all synced data.",
+    "openAccountPage": "Open account page"
   },
   "contextMenu": {
     "fill": "Autofill",
