@@ -77,8 +77,9 @@ already encrypted before they're stored.
 
 ## Deleting your account
 
-You can delete your account and all data associated with it at any time, from the
-extension: open the popup → Settings (⚙) → "Delete account and all synced data". This
+You can delete your account and all data associated with it at any time, from your
+server's account page (`https://<your-server>/dashboard/`) → "Delete my account" - the
+extension links to it from Settings → "More settings" → Danger zone → "Open account page". This
 immediately and permanently deletes your user record and every encrypted blob tied to
 your account from the server (via `DELETE /api/auth/account`) — it cannot be undone,
 and there's no way for the admin to recover it afterward either.

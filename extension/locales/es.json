@@ -13,7 +13,9 @@
     "partialSyncFailure": "Sincronizado, pero {{count}} marcador(es) no se pudieron aplicar (a menudo un límite temporal de Chrome) - intenta sincronizar de nuevo en un minuto.",
     "decryptFailedPasswords": "No se pudieron descifrar tus contraseñas guardadas. Intenta desbloquear de nuevo desde el popup.",
     "passwordsServerOutdated": "Este servidor aún no admite contraseñas guardadas. Actualiza tu servidor BrowserSync para sincronizarlas.",
-    "passwordsSyncConflict": "Otros dispositivos siguieron cambiando tus contraseñas durante la sincronización. Se reintentará más tarde."
+    "passwordsSyncConflict": "Otros dispositivos siguieron cambiando tus contraseñas durante la sincronización. Se reintentará más tarde.",
+    "uploadTooLarge": "La subida se rechazó por ser demasiado grande (HTTP 413). Suele venir de un proxy inverso delante del servidor: en nginx, sube client_max_body_size (por ejemplo, a 10m).",
+    "proxyResponse": "El servidor, o un proxy delante de él, respondió HTTP {{status}} en lugar de BrowserSync. Revisa el servidor y su proxy inverso."
   },
   "common": {
     "email": "Correo electrónico",
@@ -118,12 +120,6 @@
     "pushedStatus": "Los marcadores de este dispositivo son ahora los sincronizados.",
     "confirmForcePush": "Haz clic de nuevo para confirmar - se perderán los marcadores sincronizados",
     "couldNotPush": "No se pudieron enviar los marcadores.",
-    "deleteAccountSummary": "Eliminar cuenta y todos los datos sincronizados",
-    "deleteAccountHint": "Esto elimina permanentemente tu cuenta y todos los datos sincronizados del servidor. No se puede deshacer.",
-    "confirmPasswordPlaceholder": "Confirma tu contraseña",
-    "deleteMyAccount": "Eliminar mi cuenta",
-    "enterPasswordToConfirm": "Introduce tu contraseña para confirmar.",
-    "couldNotDeleteAccount": "No se pudo eliminar la cuenta.",
     "serverRequiredHint": "Todavía no hay un servidor oficial disponible - introduce la URL de tu propio servidor y prueba la conexión.",
     "savePassphraseHint": "La única forma de configurar otros dispositivos o restablecer tu contraseña. Guárdala en un gestor de contraseñas - si la pierdes, nadie podrá recuperar tus datos.",
     "deviceSetupHint": "Introduce tu frase de recuperación una vez - después de esto, solo tu contraseña desbloqueará BrowserSync aquí.",
@@ -366,7 +362,6 @@
     "confirmLogout": "¿Cerrar sesión de BrowserSync en este dispositivo?",
     "confirmLogoutPending": "Hay cambios de contraseñas que aún no se han sincronizado y se perderán si cierras sesión ahora. ¿Cerrar sesión de todos modos?",
     "dangerTitle": "Zona de peligro",
-    "confirmDeleteAccount": "¿Eliminar para siempre tu cuenta y todos los datos sincronizados? No se puede deshacer.",
     "confirmForceRestore": "¿Reemplazar los marcadores de este dispositivo por los sincronizados? Se perderán los marcadores actuales de este dispositivo.",
     "confirmForcePush": "¿Reemplazar los marcadores sincronizados por los de este dispositivo? Los marcadores sincronizados actualmente se perderán en todos los dispositivos.",
     "loggingOut": "Cerrando sesión...",
@@ -381,7 +376,10 @@
     "passwordChanged": "Contraseña cambiada. Los demás dispositivos necesitarán la nueva contraseña para volver a entrar.",
     "couldNotChangePassword": "No se pudo cambiar la contraseña.",
     "newPasswordsDontMatch": "Las nuevas contraseñas no coinciden.",
-    "newPasswordSameAsCurrent": "La nueva contraseña debe ser distinta de la actual."
+    "newPasswordSameAsCurrent": "La nueva contraseña debe ser distinta de la actual.",
+    "deleteAccountTitle": "Eliminar cuenta",
+    "deleteAccountHint": "Se hace desde la página de tu cuenta en el servidor, para que no pueda pasar por error aquí. Elimina para siempre tu cuenta y todos los datos sincronizados.",
+    "openAccountPage": "Abrir página de la cuenta"
   },
   "contextMenu": {
     "fill": "Autocompletar",

@@ -57,6 +57,14 @@ header {
   margin-bottom: 24px;
 }
 .brand { font-weight: 700; font-size: 17px; }
+.brand-group { display: flex; align-items: baseline; gap: 8px; }
+.server-version {
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
 
 .account-bar { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
 

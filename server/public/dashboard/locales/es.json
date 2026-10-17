@@ -18,6 +18,7 @@
   },
   "dashboard": {
     "brand": "BrowserSync",
+    "serverVersion": "Versión del servidor {{version}}",
     "logOut": "Cerrar sesión",
     "loginTitle": "Inicia sesión en tu cuenta",
     "loginHint": "El estado de la cuenta (dispositivos vinculados, versiones sincronizadas) se ve de inmediato. Tus datos sincronizados permanecen cifrados de extremo a extremo y nunca son visibles para el servidor; opcionalmente puedes descifrarlos aquí mismo en tu navegador con tu frase de recuperación.",

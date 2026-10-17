@@ -86,8 +86,9 @@ que los blobs ya están cifrados antes de guardarse.
 ## Borrar tu cuenta
 
 Puedes borrar tu cuenta y todos los datos asociados en cualquier momento, desde la
-extensión: abre el popup → Configuración (⚙) → "Eliminar cuenta y todos los datos
-sincronizados". Esto borra inmediata y permanentemente tu registro de usuario y cada
+página de tu cuenta en el servidor (`https://<tu-servidor>/dashboard/`) → "Eliminar mi
+cuenta" - la extensión enlaza a ella desde Ajustes → "Más ajustes" → Zona de peligro →
+"Abrir página de la cuenta". Esto borra inmediata y permanentemente tu registro de usuario y cada
 blob cifrado ligado a tu cuenta del servidor (vía `DELETE /api/auth/account`) — no se
 puede deshacer, y tampoco hay forma de que el administrador lo recupere después.
 
