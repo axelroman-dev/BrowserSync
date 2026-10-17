@@ -56,8 +56,6 @@ def popup_page(active, body):
 <link rel="stylesheet" href="{EXT.as_uri()}/lib/generatorPanel.css">
 <style>{DARK}</style></head>
 <body class="with-tabs"><main class="popup">
-<header><span class="brand">BrowserSync</span><div class="header-actions">
-<select class="language-select"><option>Auto</option></select></div></header>
 {body}
 </main><nav class="tab-bar">{tabs}</nav></body></html>"""
 
@@ -79,7 +77,8 @@ def pw_row(site, user, letter, color, totp=False):
 SYNC_TAB = """
 <section>
   <div class="account-card"><span class="account-avatar">A</span>
-    <div class="account-text"><strong>alex@mycompany.com</strong><span class="muted">sync.mycompany.com</span></div></div>
+    <div class="account-text"><strong>alex@mycompany.com</strong><span class="muted">sync.mycompany.com</span></div>
+    <button class="secondary-button lock-button"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Lock now</span></button></div>
   <div class="sync-card"><span class="dot dot-ok"></span>
     <div class="sync-card-text"><strong>Last sync: 2 min ago</strong><span class="muted">Next sync in 13 min</span></div>
     <button class="sync-now-button"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-14.3 4.9M4 12a8 8 0 0 1 14.3-4.9"/><path d="M18.5 3v4.2h-4.2M5.5 21v-4.2h4.2"/></svg><span>Sync now</span></button></div>
@@ -95,6 +94,7 @@ SYNC_TAB = """
 
 PASSWORDS_TAB = f"""
 <section>
+  <h2 class="tab-title">Passwords</h2>
   <div class="pw-toolbar"><input type="search" class="pw-search" placeholder="Search by site or username"><button class="pw-add-button">+</button></div>
   <h3 class="section-title" style="margin-top:12px">For github.com</h3>
   <div class="pw-list">{pw_row("github.com", "alex@mycompany.com", "G", "#24292f", totp=True)}{pw_row("github.com", "alex-work", "G", "#24292f", totp=True)}</div>
@@ -158,11 +158,9 @@ SETTINGS_TAB = """
   <h3 class="section-title">Passwords</h3>
   <div class="settings-group">
     <label class="switch-row"><span>Suggest and save passwords on websites</span><input type="checkbox" class="switch" checked></label>
-    <label class="field-row"><span>Autofill</span><select><option>When I click the key icon</option></select></label>
+    <label class="field-row"><span>Autofill</span><select><option>When I focus a login field</option></select></label>
   </div>
-  <h3 class="section-title">Account</h3>
-  <div class="settings-actions"><button class="secondary-button">Lock now</button><button class="secondary-button logout-button">Log out</button></div>
-  <a class="more-settings"><span><strong>More settings</strong><span class="hint block">Devices, backup, restore bookmarks, delete account</span></span><span>›</span></a>
+  <a class="more-settings"><span><strong>More settings</strong><span class="hint block">Devices, backup, log out, delete account</span></span><span>›</span></a>
 </section>"""
 
 # (file, active tab, popup body, url in the fake address bar, popup side, kicker, headline, accent, text, bullets)
@@ -175,8 +173,8 @@ SHOTS = [
       "Bring your own server — you control where your data lives"]),
     ("2-passwords", "passwords", PASSWORDS_TAB, "github.com/login", "left", "Password manager",
      "Your passwords,", "one click away",
-     "The logins for the site you're on come first. Copy a username, password or two-step code in one click, or autofill it right on the page.",
-     ["Search, add and edit without leaving the popup",
+     "The logins for the site you're on come first. Copy a username, password or two-step code in one click, or pick one right on the page.",
+     ["Suggestions as wide as the field, with \"Add account\" on new sites",
       "Built-in two-step verification codes (TOTP)",
       "Import from Chrome, Firefox or Bitwarden"]),
     ("3-generator", "generator", GENERATOR_TAB, "signup.example.com", "right", "Password generator",
@@ -188,8 +186,8 @@ SHOTS = [
     ("4-settings", "settings", SETTINGS_TAB, "sync.mycompany.com", "left", "Settings",
      "You decide", "what syncs",
      "Turn history on or off, set how often to sync, and choose how passwords are suggested on websites — all from the popup.",
-     ["Lock with one click; your password unlocks it again",
-      "Linked devices, encrypted backups and account deletion",
+     ["Suggestions on click, on focus or on page load",
+      "Linked devices, encrypted backups and password changes",
       "No ads, no tracking, open source"]),
 ]
 
