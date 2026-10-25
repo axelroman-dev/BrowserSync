@@ -1,0 +1,79 @@
+name: Release
+
+# Keeps an open release pull request up to date on every push to main. The
+# extension and the server are versioned separately (see
+# release-please-config.json): each gets its own version, CHANGELOG.md and
+# tag (extension-vX.Y.Z / server-vX.Y.Z), decided from the conventional
+# commits that touched its folder since its last release (feat -> minor,
+# fix -> patch, "!"/BREAKING CHANGE -> major). Merging that PR creates the
+# tags and GitHub releases, then:
+#   - server released    -> publishes the image (publish-server.yml)
+#   - extension released -> attaches the store ZIP to its GitHub release
+#
+# release-please runs with a GitHub App token rather than GITHUB_TOKEN:
+# PRs and tags created with GITHUB_TOKEN don't trigger other workflows, so
+# CI would never run on the release PR. Needs the RELEASE_APP_CLIENT_ID
+# variable and RELEASE_APP_PRIVATE_KEY secret (see README, "Releasing").
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# Never cancel a release half-way through.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      server_released: ${{ steps.release.outputs['server--release_created'] }}
+      server_version: ${{ steps.release.outputs['server--version'] }}
+      extension_released: ${{ steps.release.outputs['extension--release_created'] }}
+      extension_version: ${{ steps.release.outputs['extension--version'] }}
+      extension_tag: ${{ steps.release.outputs['extension--tag_name'] }}
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
+        id: release
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish-server:
+    needs: release-please
+    if: needs.release-please.outputs.server_released == 'true'
+    uses: ./.github/workflows/publish-server.yml
+    with:
+      version: ${{ needs.release-please.outputs.server_version }}
+      latest: true
+    secrets: inherit
+
+  package-extension:
+    needs: release-please
+    if: needs.release-please.outputs.extension_released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # upload the ZIP to the GitHub release
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.release-please.outputs.extension_tag }}
+      - name: Package and attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.extension_tag }}
+          VERSION: ${{ needs.release-please.outputs.extension_version }}
+        run: |
+          zip_name="browsersync-extension-${VERSION}.zip"
+          (cd extension && zip -qr "../${zip_name}" . -x version.txt CHANGELOG.md)
+          gh release upload "$TAG" "$zip_name"

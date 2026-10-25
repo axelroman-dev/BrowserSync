@@ -1,0 +1,42 @@
+version: 2
+
+# Weekly update PRs. Commit prefixes are conventional commits so
+# release-please picks them up: a production dependency or base-image bump
+# is a "fix" (it changes what ships, so it releases the server), dev tooling
+# is a "chore" and action bumps are "ci" (neither releases anything).
+updates:
+  - package-ecosystem: npm
+    directory: /server
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: fix
+      prefix-development: chore
+      include: scope
+    groups:
+      production:
+        dependency-type: production
+        update-types: [minor, patch]
+      development:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  # Also bumps the pinned digest of node:XX-bookworm-slim, so Node security
+  # patches (like 24.22.1) arrive as a PR instead of going unnoticed.
+  - package-ecosystem: docker
+    directory: /server
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: fix
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
