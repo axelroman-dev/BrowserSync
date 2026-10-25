@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.1](https://github.com/axelroman-dev/BrowserSync/compare/v2.4.0...v2.4.1) (2026-10-25)
+
+
+### Bug Fixes
+
+* **server:** move to Node 24 for the October 2026 security release, patch body-parser and proxy-addr ([#26](https://github.com/axelroman-dev/BrowserSync/issues/26)) ([c6b5a60](https://github.com/axelroman-dev/BrowserSync/commit/c6b5a606e34524e8921bf8ae24aeedc998f72fb3))
+
 ## [2.4.0](https://github.com/axelroman-dev/BrowserSync/compare/v2.3.0...v2.4.0) (2026-10-17)
 
 
