@@ -17,7 +17,9 @@ import { isDevAccountEmail, isDevAccountId, isLocalRequest, rejectDevAccount } f
 
 export const authRouter = Router();
 
-const emailSchema = z.string().trim().toLowerCase().email().max(320);
+// Trim and lowercase before checking the format - z.email() on its own would
+// validate the raw input, so " Foo@Bar.com " would be rejected.
+const emailSchema = z.string().trim().toLowerCase().max(320).pipe(z.email());
 const passwordSchema = z.string().min(8, "Password must be at least 8 characters").max(512);
 // Base64-encoded PBKDF2 output (see extension/lib/crypto.js derivePassphraseVerifier) -
 // never the raw passphrase itself.
@@ -223,7 +225,7 @@ const changePasswordSchema = z.object({
   newPassword: passwordSchema,
   // The caller's own refresh_tokens row (see issueTokenPair's deviceId), kept
   // signed in while every other device is revoked.
-  currentDeviceId: z.string().uuid().optional(),
+  currentDeviceId: z.uuid().optional(),
 });
 
 // Signed-in counterpart to /reset-password: proves ownership with the
@@ -296,7 +298,7 @@ authRouter.get("/devices", requireAuth, async (req, res) => {
   res.json({ devices: rows });
 });
 
-const deviceIdParamSchema = z.object({ id: z.string().uuid() });
+const deviceIdParamSchema = z.object({ id: z.uuid() });
 
 // Revokes one device's refresh token - functionally identical to /logout,
 // but callable for ANY of the account's devices (by id) rather than only the
@@ -324,7 +326,7 @@ authRouter.delete("/devices/:id", requireAuth, async (req, res) => {
   res.status(204).send();
 });
 
-const revokeOthersSchema = z.object({ exceptDeviceId: z.string().uuid() });
+const revokeOthersSchema = z.object({ exceptDeviceId: z.uuid() });
 
 // Bulk cleanup for the "ghost devices" problem: reinstalling the extension
 // (or the dashboard logging in again) always issues a brand-new

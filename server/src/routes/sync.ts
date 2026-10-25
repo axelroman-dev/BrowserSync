@@ -33,7 +33,7 @@ syncRouter.get("/status", async (req, res) => {
 const putBodySchema = z.object({
   ciphertext: z.string().min(1),
   iv: z.string().min(1),
-  clientUpdatedAt: z.string().datetime(),
+  clientUpdatedAt: z.iso.datetime(),
   // Version this client last saw; 0 means "I believe there's no blob yet".
   expectedVersion: z.number().int().min(0),
 });
