@@ -30,6 +30,12 @@ updates:
     commit-message:
       prefix: fix
       include: scope
+    # A new Node major is a deliberate upgrade, done by hand together with
+    # server/.node-version (CI fails if the two disagree) - only patches and
+    # digest updates of the current major come through here.
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
