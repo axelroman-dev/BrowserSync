@@ -1,13 +1,14 @@
 name: Build and publish server image
 
 # Only touches server/ - the extension has no build/publish step of its own.
+#
+# Images are published only for releases (the workflow_call from
+# release-please.yml, or a version tag pushed by hand) and manual runs -
+# never on a plain push to main, which would ship unreleased code and move
+# "latest" to it. PRs still build the image, but never push it.
 on:
   push:
-    branches: [main]
     tags: ["v*.*.*"]
-    paths:
-      - "server/**"
-      - ".github/workflows/docker-publish.yml"
   pull_request:
     paths:
       - "server/**"
@@ -38,14 +39,7 @@ jobs:
   # below - a broken build shows up in ~30s instead of after a multi-minute
   # buildx run, and it also runs on PRs from forks that can't see the Docker
   # Hub secrets the publish job needs.
-  #
-  # Skipped for the push of a merged release-please PR: release-please.yml
-  # publishes that same commit (with its version tags) by calling this
-  # workflow, so building it here too would just do it twice. That call
-  # arrives with the same push event and commit message, which is why
-  # `inputs.release` has to be checked - it's only set by that call.
   typecheck:
-    if: "${{ !(github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.release && startsWith(github.event.head_commit.message, 'chore(main): release')) }}"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -78,8 +72,8 @@ jobs:
       - uses: docker/setup-buildx-action@v3
 
       # Derives every tag/label this image should get from git context:
-      #   - the branch name, on a push to main
-      #   - "latest", also only on the default branch (never on a PR build)
+      #   - "latest", only for a release or manual run from main (never on a
+      #     PR build or a hand-pushed tag)
       #   - semver tags (v1.2.3 -> 1.2.3, 1.2) when you push a version tag,
       #     or when release-please.yml calls this with the released version
       #   - a short commit SHA, always - lets you pin/rollback to an exact build
@@ -153,9 +147,7 @@ jobs:
   # typecheck/docker failed (the normal "needs" default would just skip it).
   notify-telegram:
     needs: [typecheck, docker, dockerhub-description]
-    # Same release-commit skip as `typecheck` above - otherwise the skipped
-    # jobs would be reported as a failed run.
-    if: "${{ always() && github.event_name != 'pull_request' && !(github.event_name == 'push' && github.ref == 'refs/heads/main' && !inputs.release && startsWith(github.event.head_commit.message, 'chore(main): release')) }}"
+    if: "${{ always() && github.event_name != 'pull_request' }}"
     runs-on: ubuntu-latest
     steps:
       - name: Work out overall pass/fail
