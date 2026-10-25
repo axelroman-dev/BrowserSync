@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.2](https://github.com/axelroman-dev/BrowserSync/compare/v2.4.1...v2.4.2) (2026-10-25)
+
+
+### Bug Fixes
+
+* **server:** upgrade zod to 4 (GHSA-mrhx-c7xc-m3w5) ([#28](https://github.com/axelroman-dev/BrowserSync/issues/28)) ([34c6709](https://github.com/axelroman-dev/BrowserSync/commit/34c67097f41eb51b13f77eb18cc1eff75ea0260a))
+
 ## [2.4.1](https://github.com/axelroman-dev/BrowserSync/compare/v2.4.0...v2.4.1) (2026-10-25)
 
 
