@@ -1,5 +1,9 @@
 # Changelog
 
+History up to 2.4.2, when the extension and the server shared one version.
+From then on each has its own: see [extension/CHANGELOG.md](extension/CHANGELOG.md)
+and [server/CHANGELOG.md](server/CHANGELOG.md).
+
 ## [2.4.2](https://github.com/axelroman-dev/BrowserSync/compare/v2.4.1...v2.4.2) (2026-10-25)
 
 

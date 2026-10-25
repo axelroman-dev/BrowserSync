@@ -124,22 +124,28 @@ gunzip -c server/backups/browsersync_TIMESTAMP.sql.gz | docker compose exec -T d
 ### Publishing the server image automatically (optional)
 
 If you'd rather pull a pre-built image on your homelab than `git clone` and
-`docker compose up --build` there every time, [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml)
-builds and pushes a multi-architecture image (amd64 + arm64) to Docker Hub whenever
-`server/` changes on `main`, on version tags (`v1.2.3`), or on demand from the Actions
-tab. Pull requests still build (so a broken Dockerfile fails CI) but never publish.
+`docker compose up --build` there every time,
+[`.github/workflows/publish-server.yml`](.github/workflows/publish-server.yml) builds and
+pushes a multi-architecture image (amd64 + arm64) to Docker Hub **only when the server
+is released** (see [Releasing a new version](#releasing-a-new-version)), or on demand
+from the Actions tab to republish an existing version. Pushes to `main` and pull
+requests never publish: [CI](.github/workflows/ci.yml) builds the image on them without
+pushing it, so a broken Dockerfile still fails the PR.
 
 To enable it:
 
 1. Create a Docker Hub [access token](https://hub.docker.com/settings/security) (not
-   your account password).
-2. In your GitHub repo, add two secrets under **Settings → Secrets and variables →
-   Actions**: `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`.
-3. Push to `main` (or run the workflow manually) - it publishes
-   `axelromandev/browsersync-server` tagged `latest`, the short commit SHA,
-   and any semver tag you push (e.g. `v1.0.0` → `1.0.0`, `1.0`, `1`), and syncs the
-   Docker Hub repo's "Overview" tab from [`server/DOCKERHUB.md`](server/DOCKERHUB.md) -
-   edit that file (not Docker Hub's web UI) to change the description shown there.
+   your account password) with **Read & Write**, for pushing images.
+2. Optionally, a second token with **Read, Write, Delete**, which Docker Hub requires
+   only to update the repo's "Overview" tab.
+3. In your GitHub repo, add these secrets under **Settings → Secrets and variables →
+   Actions**: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` and, if you made it,
+   `DOCKERHUB_DESCRIPTION_TOKEN`.
+
+Each server release publishes `axelromandev/browsersync-server` tagged `X.Y.Z`, `X.Y`,
+`latest` and the short commit SHA, and syncs the Docker Hub "Overview" tab from
+[`server/DOCKERHUB.md`](server/DOCKERHUB.md) - edit that file (not Docker Hub's web UI)
+to change the description shown there.
 
 Then on your homelab, point `docker-compose.yml`'s `app` service at the published image
 instead of building locally:
@@ -160,19 +166,40 @@ production, so a bad push doesn't silently roll out to your homelab on the next
 ### Releasing a new version
 
 Versions are handled by [release-please](https://github.com/googleapis/release-please)
-([`.github/workflows/release-please.yml`](.github/workflows/release-please.yml)). Write
-commit messages (or PR titles, when squash-merging) as
-[conventional commits](https://www.conventionalcommits.org/): `feat: ...` for new
-features, `fix: ...` for bug fixes, `feat!: ...` for breaking changes. On every push
-to `main` it keeps a **"chore(main): release X.Y.Z"** pull request up to date, which
-bumps the version in `extension/manifest.json`, `server/package.json` and
-`server/package-lock.json` and updates [`CHANGELOG.md`](CHANGELOG.md). Merge that PR
-when you want to release: it creates the `vX.Y.Z` tag and GitHub release, and publishes
-the matching server image (`X.Y.Z` and `X.Y` tags). Never edit those version fields by
-hand.
+([`.github/workflows/release.yml`](.github/workflows/release.yml)). The extension and
+the server are versioned **separately**: each has its own version, its own changelog
+([`extension/CHANGELOG.md`](extension/CHANGELOG.md),
+[`server/CHANGELOG.md`](server/CHANGELOG.md)) and its own tags (`extension-vX.Y.Z`,
+`server-vX.Y.Z`), so a server-only fix doesn't bump the extension in the store.
+Releases up to 2.4.2 shared one version; their history is in [`CHANGELOG.md`](CHANGELOG.md).
 
-One-time setup: **Settings → Actions → General → Workflow permissions**, tick **"Allow
-GitHub Actions to create and approve pull requests"**.
+Write commit messages (or PR titles, when squash-merging) as
+[conventional commits](https://www.conventionalcommits.org/): `feat: ...` for new
+features, `fix: ...` for bug fixes, `feat!: ...` for breaking changes. A commit counts
+for whichever of `extension/` and `server/` it touches. On every push to `main`,
+release-please keeps one **release** pull request up to date that bumps the versions
+(`extension/manifest.json`, `server/package.json`, `server/package-lock.json`) and the
+changelogs. Merge it when you want to release: it creates the tags and GitHub releases,
+publishes the server image if the server was released, and attaches the extension ZIP
+(ready to upload to the Chrome Web Store) to the extension's release. Never edit those
+version fields by hand.
+
+Every PR runs [CI](.github/workflows/ci.yml), and `main` only accepts a merge once its
+`ci-ok` check passes. [Dependabot](.github/dependabot.yml) opens weekly PRs for npm
+packages, the Node base image (pinned by digest in `server/Dockerfile`) and the
+GitHub Actions. The Node major lives in [`server/.node-version`](server/.node-version),
+and CI fails if the Dockerfile uses a different one.
+
+One-time setup - release-please runs as a GitHub App, because pull requests and tags
+created with the default `GITHUB_TOKEN` don't trigger CI:
+
+1. Create a GitHub App (**Settings → Developer settings → GitHub Apps → New GitHub
+   App**) with webhooks off and these repository permissions: **Contents: Read and
+   write**, **Pull requests: Read and write**. Install it on this repository only.
+2. Generate a private key for it.
+3. In this repo, under **Settings → Secrets and variables → Actions**, add the App's
+   Client ID as the **variable** `RELEASE_APP_CLIENT_ID` and the private key as the
+   **secret** `RELEASE_APP_PRIVATE_KEY`.
 
 ### Forking for your own server
 

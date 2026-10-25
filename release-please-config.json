@@ -1,18 +1,23 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
-  "bootstrap-sha": "4364ba964dd5829fadc6786e1233db704e05528c",
-  "include-component-in-tag": false,
+  "bootstrap-sha": "214f2009d9841c1d6b929e8e998707988eefe1d8",
+  "include-component-in-tag": true,
+  "separate-pull-requests": false,
   "packages": {
-    ".": {
+    "extension": {
       "release-type": "simple",
-      "package-name": "browsersync",
+      "component": "extension",
+      "package-name": "browsersync-extension",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
-        { "type": "json", "path": "extension/manifest.json", "jsonpath": "$.version" },
-        { "type": "json", "path": "server/package.json", "jsonpath": "$.version" },
-        { "type": "json", "path": "server/package-lock.json", "jsonpath": "$.version" },
-        { "type": "json", "path": "server/package-lock.json", "jsonpath": "$.packages[''].version" }
+        { "type": "json", "path": "manifest.json", "jsonpath": "$.version" }
       ]
+    },
+    "server": {
+      "release-type": "node",
+      "component": "server",
+      "package-name": "browsersync-server",
+      "changelog-path": "CHANGELOG.md"
     }
   }
 }

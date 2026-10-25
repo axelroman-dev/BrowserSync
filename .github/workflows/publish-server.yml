@@ -1,0 +1,132 @@
+name: Publish server image
+
+# Builds and pushes the server image for an already-released version. Called
+# by release.yml when the server is released; can also be run by hand from
+# the Actions tab to republish a version (a newer base image, say). Always
+# builds the server-vX.Y.Z tag, never whatever main happens to be.
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+      latest:
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Server version to republish, e.g. 2.4.3 (its server-v tag must exist)"
+        type: string
+        required: true
+      latest:
+        description: 'Also move the "latest" tag (only for the newest release)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# One publish at a time, and never cancel one half-way through a push.
+concurrency:
+  group: publish-server
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/browsersync-server
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: server-v${{ inputs.version }}
+
+      # Multi-arch build: your homelab might be a different CPU architecture
+      # (e.g. amd64 dev machine, arm64 Raspberry Pi/NAS) than wherever this
+      # workflow runs.
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      # Tags: X.Y.Z and X.Y always, "latest" only when asked, plus the short
+      # commit SHA - lets you pin/rollback to an exact build.
+      - uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        id: meta
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          flavor: latest=false
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
+            type=raw,value=latest,enable=${{ inputs.latest }}
+            type=sha,format=short
+
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: server
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Attaches SBOM + provenance attestations to the published image,
+          # so anyone (including future-you) can verify what went into it.
+          sbom: true
+          provenance: true
+
+  # Keeps the Docker Hub repo's "Overview" tab in sync with server/DOCKERHUB.md.
+  # This calls an undocumented Docker Hub API (see the action's own README)
+  # and needs a token with "Read, Write, Delete" permissions specifically, so
+  # it gets its own DOCKERHUB_DESCRIPTION_TOKEN rather than the push token -
+  # the image push never needs Delete. continue-on-error so a flaky or
+  # misscoped token here never fails the run: the image is already out.
+  dockerhub-description:
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: server-v${{ inputs.version }}
+      - uses: peter-evans/dockerhub-description@432a30c9e07499fd01da9f8a49f0faf9e0ca5b77 # v4.0.2
+        continue-on-error: true
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_DESCRIPTION_TOKEN }}
+          repository: ${{ env.IMAGE_NAME }}
+          short-description: "Self-hosted, end-to-end encrypted bookmark/history sync for Chromium browsers"
+          readme-filepath: server/DOCKERHUB.md
+
+  # Reports the publish to Telegram. `if: always()` lets this run even when
+  # docker failed (the normal "needs" default would just skip it).
+  notify-telegram:
+    needs: [docker, dockerhub-description]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram notification
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          STATUS: ${{ needs.docker.result }}
+          VERSION: ${{ inputs.version }}
+          ACTOR: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$STATUS" = "success" ]; then
+            MESSAGE="✅ Server image ${VERSION} published"
+          else
+            MESSAGE="❌ Publishing server image ${VERSION} failed"
+          fi
+          MESSAGE="${MESSAGE}
+          Triggered by: ${ACTOR}
+          ${RUN_URL}"
+          curl -sS --fail -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+            --data-urlencode "text=${MESSAGE}"

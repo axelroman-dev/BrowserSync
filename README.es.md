@@ -130,24 +130,27 @@ gunzip -c server/backups/browsersync_TIMESTAMP.sql.gz | docker compose exec -T d
 
 Si prefieres descargar una imagen ya construida en tu homelab en vez de hacer
 `git clone` y `docker compose up --build` ahí cada vez,
-[`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml)
-construye y publica una imagen multi-arquitectura (amd64 + arm64) en Docker Hub cada
-vez que cambia `server/` en `main`, en tags de versión (`v1.2.3`), o manualmente desde
-la pestaña Actions. Los pull requests siguen construyendo la imagen (así un Dockerfile
-roto falla el CI) pero nunca la publican.
+[`.github/workflows/publish-server.yml`](.github/workflows/publish-server.yml) construye
+y publica una imagen multi-arquitectura (amd64 + arm64) en Docker Hub **solo cuando se
+publica una versión del servidor** (ver [Publicar una nueva versión](#publicar-una-nueva-versión)),
+o manualmente desde la pestaña Actions para volver a publicar una versión existente. Los
+push a `main` y los pull requests nunca publican: el [CI](.github/workflows/ci.yml)
+construye la imagen sin subirla, así un Dockerfile roto sigue fallando en el PR.
 
 Para activarlo:
 
 1. Crea un [token de acceso](https://hub.docker.com/settings/security) de Docker Hub
-   (no la contraseña de tu cuenta).
-2. En tu repo de GitHub, agrega dos secrets en **Settings → Secrets and variables →
-   Actions**: `DOCKERHUB_USERNAME` y `DOCKERHUB_TOKEN`.
-3. Haz push a `main` (o ejecuta el workflow manualmente) — publica
-   `axelromandev/browsersync-server` con el tag `latest`, el hash corto
-   del commit, y cualquier tag semver que subas (ej. `v1.0.0` → `1.0.0`, `1.0`, `1`), y
-   sincroniza la pestaña "Overview" del repo en Docker Hub desde
-   [`server/DOCKERHUB.md`](server/DOCKERHUB.md) — edita ese archivo (no la interfaz web
-   de Docker Hub) para cambiar la descripción que se muestra ahí.
+   (no la contraseña de tu cuenta) con **Read & Write**, para subir imágenes.
+2. Opcionalmente, un segundo token con **Read, Write, Delete**, que Docker Hub exige
+   solo para actualizar la pestaña "Overview" del repo.
+3. En tu repo de GitHub, agrega estos secrets en **Settings → Secrets and variables →
+   Actions**: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` y, si lo creaste,
+   `DOCKERHUB_DESCRIPTION_TOKEN`.
+
+Cada versión del servidor publica `axelromandev/browsersync-server` con los tags
+`X.Y.Z`, `X.Y`, `latest` y el hash corto del commit, y sincroniza la pestaña "Overview"
+de Docker Hub desde [`server/DOCKERHUB.md`](server/DOCKERHUB.md) — edita ese archivo (no
+la interfaz web de Docker Hub) para cambiar la descripción que se muestra ahí.
 
 Luego, en tu homelab, apunta el servicio `app` de `docker-compose.yml` a la imagen
 publicada en vez de construirla localmente:
@@ -169,19 +172,42 @@ estés listo.
 ### Publicar una nueva versión
 
 Las versiones las gestiona [release-please](https://github.com/googleapis/release-please)
-([`.github/workflows/release-please.yml`](.github/workflows/release-please.yml)). Escribe
-los mensajes de commit (o los títulos de los PR, si fusionas con squash) como
+([`.github/workflows/release.yml`](.github/workflows/release.yml)). La extensión y el
+servidor tienen versiones **separadas**: cada uno tiene su versión, su changelog
+([`extension/CHANGELOG.md`](extension/CHANGELOG.md),
+[`server/CHANGELOG.md`](server/CHANGELOG.md)) y sus tags (`extension-vX.Y.Z`,
+`server-vX.Y.Z`), así un fix solo del servidor no sube la versión de la extensión en la
+tienda. Las versiones hasta la 2.4.2 compartían número; su historial está en
+[`CHANGELOG.md`](CHANGELOG.md).
+
+Escribe los mensajes de commit (o los títulos de los PR, si fusionas con squash) como
 [conventional commits](https://www.conventionalcommits.org/es/): `feat: ...` para
 funciones nuevas, `fix: ...` para correcciones, `feat!: ...` para cambios incompatibles.
-En cada push a `main` mantiene actualizado un pull request **"chore(main): release
-X.Y.Z"** que sube la versión en `extension/manifest.json`, `server/package.json` y
-`server/package-lock.json` y actualiza [`CHANGELOG.md`](CHANGELOG.md). Fusiona ese PR
-cuando quieras publicar: crea el tag `vX.Y.Z` y la release de GitHub, y publica la
-imagen del servidor correspondiente (tags `X.Y.Z` y `X.Y`). No edites esas versiones a
-mano.
+Un commit cuenta para la parte que toca, `extension/` o `server/`. En cada push a `main`,
+release-please mantiene actualizado un único pull request de **release** que sube las
+versiones (`extension/manifest.json`, `server/package.json`, `server/package-lock.json`)
+y los changelogs. Fusiónalo cuando quieras publicar: crea los tags y las releases de
+GitHub, publica la imagen del servidor si hubo versión del servidor, y adjunta el ZIP de
+la extensión (listo para subir a la Chrome Web Store) a la release de la extensión. No
+edites esas versiones a mano.
 
-Configuración única: **Settings → Actions → General → Workflow permissions**, marca
-**"Allow GitHub Actions to create and approve pull requests"**.
+Cada PR corre el [CI](.github/workflows/ci.yml), y `main` solo acepta el merge cuando
+pasa su check `ci-ok`. [Dependabot](.github/dependabot.yml) abre PRs semanales para los
+paquetes npm, la imagen base de Node (fijada por digest en `server/Dockerfile`) y las
+GitHub Actions. La versión mayor de Node está en
+[`server/.node-version`](server/.node-version), y el CI falla si el Dockerfile usa otra.
+
+Configuración única — release-please corre como una GitHub App, porque los pull
+requests y tags creados con el `GITHUB_TOKEN` por defecto no lanzan el CI:
+
+1. Crea una GitHub App (**Settings → Developer settings → GitHub Apps → New GitHub
+   App**) con los webhooks desactivados y estos permisos de repositorio: **Contents:
+   Read and write**, **Pull requests: Read and write**. Instálala solo en este
+   repositorio.
+2. Genera una clave privada para ella.
+3. En este repo, en **Settings → Secrets and variables → Actions**, agrega el Client ID
+   de la App como **variable** `RELEASE_APP_CLIENT_ID` y la clave privada como
+   **secret** `RELEASE_APP_PRIVATE_KEY`.
 
 ### Hacer un fork para tu propio servidor
 
