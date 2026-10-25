@@ -15,17 +15,17 @@
     "db:migrate": "tsx src/db/migrate.ts"
   },
   "dependencies": {
-    "argon2": "^0.41.1",
+    "argon2": "^0.45.1",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "^0.45.4",
     "express": "^4.21.1",
     "express-async-errors": "^3.1.1",
     "express-rate-limit": "^7.4.1",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.13.1",
+    "pg": "^8.23.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
