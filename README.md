@@ -183,9 +183,11 @@ for whichever of `extension/` and `server/` it touches. On every push to `main`,
 release-please keeps one **release** pull request up to date that bumps the versions
 (`extension/manifest.json`, `server/package.json`, `server/package-lock.json`) and the
 changelogs. Merge it when you want to release: it creates the tags and GitHub releases,
-publishes the server image if the server was released, attaches the extension ZIPs for
-Chromium and Firefox to the extension's release, and submits the Firefox build to
-[AMO](https://addons.mozilla.org/) for review. Never edit those version fields by hand.
+publishes the server image if the server was released, and attaches the extension ZIPs
+for Chromium and Firefox to the extension's release. Never edit those version fields by
+hand. Publishing the Firefox one is manual: upload
+`browsersync-extension-firefox-X.Y.Z.zip` from that release to
+[AMO](https://addons.mozilla.org/developers/) as a new version, with its release notes.
 
 Both builds come from the same `extension/` folder:
 `node scripts/build-extension.mjs chrome|firefox` writes `dist/chrome/` or
@@ -208,11 +210,6 @@ created with the default `GITHUB_TOKEN` don't trigger CI:
 3. In this repo, under **Settings → Secrets and variables → Actions**, add the App's
    Client ID as the **variable** `RELEASE_APP_CLIENT_ID` and the private key as the
    **secret** `RELEASE_APP_PRIVATE_KEY`.
-4. For Firefox: create the add-on on [AMO](https://addons.mozilla.org/developers/)
-   once by hand (upload `dist/firefox` zipped, fill in the listing), then generate API
-   credentials at **Tools → Manage API Keys** and add them as the **secrets**
-   `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`. From then on every release uploads the new
-   version itself.
 
 ### Forking for your own server
 

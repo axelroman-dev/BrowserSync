@@ -9,15 +9,13 @@ name: Release
 # tags and GitHub releases, then:
 #   - server released    -> publishes the image (publish-server.yml)
 #   - extension released -> attaches the Chrome and Firefox ZIPs to its
-#                           GitHub release and submits the Firefox build to
-#                           AMO (addons.mozilla.org) for review
+#                           GitHub release (the Firefox one is uploaded to
+#                           AMO by hand - see README, "Releasing")
 #
 # release-please runs with a GitHub App token rather than GITHUB_TOKEN:
 # PRs and tags created with GITHUB_TOKEN don't trigger other workflows, so
 # CI would never run on the release PR. Needs the RELEASE_APP_CLIENT_ID
 # variable and RELEASE_APP_PRIVATE_KEY secret (see README, "Releasing").
-# The AMO submission needs the AMO_JWT_ISSUER and AMO_JWT_SECRET secrets
-# (AMO's API credentials, from addons.mozilla.org/developers/addon/api/key/).
 on:
   push:
     branches: [main]
@@ -87,18 +85,3 @@ jobs:
             (cd "dist/${browser}" && zip -qr "../../${zip_name}" .)
             gh release upload "$TAG" "$zip_name"
           done
-      # A listed add-on is reviewed by Mozilla before it goes live, so this
-      # only uploads it; it doesn't wait for the signed .xpi (AMO serves
-      # that to users itself once approved). Skipped (with a warning) until
-      # the AMO secrets exist - the very first version has to be submitted
-      # by hand anyway, to create the listing (see README, "Releasing").
-      - name: Submit to AMO
-        env:
-          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
-          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
-        run: |
-          if [ -z "$WEB_EXT_API_KEY" ] || [ -z "$WEB_EXT_API_SECRET" ]; then
-            echo "::warning::AMO_JWT_ISSUER/AMO_JWT_SECRET aren't set - skipping the AMO submission. Upload the Firefox ZIP from this release to AMO by hand."
-            exit 0
-          fi
-          npx --yes web-ext@8 sign --source-dir dist/firefox --artifacts-dir dist/web-ext --channel listed --approval-timeout 0

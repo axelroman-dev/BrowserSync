@@ -191,10 +191,11 @@ Un commit cuenta para la parte que toca, `extension/` o `server/`. En cada push 
 release-please mantiene actualizado un único pull request de **release** que sube las
 versiones (`extension/manifest.json`, `server/package.json`, `server/package-lock.json`)
 y los changelogs. Fusiónalo cuando quieras publicar: crea los tags y las releases de
-GitHub, publica la imagen del servidor si hubo versión del servidor, adjunta los ZIP de
-la extensión para Chromium y Firefox a la release de la extensión, y envía la build de
-Firefox a [AMO](https://addons.mozilla.org/) para su revisión. No edites esas versiones
-a mano.
+GitHub, publica la imagen del servidor si hubo versión del servidor, y adjunta los ZIP de
+la extensión para Chromium y Firefox a la release de la extensión. No edites esas
+versiones a mano. La publicación en Firefox es manual: sube
+`browsersync-extension-firefox-X.Y.Z.zip` de esa release a
+[AMO](https://addons.mozilla.org/developers/) como versión nueva, con sus notas.
 
 Las dos builds salen de la misma carpeta `extension/`:
 `node scripts/build-extension.mjs chrome|firefox` genera `dist/chrome/` o
@@ -218,11 +219,6 @@ requests y tags creados con el `GITHUB_TOKEN` por defecto no lanzan el CI:
 3. En este repo, en **Settings → Secrets and variables → Actions**, agrega el Client ID
    de la App como **variable** `RELEASE_APP_CLIENT_ID` y la clave privada como
    **secret** `RELEASE_APP_PRIVATE_KEY`.
-4. Para Firefox: crea el complemento en [AMO](https://addons.mozilla.org/developers/)
-   una vez a mano (sube `dist/firefox` en un zip y rellena la ficha), luego genera las
-   credenciales de la API en **Tools → Manage API Keys** y agrégalas como **secrets**
-   `AMO_JWT_ISSUER` y `AMO_JWT_SECRET`. A partir de ahí cada release sube la nueva
-   versión sola.
 
 ### Hacer un fork para tu propio servidor
 
