@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>BrowserSync</title>
-<meta name="description" content="BrowserSync: sincroniza marcadores e historial entre navegadores Chromium usando una extensión y un servidor autoalojado con cifrado de extremo a extremo." />
+<meta name="description" content="BrowserSync: sincroniza marcadores e historial entre navegadores Chromium y Firefox usando una extensión y un servidor autoalojado con cifrado de extremo a extremo." />
 <link rel="icon" type="image/png" href="icon128.png" />
 <link rel="stylesheet" href="landing.css" />
 </head>
@@ -23,7 +23,7 @@
 
   <main>
     <section class="hero">
-      <h1>Sincroniza tus marcadores e historial en cualquier navegador Chromium</h1>
+      <h1>Sincroniza tus marcadores e historial entre Chromium y Firefox</h1>
       <p class="tagline">
         Una <strong>extensión de navegador</strong> que cifra tus datos en tu dispositivo
         y un <strong>servidor autoalojado</strong> que solo almacena blobs cifrados.
@@ -39,8 +39,9 @@
       <h2>¿Qué es BrowserSync?</h2>
       <p>
         Es un sistema de sincronización de marcadores e historial pensado para navegadores
-        basados en Chromium (Chrome, Brave, Edge, Helium, ungoogled-chromium y similares).
-        Ideal si usas un fork sin Chrome Sync, o si simplemente prefieres mantener tus
+        basados en Chromium (Chrome, Brave, Edge, Helium, ungoogled-chromium y similares)
+        y para Firefox, con la misma cuenta en todos. Ideal si usas un fork sin Chrome
+        Sync, si combinas Firefox con un navegador Chromium, o si simplemente prefieres mantener tus
         datos de navegación en tu propio servidor en lugar de en la nube de Google,
         Microsoft o Brave.
       </p>
@@ -57,7 +58,8 @@
       <ul>
         <li>
           <strong>Extensión (Manifest V3).</strong> Se instala como una extensión
-          empaquetada ("Load unpacked") en cualquier navegador Chromium. Cifra los
+          sin empaquetar ("Load unpacked") en cualquier navegador Chromium, o desde
+          addons.mozilla.org en Firefox. Cifra los
           datos localmente, los sube al servidor y los descarga en tus otros
           dispositivos.
         </li>
