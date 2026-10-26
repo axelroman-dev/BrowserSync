@@ -373,3 +373,11 @@ Si usas perfiles separados del navegador para lo personal y lo laboral, instala 
 extensión en cada perfil de forma independiente — cada uno mantiene su propia URL de
 servidor, cuenta, y estado de sincronización, así que puedes apuntarlos a servidores
 distintos o usar cuentas distintas sin que interfieran entre sí.
+
+---
+
+## Licencia
+
+BrowserSync (la extensión y el servidor) se distribuye bajo la
+[GNU Affero General Public License v3.0](LICENSE). Si ofreces a otras personas una
+versión modificada del servidor, tienes que darles acceso a su código fuente.

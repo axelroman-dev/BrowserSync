@@ -346,3 +346,11 @@ If you use separate browser profiles for personal and work, install the extensio
 each profile independently — each one keeps its own server URL, account, and sync
 state, so you can point them at different servers or use different accounts without
 them interfering with each other.
+
+---
+
+## License
+
+BrowserSync (the extension and the server) is licensed under the
+[GNU Affero General Public License v3.0](LICENSE). If you run a modified version of
+the server for other people, you must offer them its source code.
