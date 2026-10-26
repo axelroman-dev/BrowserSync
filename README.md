@@ -1,7 +1,8 @@
 # BrowserSync
 
-A self-hosted bookmark/history sync system for any Chromium-based browser — Manifest V3
-extensions work the same way across all of them. It's aimed at two kinds of people:
+A self-hosted bookmark/history sync system for any Chromium-based browser and for
+Firefox — one Manifest V3 extension, built for both, against the same server. It's
+aimed at two kinds of people:
 
 - Anyone on a Chromium fork that has no Chrome Sync at all, because Google restricted
   those APIs to official Chrome builds in 2021 (e.g.
@@ -10,6 +11,8 @@ extensions work the same way across all of them. It's aimed at two kinds of peop
 - Anyone on Chrome, Brave, Edge, or another Chromium browser that *does* have its own
   sync, but who'd rather self-host their own bookmark/history data than trust it to
   Google/Microsoft/Brave's servers.
+- Anyone who uses Firefox next to a Chromium browser and wants the same bookmarks,
+  history and passwords in both, which neither browser's own sync can do.
 
 Two parts:
 
@@ -180,9 +183,14 @@ for whichever of `extension/` and `server/` it touches. On every push to `main`,
 release-please keeps one **release** pull request up to date that bumps the versions
 (`extension/manifest.json`, `server/package.json`, `server/package-lock.json`) and the
 changelogs. Merge it when you want to release: it creates the tags and GitHub releases,
-publishes the server image if the server was released, and attaches the extension ZIP
-(ready to upload to the Chrome Web Store) to the extension's release. Never edit those
-version fields by hand.
+publishes the server image if the server was released, attaches the extension ZIPs for
+Chromium and Firefox to the extension's release, and submits the Firefox build to
+[AMO](https://addons.mozilla.org/) for review. Never edit those version fields by hand.
+
+Both builds come from the same `extension/` folder:
+`node scripts/build-extension.mjs chrome|firefox` writes `dist/chrome/` or
+`dist/firefox/` (the Firefox one only differs in its manifest - see the script).
+`extension/` itself stays loadable unpacked in Chromium as-is.
 
 Every PR runs [CI](.github/workflows/ci.yml), and `main` only accepts a merge once its
 `ci-ok` check passes. [Dependabot](.github/dependabot.yml) opens weekly PRs for npm
@@ -200,6 +208,11 @@ created with the default `GITHUB_TOKEN` don't trigger CI:
 3. In this repo, under **Settings → Secrets and variables → Actions**, add the App's
    Client ID as the **variable** `RELEASE_APP_CLIENT_ID` and the private key as the
    **secret** `RELEASE_APP_PRIVATE_KEY`.
+4. For Firefox: create the add-on on [AMO](https://addons.mozilla.org/developers/)
+   once by hand (upload `dist/firefox` zipped, fill in the listing), then generate API
+   credentials at **Tools → Manage API Keys** and add them as the **secrets**
+   `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`. From then on every release uploads the new
+   version itself.
 
 ### Forking for your own server
 
@@ -213,7 +226,10 @@ point it at their own instance. If you're forking this extension for your own us
 
 There's no Chrome Web Store listing (this isn't going through Google review, and on
 forks without Chrome Sync there's no first-party alternative to publish it as anyway).
-Users load it unpacked — see the user section below. Share the `extension/` folder
+Chromium users load it unpacked — see the user section below. Firefox users install
+it from AMO, since Firefox only runs add-ons Mozilla has signed (if you fork it, you
+need your own AMO listing and add-on ID - `GECKO_ID` in
+[`scripts/build-extension.mjs`](scripts/build-extension.mjs)). Share the `extension/` folder
 with them (a zip, a shared network drive, a release on your repo, or a git clone) plus
 a link to [`PRIVACY.md`](PRIVACY.md).
 
@@ -223,9 +239,15 @@ a link to [`PRIVACY.md`](PRIVACY.md).
 
 These steps get BrowserSync running in your browser so your bookmarks follow you
 between your devices. It works the same way in any Chromium-based browser — Helium,
-ungoogled-chromium, Chrome, Brave, Edge, and so on.
+ungoogled-chromium, Chrome, Brave, Edge, and so on — and in Firefox (140 or newer),
+all with the same account.
 
 ### 1. Install the extension
+
+**Firefox:** install BrowserSync from [addons.mozilla.org](https://addons.mozilla.org/)
+and skip to step 2.
+
+**Chromium-based browsers:**
 
 1. Get the `extension` folder from whoever set up the server you'll be using (or
    from this repo, if you're setting it up yourself).
@@ -264,6 +286,11 @@ On the tab that opened (or any time later, by clicking the toolbar icon):
   and enter the same email and password. Since this is a new device, it'll ask for your
   **recovery passphrase once** to finish connecting — after that, your password alone
   unlocks BrowserSync on that device.
+- **Firefox and Chromium on the same account:** Firefox has one extra top-level
+  folder, the **Bookmarks Menu**; in Chromium it shows up as a "Bookmarks Menu" folder
+  inside "Other bookmarks", and anything you put there appears in Firefox's menu.
+  Firefox separators and smart folders ("Most Visited", `place:` URLs) aren't synced -
+  they stay in that Firefox only.
 - If you restart your browser, the popup will ask you to re-enter your **password**
   once to resume syncing — your login stays intact, this just re-derives the local
   encryption key, which is deliberately never written to disk. This never requires the
@@ -280,7 +307,8 @@ On the tab that opened (or any time later, by clicking the toolbar icon):
   through, or to check what another of your devices has synced without switching to it.
 - Click **"Saved passwords"** in the popup to open your password vault: add, edit,
   copy and generate passwords, or import the CSV your browser exports
-  (`chrome://password-manager/settings` → Export). Passwords are encrypted with the
+  (`chrome://password-manager/settings` → Export, or `about:logins` → ⋯ → Export
+  in Firefox). Passwords are encrypted with the
   same data key as everything else and synced to your other devices; the server
   can't read them. Delete the exported CSV after importing it — it's plain text.
   Turn on **"Suggest and save passwords on websites"** at the top of that page (it asks

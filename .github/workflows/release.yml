@@ -8,12 +8,16 @@ name: Release
 # fix -> patch, "!"/BREAKING CHANGE -> major). Merging that PR creates the
 # tags and GitHub releases, then:
 #   - server released    -> publishes the image (publish-server.yml)
-#   - extension released -> attaches the store ZIP to its GitHub release
+#   - extension released -> attaches the Chrome and Firefox ZIPs to its
+#                           GitHub release and submits the Firefox build to
+#                           AMO (addons.mozilla.org) for review
 #
 # release-please runs with a GitHub App token rather than GITHUB_TOKEN:
 # PRs and tags created with GITHUB_TOKEN don't trigger other workflows, so
 # CI would never run on the release PR. Needs the RELEASE_APP_CLIENT_ID
 # variable and RELEASE_APP_PRIVATE_KEY secret (see README, "Releasing").
+# The AMO submission needs the AMO_JWT_ISSUER and AMO_JWT_SECRET secrets
+# (AMO's API credentials, from addons.mozilla.org/developers/addon/api/key/).
 on:
   push:
     branches: [main]
@@ -68,12 +72,26 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.release-please.outputs.extension_tag }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: server/.node-version
       - name: Package and attach to the release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.release-please.outputs.extension_tag }}
           VERSION: ${{ needs.release-please.outputs.extension_version }}
         run: |
-          zip_name="browsersync-extension-${VERSION}.zip"
-          (cd extension && zip -qr "../${zip_name}" . -x version.txt CHANGELOG.md)
-          gh release upload "$TAG" "$zip_name"
+          for browser in chrome firefox; do
+            node scripts/build-extension.mjs "$browser"
+            zip_name="browsersync-extension-${browser}-${VERSION}.zip"
+            (cd "dist/${browser}" && zip -qr "../../${zip_name}" .)
+            gh release upload "$TAG" "$zip_name"
+          done
+      # A listed add-on is reviewed by Mozilla before it goes live, so this
+      # only uploads it; it doesn't wait for the signed .xpi (AMO serves
+      # that to users itself once approved).
+      - name: Submit to AMO
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: npx --yes web-ext@8 sign --source-dir dist/firefox --artifacts-dir dist/web-ext --channel listed --approval-timeout 0

@@ -3,7 +3,10 @@
 // fetched from the site or a third-party icon service, either of which
 // would tell someone which sites are in the vault. The icon is stored as a
 // small data: URL inside the (encrypted) vault entry, so the server's
-// dashboard can show it too without fetching anything.
+// dashboard can show it too without fetching anything. Firefox has no such
+// API, so there entries simply get no icon and show the site's letter.
+import { HAS_FAVICON_API } from "./platform.js";
+
 const SIZE = 32;
 // A 32px icon is usually 1-3 KB; anything far bigger isn't worth syncing.
 const MAX_BYTES = 8 * 1024;
@@ -34,7 +37,7 @@ async function readAsDataUrl(pageUrl) {
 
 /** The cached icon for a web page as a data: URL, or null when the browser has none. */
 export async function fetchFavicon(pageUrl) {
-  if (!/^https?:\/\//i.test(pageUrl ?? "")) return null;
+  if (!HAS_FAVICON_API || !/^https?:\/\//i.test(pageUrl ?? "")) return null;
   try {
     genericIcon ??= await readAsDataUrl(UNKNOWN_PAGE);
     const icon = await readAsDataUrl(pageUrl);
@@ -62,7 +65,7 @@ export function siteIconElement(entry, className = "site-icon") {
   };
   const src = isStoredFavicon(entry.favicon)
     ? entry.favicon
-    : /^https?:\/\//i.test(entry.url ?? "")
+    : HAS_FAVICON_API && /^https?:\/\//i.test(entry.url ?? "")
       ? faviconUrl(entry.url)
       : null;
   if (!src) return fallback();

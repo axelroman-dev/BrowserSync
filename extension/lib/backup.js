@@ -17,6 +17,7 @@ import { listEntries, importEntries } from "./passwordVault.js";
 import { MATCH_MODES } from "./urlMatch.js";
 import { getAllLocal, setLocal } from "./storage.js";
 import { t } from "./i18n.js";
+import { OTHER_BOOKMARKS_ID } from "./platform.js";
 
 const FORMAT = "browsersync-backup";
 const FORMAT_VERSION = 1;
@@ -172,10 +173,8 @@ export function describeBackup(data) {
  * the next sync uploads the restored folder like any other change.
  */
 async function restoreBookmarks(nodes) {
-  const [root] = await chrome.bookmarks.getTree();
-  const otherBookmarks = root.children?.[1] ?? root.children?.[0];
   const folder = await chrome.bookmarks.create({
-    parentId: otherBookmarks.id,
+    parentId: OTHER_BOOKMARKS_ID,
     title: t("backup.restoredFolder", { date: new Date().toLocaleDateString() }),
   });
   let created = 0;

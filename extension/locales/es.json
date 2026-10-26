@@ -10,7 +10,7 @@
     "decryptFailedBookmarks": "No se pudieron descifrar los marcadores remotos. Puede que tu clave de datos local esté desactualizada - intenta desbloquear de nuevo.",
     "decryptFailedHistory": "No se pudo descifrar el historial remoto. Puede que tu clave de datos local esté desactualizada - intenta desbloquear de nuevo.",
     "syncConflict": "No se pudieron guardar los marcadores - otro dispositivo sincronizó en el mismo momento. Intenta sincronizar de nuevo.",
-    "partialSyncFailure": "Sincronizado, pero {{count}} marcador(es) no se pudieron aplicar (a menudo un límite temporal de Chrome) - intenta sincronizar de nuevo en un minuto.",
+    "partialSyncFailure": "Sincronizado, pero {{count}} marcador(es) no se pudieron aplicar (a menudo un límite temporal del navegador) - intenta sincronizar de nuevo en un minuto.",
     "decryptFailedPasswords": "No se pudieron descifrar tus contraseñas guardadas. Intenta desbloquear de nuevo desde el popup.",
     "passwordsServerOutdated": "Este servidor aún no admite contraseñas guardadas. Actualiza tu servidor BrowserSync para sincronizarlas.",
     "passwordsSyncConflict": "Otros dispositivos siguieron cambiando tus contraseñas durante la sincronización. Se reintentará más tarde.",
@@ -177,7 +177,7 @@
     "firstSyncChoiceHint": "Consérvalos y combínalos con lo que ya está sincronizado (los marcadores presentes en ambos lados podrían duplicarse), empieza de cero y reemplaza los marcadores de este dispositivo con los sincronizados, o descarta lo sincronizado y usa los de este dispositivo.",
     "resetPasswordHint": "Introduce tu frase de recuperación para demostrar que eres tú, y elige una nueva contraseña.",
     "settingsTitle": "Configura BrowserSync",
-    "inPageHint": "Añade un icono de llave a los campos de contraseña y te ofrece guardar nuevos inicios de sesión. Chrome te pedirá permiso para acceder a las páginas web.",
+    "inPageHint": "Añade un icono de llave a los campos de contraseña y te ofrece guardar nuevos inicios de sesión. El navegador te pedirá permiso para acceder a las páginas web.",
     "finish": "Finalizar"
   },
   "viewer": {
@@ -247,7 +247,7 @@
     "syncPending": "Cambios aún sin sincronizar.",
     "syncFailed": "Error al sincronizar: {{error}}",
     "syncedCount": "{{count}} guardadas - cifradas de extremo a extremo, el servidor no puede leerlas.",
-    "importUnrecognized": "No se reconoció el archivo. Exporta tus contraseñas como CSV desde chrome://password-manager/settings e inténtalo de nuevo.",
+    "importUnrecognized": "No se reconoció el archivo. Exporta tus contraseñas como CSV desde el gestor de contraseñas de tu navegador (chrome://password-manager/settings o about:logins) e inténtalo de nuevo.",
     "importDone": "Se importaron {{added}} contraseñas ({{skipped}} omitidas por duplicadas o vacías). El archivo CSV NO está cifrado: elimínalo ahora.",
     "inPageTitle": "Sugerir y guardar contraseñas en páginas web",
     "inPageOffHint": "Desactivado. Al activarlo aparece un icono de llave en los campos de contraseña con tus cuentas guardadas para ese sitio, y BrowserSync te ofrece guardar los nuevos inicios de sesión. Requiere permiso para acceder a las páginas web.",
@@ -310,6 +310,9 @@
     "neverForHost": "No volver a ofrecer guardar contraseñas en {{host}}",
     "noCodesForSite": "No hay códigos de verificación guardados para {{site}}.",
     "codeFor": "Código 2FA · {{site}}"
+  },
+  "bookmarks": {
+    "menuFolder": "Menú de marcadores"
   },
   "backup": {
     "brand": "BrowserSync — Copia de seguridad",
