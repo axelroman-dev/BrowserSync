@@ -7,7 +7,8 @@
 // There's no bundling: extension/ already runs as-is in Chromium (load it
 // unpacked straight from the repo), and the code itself feature-detects the
 // few APIs that differ (see extension/lib/platform.js). This only copies the
-// files and, for Firefox, rewrites the manifest. The version always comes
+// files and, for Firefox, rewrites the manifest and swaps in the files that
+// replace Chromium-only code (`replace` below). The version always comes
 // from extension/manifest.json, which release-please keeps up to date.
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
@@ -26,23 +27,27 @@ const GECKO_ID = "browsersync@axelroman-dev";
 const GECKO_MIN_VERSION = "140.0";
 const GECKO_ANDROID_MIN_VERSION = "142.0";
 
-// Release-tooling files that live in extension/ but never ship.
-const ALWAYS_SKIPPED = ["version.txt", "CHANGELOG.md"];
+// Release-tooling files that live in extension/ but never ship, and the
+// per-browser variants that only ship through `replace`.
+const ALWAYS_SKIPPED = ["version.txt", "CHANGELOG.md", "lib/clipboard.firefox.js"];
 
 const TARGETS = {
   chrome: {
     skip: [],
+    replace: {},
     manifest: (manifest) => manifest,
   },
   firefox: {
     // Only used through chrome.offscreen, which Firefox doesn't have.
     skip: ["offscreen"],
+    // Shipped path -> source file used in its place.
+    replace: { "lib/clipboard.js": "lib/clipboard.firefox.js" },
     manifest(manifest) {
       const { service_worker: script, ...background } = manifest.background;
       const permissions = manifest.permissions
         .filter((permission) => permission !== "offscreen" && permission !== "favicon")
         // The context menu's copy actions write from the background page
-        // directly (see copyText in lib/contextMenu.js).
+        // directly (see lib/clipboard.firefox.js).
         .concat("clipboardWrite");
       const { minimum_chrome_version: _, ...rest } = manifest;
       return {
@@ -84,6 +89,10 @@ cpSync(SOURCE, out, {
   recursive: true,
   filter: (path) => !skipped.has(relative(SOURCE, path).split(sep).join("/")),
 });
+
+for (const [path, source] of Object.entries(target.replace)) {
+  cpSync(join(SOURCE, source), join(out, path));
+}
 
 const manifest = JSON.parse(readFileSync(join(SOURCE, "manifest.json"), "utf8"));
 writeFileSync(join(out, "manifest.json"), `${JSON.stringify(target.manifest(manifest), null, 4)}\n`);

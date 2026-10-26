@@ -1,17 +1,14 @@
 // The few places where Chromium and Firefox differ, detected from what the
 // running browser actually provides rather than from the user agent. The
-// same source tree ships to both (see scripts/build-extension.mjs, which
-// only rewrites the manifest); everything else in lib/ uses the chrome.*
-// namespace, which Firefox implements with promises too.
+// same source tree ships to both (see scripts/build-extension.mjs);
+// everything else in lib/ uses the chrome.* namespace, which Firefox
+// implements with promises too. The clipboard is the one difference handled
+// at build time instead - see lib/clipboard.js.
 
 /** This extension's own base URL - chrome-extension://<id>/ or moz-extension://<uuid>/. */
 export const EXTENSION_ORIGIN = chrome.runtime.getURL("");
 
 export const IS_FIREFOX = EXTENSION_ORIGIN.startsWith("moz-extension:");
-
-// chrome.offscreen is Chromium-only; Firefox's background is an event page
-// with its own DOM, so it can write to the clipboard directly.
-export const HAS_OFFSCREEN = Boolean(chrome.offscreen);
 
 // The "_favicon" extension endpoint (the "favicon" permission) is
 // Chromium-only; Firefox has no equivalent that doesn't fetch from the site.

@@ -9,14 +9,13 @@ import { entriesForUrl, webOrigin, HOST_ORIGINS } from "./pageCredentials.js";
 import { parseTotp, generateTotp } from "./totp.js";
 import { initI18n, t } from "./i18n.js";
 import { generatePassword, loadGeneratorOptions } from "./passwordGenerator.js";
-import { HAS_OFFSCREEN } from "./platform.js";
+import { copyText } from "./clipboard.js";
 
 const ROOT_ID = "bs-root";
 const CONTEXTS = ["page", "editable", "frame", "selection", "link", "image"];
 // Past this many accounts the submenus get unwieldy; the vault page has the rest.
 const MAX_ENTRIES = 25;
 const ACTIONS = ["fill", "copy-user", "copy-pass", "copy-code"];
-const OFFSCREEN_URL = "offscreen/clipboard.html";
 
 let building = Promise.resolve();
 let rebuildTimer = null;
@@ -105,29 +104,6 @@ async function addAccountItems(tab, key, canFill) {
       await create({ id: `${parentId}:${entry.id}`, parentId, title: label(entry) });
     }
   }
-}
-
-/**
- * Writes `text` to the clipboard. A Chromium service worker has no clipboard
- * access, so there this goes through an offscreen document (created on first
- * use); Firefox's background is an event page that can write it directly
- * (the "clipboardWrite" permission).
- */
-async function copyText(text) {
-  if (!HAS_OFFSCREEN) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-  try {
-    await chrome.offscreen.createDocument({
-      url: OFFSCREEN_URL,
-      reasons: ["CLIPBOARD"],
-      justification: "Copy a saved username, password or 2FA code chosen from the context menu",
-    });
-  } catch {
-    // Already open.
-  }
-  await chrome.runtime.sendMessage({ target: "offscreen-clipboard", text });
 }
 
 export async function handleContextMenuClick(info, tab) {
