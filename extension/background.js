@@ -54,8 +54,8 @@ chrome.runtime.onStartup.addListener(() => {
 
 // The in-page password content script is registered dynamically, only
 // while the user has granted the optional host permission (see
-// lib/pageCredentials.js) - and revoking it from chrome://extensions must
-// stop it too, not just the vault page's own toggle.
+// lib/pageCredentials.js) - and revoking it from the browser's extensions
+// page must stop it too, not just the vault page's own toggle.
 chrome.permissions.onAdded.addListener(() => {
   syncContentScriptRegistration();
   refreshContextMenu();

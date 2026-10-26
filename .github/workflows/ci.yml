@@ -40,6 +40,7 @@ jobs:
               - ".github/workflows/ci.yml"
             extension:
               - "extension/**"
+              - "scripts/build-extension.mjs"
               - ".github/workflows/ci.yml"
 
   server:
@@ -135,12 +136,26 @@ jobs:
             process.exit(ok ? 0 : 1);
           '
 
+      # One build per browser - see scripts/build-extension.mjs. The Firefox
+      # one goes through Mozilla's own linter, the same checks AMO runs on
+      # upload, so a manifest or API problem shows up on the PR.
+      - name: Build for each browser
+        run: |
+          node ../scripts/build-extension.mjs chrome
+          node ../scripts/build-extension.mjs firefox
+      - name: Lint the Firefox build
+        run: npx --yes web-ext@8 lint --source-dir ../dist/firefox
+
       - name: Package
-        run: zip -qr ../browsersync-extension.zip . -x version.txt CHANGELOG.md
+        run: |
+          (cd ../dist/chrome && zip -qr ../../browsersync-extension-chrome.zip .)
+          (cd ../dist/firefox && zip -qr ../../browsersync-extension-firefox.zip .)
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: browsersync-extension
-          path: browsersync-extension.zip
+          path: |
+            browsersync-extension-chrome.zip
+            browsersync-extension-firefox.zip
           retention-days: 14
 
   # The only check the main ruleset requires. Skipped parts are fine (their

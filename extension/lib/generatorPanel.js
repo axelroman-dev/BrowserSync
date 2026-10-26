@@ -4,6 +4,7 @@
 // saved as they change, so every place that generates (the in-page menu and
 // the right-click menu included) uses the last ones picked.
 import { t } from "./i18n.js";
+import { svgFromMarkup } from "./svgIcon.js";
 import {
   generatePassword,
   loadGeneratorOptions,
@@ -52,7 +53,7 @@ const ICONS = {
 
 function iconButton(icon, title) {
   const btn = el("button", { type: "button", className: "gen-icon-button", title, "aria-label": title });
-  btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[icon]}</svg>`;
+  btn.append(svgFromMarkup(ICONS[icon]));
   return btn;
 }
 
@@ -173,11 +174,11 @@ export async function mountGeneratorPanel(container, { onUse } = {}) {
   copyBtn.addEventListener("click", async () => {
     await navigator.clipboard.writeText(current);
     copyBtn.classList.add("copied");
-    copyBtn.querySelector("svg").innerHTML = ICONS.check;
+    copyBtn.querySelector("svg").replaceWith(svgFromMarkup(ICONS.check));
     copyBtn.title = t("common.copied");
     setTimeout(() => {
       copyBtn.classList.remove("copied");
-      copyBtn.querySelector("svg").innerHTML = ICONS.copy;
+      copyBtn.querySelector("svg").replaceWith(svgFromMarkup(ICONS.copy));
       copyBtn.title = t("common.copy");
     }, 1200);
   });

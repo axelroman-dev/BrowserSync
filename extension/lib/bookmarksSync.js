@@ -10,11 +10,19 @@
 // syncId - not the chrome ID - is what gets embedded in the encrypted
 // payload and used to match nodes across devices.
 //
-// The three top-level roots (Bookmarks Bar / Other Bookmarks / Mobile
-// Bookmarks) are the one exception: Chromium assigns them the fixed local
-// IDs "1", "2", "3" on every profile, so we can safely give them fixed,
-// well-known syncIds too. That anchors the whole tree - every other node's
-// syncId eventually traces back to one of these three constants.
+// The browser's own top-level roots (Bookmarks Bar / Other Bookmarks /
+// Mobile Bookmarks, plus Firefox's Bookmarks Menu) are the one exception:
+// each browser gives them fixed local IDs on every profile ("1"/"2"/"3" on
+// Chromium, "toolbar_____" etc. on Firefox), so we can safely give them
+// fixed, well-known syncIds too (see BOOKMARK_ROOTS in platform.js). That
+// anchors the whole tree - every other node's syncId eventually traces back
+// to one of these constants. Roots are never moved, renamed or deleted by a
+// sync (their titles are localized and their order differs per browser), and
+// Chromium, which has no Bookmarks Menu, keeps Firefox's as a plain folder
+// inside Other Bookmarks that is still reported as the "root-menu" root.
+//
+// Firefox separators and "place:" smart bookmarks have no Chromium
+// equivalent, so they're left out of the synced tree entirely.
 //
 // CONFLICT HANDLING (last-write-wins per node, as scoped in the project
 // brief): each node's local timestamp is bumped whenever its
@@ -48,8 +56,8 @@ import { getAllLocal, setLocal } from "./storage.js";
 import { encryptJSON, decryptJSON } from "./crypto.js";
 import { getSyncBlob, putSyncBlob } from "./api.js";
 import { t } from "./i18n.js";
+import { BOOKMARK_ROOTS, ROOT_SYNC_IDS, MENU_ROOT_SYNC_ID } from "./platform.js";
 
-const WELL_KNOWN_ROOTS = { 1: "root-toolbar", 2: "root-other", 3: "root-mobile" };
 const FALLBACK_PARENT_SYNC_ID = "root-other";
 // How long a deletion tombstone is kept before being dropped from the
 // payload. 90 days mirrors the server's default refresh-token TTL (see
@@ -103,6 +111,9 @@ async function withBookmarkWriteRetry(fn) {
 }
 
 function nodeSignature(node) {
+  // A root's localized title and position differ per browser and aren't
+  // something a sync ever changes, so they never make it look modified.
+  if (ROOT_SYNC_IDS.has(node.syncId)) return "__root__";
   return JSON.stringify([node.parentSyncId, node.kind, node.title, node.url ?? null, node.index]);
 }
 
@@ -122,52 +133,68 @@ async function buildLocalSnapshot() {
   const now = Date.now();
 
   function syncIdFor(chromeId) {
-    if (WELL_KNOWN_ROOTS[chromeId]) return WELL_KNOWN_ROOTS[chromeId];
+    if (BOOKMARK_ROOTS[chromeId]) return BOOKMARK_ROOTS[chromeId];
     if (!syncIdMap[chromeId]) syncIdMap[chromeId] = crypto.randomUUID();
     return syncIdMap[chromeId];
   }
 
-  function visit(chromeNode, parentSyncId) {
-    // chromeId "0" is the invisible super-root; its direct children are the
-    // three well-known roots, which we still visit but don't record.
-    const isSuperRoot = chromeNode.id === "0";
-    const syncId = isSuperRoot ? null : syncIdFor(chromeNode.id);
+  // `index` is the node's position among its syncable siblings only, so
+  // Firefox separators (and Chromium's stand-in Bookmarks Menu folder)
+  // don't shift every index after them.
+  function visit(chromeNode, parentSyncId, index) {
+    const syncId = syncIdFor(chromeNode.id);
+    const isRoot = ROOT_SYNC_IDS.has(syncId);
+    const node = {
+      syncId,
+      parentSyncId: isRoot ? null : parentSyncId,
+      kind: chromeNode.url ? "bookmark" : "folder",
+      title: chromeNode.title ?? "",
+      url: chromeNode.url ?? null,
+      index: isRoot ? (chromeNode.index ?? 0) : index,
+      chromeId: chromeNode.id,
+    };
+    const signature = nodeSignature(node);
+    const previous = timestamps[syncId];
+    node.lastModified = previous && previous.signature === signature ? previous.lastModified : now;
+    timestamps[syncId] = { lastModified: node.lastModified, signature };
+    nodesBySyncId.set(syncId, node);
+    seenSyncIds.add(syncId);
 
-    if (!isSuperRoot) {
-      const node = {
-        syncId,
-        parentSyncId,
-        kind: chromeNode.url ? "bookmark" : "folder",
-        title: chromeNode.title ?? "",
-        url: chromeNode.url ?? null,
-        index: chromeNode.index ?? 0,
-        chromeId: chromeNode.id,
-      };
-      const signature = nodeSignature(node);
-      const previous = timestamps[syncId];
-      node.lastModified = previous && previous.signature === signature ? previous.lastModified : now;
-      timestamps[syncId] = { lastModified: node.lastModified, signature };
-      nodesBySyncId.set(syncId, node);
-      seenSyncIds.add(syncId);
-    }
-
+    let childIndex = 0;
     for (const child of chromeNode.children ?? []) {
-      visit(child, isSuperRoot ? null : syncId);
+      if (!isSyncable(child)) continue;
+      visit(child, syncId, countsTowardIndex(child, syncIdMap) ? childIndex++ : 0);
     }
   }
 
+  // The super-root itself is invisible and never recorded; its direct
+  // children are the browser's well-known roots.
   const [superRoot] = await chrome.bookmarks.getTree();
-  visit(superRoot, null);
+  for (const root of superRoot.children ?? []) {
+    visit(root, null, root.index ?? 0);
+  }
 
   // Anything we'd previously assigned a syncId to but no longer see in the
-  // live tree was deleted locally since the last sync - tombstone it.
+  // live tree was deleted locally since the last sync - tombstone it. Never
+  // a root: deleting Chromium's Bookmarks Menu folder only deletes what was
+  // in it (those children get their own tombstones), not Firefox's menu.
   for (const syncId of Object.keys(timestamps)) {
-    if (!seenSyncIds.has(syncId) && !tombstones[syncId]) {
+    if (!seenSyncIds.has(syncId) && !tombstones[syncId] && !ROOT_SYNC_IDS.has(syncId)) {
       tombstones[syncId] = now;
     }
   }
 
   return { nodesBySyncId, timestamps, tombstones, syncIdMap };
+}
+
+/** False for nodes with no counterpart on other browsers: Firefox separators and "place:" queries. */
+function isSyncable(chromeNode) {
+  return chromeNode.type !== "separator" && !chromeNode.url?.startsWith("place:");
+}
+
+/** True for the siblings a synced `index` counts: syncable ones, minus Chromium's Bookmarks Menu stand-in (a root). */
+function countsTowardIndex(chromeNode, syncIdMap) {
+  return isSyncable(chromeNode) && syncIdMap[chromeNode.id] !== MENU_ROOT_SYNC_ID;
 }
 
 /** Serializes a snapshot into the plaintext shape that gets encrypted and uploaded. */
@@ -215,7 +242,22 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
   const reorderCandidates = [];
 
   // 1. Deletions: anything tombstoned that still exists locally goes away.
-  for (const [syncId, deletedAt] of Object.entries(combinedTombstones)) {
+  //    Deepest first: a deleted folder's children are tombstoned along with
+  //    it, and chrome.bookmarks.remove() refuses a folder that still has
+  //    children - so removing the folder before them used to fail silently,
+  //    leaving an empty folder behind that then re-synced under a new syncId.
+  const depth = (node) => {
+    let levels = 0;
+    for (let p = node.parentSyncId; p && localNodes.has(p) && levels < 1000; p = localNodes.get(p).parentSyncId) levels++;
+    return levels;
+  };
+  const deletions = Object.entries(combinedTombstones).sort(([a], [b]) => {
+    const nodeA = localNodes.get(a);
+    const nodeB = localNodes.get(b);
+    return (nodeB ? depth(nodeB) : -1) - (nodeA ? depth(nodeA) : -1);
+  });
+  for (const [syncId, deletedAt] of deletions) {
+    if (ROOT_SYNC_IDS.has(syncId)) continue;
     const existing = localNodes.get(syncId);
     if (existing) {
       await withBookmarkWriteRetry(() => chrome.bookmarks.remove(existing.chromeId)).catch(() => {});
@@ -232,6 +274,7 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
   //    Processed in a worklist so a parent that itself needs creating first
   //    is handled before its children (folders before their contents).
   const pending = [...remoteNodesBySyncId.values()].filter((n) => !combinedTombstones[n.syncId]);
+  const menuHasChildren = pending.some((n) => n.parentSyncId === MENU_ROOT_SYNC_ID);
   let progress = true;
   const skipped = [];
   while (pending.length && progress) {
@@ -239,6 +282,30 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
     for (let i = pending.length - 1; i >= 0; i--) {
       const remoteNode = pending[i];
       const localNode = localNodes.get(remoteNode.syncId);
+
+      // Roots are never moved, renamed or recreated - the only one that can
+      // be missing locally is Firefox's Bookmarks Menu on Chromium, which
+      // gets its stand-in folder inside Other Bookmarks once it has anything
+      // in it (so Chromium-only accounts never see an empty one).
+      if (ROOT_SYNC_IDS.has(remoteNode.syncId)) {
+        const otherLocal = localNodes.get(FALLBACK_PARENT_SYNC_ID);
+        if (!localNode && remoteNode.syncId === MENU_ROOT_SYNC_ID && menuHasChildren && otherLocal) {
+          try {
+            const created = await withBookmarkWriteRetry(() =>
+              chrome.bookmarks.create({ parentId: otherLocal.chromeId, title: t("bookmarks.menuFolder") }),
+            );
+            syncIdMap[created.id] = MENU_ROOT_SYNC_ID;
+            localNodes.set(MENU_ROOT_SYNC_ID, { ...remoteNode, parentSyncId: null, chromeId: created.id });
+            timestamps[MENU_ROOT_SYNC_ID] = { lastModified: remoteNode.lastModified, signature: nodeSignature(remoteNode) };
+          } catch (err) {
+            console.warn("BrowserSync: failed to create the Bookmarks Menu folder", err);
+            failures.push({ syncId: remoteNode.syncId, title: remoteNode.title, err });
+          }
+        }
+        pending.splice(i, 1);
+        progress = true;
+        continue;
+      }
 
       if (localNode) {
         const localTimestamp = timestamps[remoteNode.syncId]?.lastModified ?? 0;
@@ -365,7 +432,17 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
     siblings.sort((a, b) => a.targetIndex - b.targetIndex);
     for (const { chromeId, targetIndex } of siblings) {
       try {
-        await withBookmarkWriteRetry(() => chrome.bookmarks.move(chromeId, { parentId: parentLocal.chromeId, index: targetIndex }));
+        // targetIndex counts synced siblings only (see buildLocalSnapshot),
+        // so it's translated to a position in the live folder, where
+        // Firefox separators or Chromium's Bookmarks Menu stand-in may sit
+        // in between. Every sibling before it is already in place, so this
+        // only ever moves the node up (or leaves it where it is).
+        const children = await chrome.bookmarks.getChildren(parentLocal.chromeId);
+        const counted = children.filter((child) => countsTowardIndex(child, syncIdMap));
+        const anchor = counted[targetIndex];
+        if (!anchor || anchor.id === chromeId) continue;
+        const index = children.findIndex((child) => child.id === anchor.id);
+        await withBookmarkWriteRetry(() => chrome.bookmarks.move(chromeId, { parentId: parentLocal.chromeId, index }));
       } catch (err) {
         console.warn("BrowserSync: failed to reorder bookmark", chromeId, err);
       }
@@ -512,7 +589,7 @@ export async function fetchRemoteBookmarksTree(key) {
 }
 
 /**
- * True if the live bookmarks tree has anything in it beyond the three empty
+ * True if the live bookmarks tree has anything in it beyond the empty
  * root folders. Used by the "first sync on this device" prompt (see
  * firstSyncPrompt.js) to decide whether it's worth asking how to reconcile
  * pre-existing local bookmarks with what's already synced, before the first
@@ -528,7 +605,7 @@ export async function hasLocalBookmarkContent() {
 }
 
 /**
- * Deletes every local bookmark/folder (keeping the three root folders
+ * Deletes every local bookmark/folder (keeping the root folders
  * themselves) and clears this device's sync bookkeeping, so the very next
  * sync starts from a blank slate and simply adopts whatever's already
  * synced instead of merging pre-existing local bookmarks in. Used when the

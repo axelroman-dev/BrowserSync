@@ -12,3 +12,6 @@ server/backups/
 .DS_Store
 *.swp
 store/screenshots/build/
+
+# Per-browser extension builds (scripts/build-extension.mjs)
+dist/

@@ -14,6 +14,7 @@ import { entryMatchesUrl, loadPublicSuffixList } from "../lib/urlMatch.js";
 import { generatePassword, loadGeneratorOptions } from "../lib/passwordGenerator.js";
 import { armConfirm } from "../lib/uiConfirm.js";
 import { t } from "../lib/i18n.js";
+import { svgFromMarkup } from "../lib/svgIcon.js";
 
 // Same as the vault page. Best effort: the popup closes as soon as it loses
 // focus, and the clear only runs while it's still open.
@@ -53,11 +54,7 @@ async function requireKey() {
 }
 
 function svgIcon(name) {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("aria-hidden", "true");
-  svg.innerHTML = ICONS[name];
-  return svg;
+  return svgFromMarkup(ICONS[name]);
 }
 
 function iconButton(icon, title, onClick) {

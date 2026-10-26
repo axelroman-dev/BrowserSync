@@ -22,6 +22,7 @@ import { listEntries, saveEntry, syncPasswords } from "./passwordVault.js";
 import { entryMatchesUrl, loadPublicSuffixList } from "./urlMatch.js";
 import { isNeverSaveHost, addNeverSaveHost } from "./neverSave.js";
 import { parseTotp, generateTotp } from "./totp.js";
+import { EXTENSION_ORIGIN } from "./platform.js";
 
 export const HOST_ORIGINS = ["http://*/*", "https://*/*"];
 const CONTENT_SCRIPT_ID = "browsersync-credentials";
@@ -113,7 +114,7 @@ function isFromOurFrame(sender) {
 }
 
 function isFromContentScript(sender) {
-  return sender.id === chrome.runtime.id && sender.tab && sender.frameId === 0 && !sender.url?.startsWith("chrome-extension:");
+  return sender.id === chrome.runtime.id && sender.tab && sender.frameId === 0 && !sender.url?.startsWith(EXTENSION_ORIGIN);
 }
 
 async function handleCapture(message, sender) {

@@ -10,7 +10,7 @@
     "decryptFailedBookmarks": "Could not decrypt remote bookmarks. Your local data key may be out of date - try unlocking again.",
     "decryptFailedHistory": "Could not decrypt remote history. Your local data key may be out of date - try unlocking again.",
     "syncConflict": "Could not save bookmarks - another device synced at the same moment. Try syncing again.",
-    "partialSyncFailure": "Synced, but {{count}} bookmark(s) could not be applied (often a temporary Chrome bookmark rate limit) - try syncing again in a minute.",
+    "partialSyncFailure": "Synced, but {{count}} bookmark(s) could not be applied (often a temporary browser bookmark rate limit) - try syncing again in a minute.",
     "decryptFailedPasswords": "Could not decrypt your saved passwords - try unlocking again from the popup.",
     "passwordsServerOutdated": "This server doesn't support saved passwords yet - update your BrowserSync server to sync them.",
     "passwordsSyncConflict": "Other devices kept changing your passwords during this sync - it will retry later.",
@@ -177,7 +177,7 @@
     "firstSyncChoiceHint": "Keep them and merge with what's already synced (bookmarks that exist on both sides may end up duplicated), start fresh and replace this device's bookmarks with the synced ones, or discard what's synced and use this device's bookmarks instead.",
     "resetPasswordHint": "Enter your recovery passphrase to prove it's you, and choose a new password.",
     "settingsTitle": "Set up BrowserSync",
-    "inPageHint": "Adds a key icon to password fields and offers to save new logins. Chrome will ask for permission to access websites.",
+    "inPageHint": "Adds a key icon to password fields and offers to save new logins. Your browser will ask for permission to access websites.",
     "finish": "Finish"
   },
   "viewer": {
@@ -247,7 +247,7 @@
     "syncPending": "Changes not synced yet.",
     "syncFailed": "Sync failed: {{error}}",
     "syncedCount": "{{count}} saved - encrypted end to end, the server can't read them.",
-    "importUnrecognized": "Couldn't recognize that file. Export your passwords as CSV from chrome://password-manager/settings and try again.",
+    "importUnrecognized": "Couldn't recognize that file. Export your passwords as CSV from your browser's password manager (chrome://password-manager/settings or about:logins) and try again.",
     "importDone": "Imported {{added}} passwords ({{skipped}} skipped as duplicates or empty). The CSV file is NOT encrypted - delete it now.",
     "inPageTitle": "Suggest and save passwords on websites",
     "inPageOffHint": "Off. When on, a key icon appears in password fields with your saved accounts for that site, and BrowserSync offers to save new logins. Requires permission to access websites.",
@@ -310,6 +310,9 @@
     "neverForHost": "Never offer to save passwords on {{host}}",
     "noCodesForSite": "No two-step codes saved for {{site}}.",
     "codeFor": "2FA code · {{site}}"
+  },
+  "bookmarks": {
+    "menuFolder": "Bookmarks Menu"
   },
   "backup": {
     "brand": "BrowserSync — Backup",

@@ -28,6 +28,7 @@ import {
   clearEncryptionKey,
 } from "./storage.js";
 import { t } from "./i18n.js";
+import { IS_FIREFOX } from "./platform.js";
 
 export { generatePassphrase };
 
@@ -39,8 +40,8 @@ async function deviceLabel() {
   // includes anything sensitive.
   const platformInfo = await chrome.runtime.getPlatformInfo();
   // The extension APIs don't expose which specific Chromium-based browser
-  // it's running in, so the label is just OS-based.
-  return `Browser on ${platformInfo.os}`;
+  // it's running in, so there the label is just OS-based.
+  return `${IS_FIREFOX ? "Firefox" : "Browser"} on ${platformInfo.os}`;
 }
 
 /** Current connection state, used by both onboarding.js and popup.js to decide what to render. */

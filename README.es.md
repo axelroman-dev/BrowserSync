@@ -1,8 +1,9 @@
 # BrowserSync
 
 Un sistema de sincronización de marcadores/historial autoalojado (self-hosted) para
-cualquier navegador basado en Chromium — las extensiones Manifest V3 funcionan igual
-en todos ellos. Está pensado para dos tipos de personas:
+cualquier navegador basado en Chromium y para Firefox — una sola extensión Manifest V3,
+construida para ambos, contra el mismo servidor. Está pensado para estos tipos de
+personas:
 
 - Cualquiera que use un fork de Chromium que no tiene Chrome Sync en absoluto, porque
   Google restringió esas APIs a builds oficiales de Chrome desde 2021 (ej.
@@ -12,6 +13,9 @@ en todos ellos. Está pensado para dos tipos de personas:
   tiene su propia sincronización, pero que prefiere autoalojar sus propios datos de
   marcadores/historial en vez de confiárselos a los servidores de
   Google/Microsoft/Brave.
+- Cualquiera que use Firefox junto a un navegador Chromium y quiera los mismos
+  marcadores, historial y contraseñas en los dos, algo que la sincronización propia de
+  ninguno de ellos permite.
 
 Dos partes:
 
@@ -187,9 +191,16 @@ Un commit cuenta para la parte que toca, `extension/` o `server/`. En cada push 
 release-please mantiene actualizado un único pull request de **release** que sube las
 versiones (`extension/manifest.json`, `server/package.json`, `server/package-lock.json`)
 y los changelogs. Fusiónalo cuando quieras publicar: crea los tags y las releases de
-GitHub, publica la imagen del servidor si hubo versión del servidor, y adjunta el ZIP de
-la extensión (listo para subir a la Chrome Web Store) a la release de la extensión. No
-edites esas versiones a mano.
+GitHub, publica la imagen del servidor si hubo versión del servidor, y adjunta los ZIP de
+la extensión para Chromium y Firefox a la release de la extensión. No edites esas
+versiones a mano. La publicación en Firefox es manual: sube
+`browsersync-extension-firefox-X.Y.Z.zip` de esa release a
+[AMO](https://addons.mozilla.org/developers/) como versión nueva, con sus notas.
+
+Las dos builds salen de la misma carpeta `extension/`:
+`node scripts/build-extension.mjs chrome|firefox` genera `dist/chrome/` o
+`dist/firefox/` (la de Firefox solo cambia el manifest - ver el script). La propia
+`extension/` se sigue pudiendo cargar sin empaquetar en Chromium tal cual.
 
 Cada PR corre el [CI](.github/workflows/ci.yml), y `main` solo acepta el merge cuando
 pasa su check `ci-ok`. [Dependabot](.github/dependabot.yml) abre PRs semanales para los
@@ -222,7 +233,10 @@ propio uso:
 
 No hay una publicación en la Chrome Web Store (esto no pasa por revisión de Google, y
 en los forks sin Chrome Sync tampoco existe una alternativa oficial donde publicarla).
-Tus usuarios la cargan como "sin empaquetar" — ver la sección de usuarios abajo.
+Tus usuarios de Chromium la cargan como "sin empaquetar" — ver la sección de usuarios
+abajo. Los de Firefox la instalan desde AMO, porque Firefox solo ejecuta complementos
+firmados por Mozilla (si haces un fork, necesitas tu propia ficha en AMO y tu propio ID
+de complemento - `GECKO_ID` en [`scripts/build-extension.mjs`](scripts/build-extension.mjs)).
 Comparte la carpeta `extension/` con ellos (un zip, una unidad de red compartida, un
 release en tu repo, o un clon de git) junto con un enlace a [`PRIVACY.md`](PRIVACY.md)
 (o [`PRIVACY.es.md`](PRIVACY.es.md)).
@@ -233,9 +247,15 @@ release en tu repo, o un clon de git) junto con un enlace a [`PRIVACY.md`](PRIVA
 
 Estos pasos ponen a BrowserSync a funcionar en tu navegador para que tus marcadores
 te sigan entre tus dispositivos. Funciona igual en cualquier navegador basado en
-Chromium — Helium, ungoogled-chromium, Chrome, Brave, Edge, etc.
+Chromium — Helium, ungoogled-chromium, Chrome, Brave, Edge, etc. — y en Firefox (140 o
+más nuevo), todo con la misma cuenta.
 
 ### 1. Instalar la extensión
+
+**Firefox:** instala BrowserSync desde [addons.mozilla.org](https://addons.mozilla.org/)
+y pasa al paso 2.
+
+**Navegadores basados en Chromium:**
 
 1. Consigue la carpeta `extension` de quien haya configurado el servidor que vas a
    usar (o de este repositorio, si lo estás configurando tú mismo).
@@ -281,6 +301,11 @@ En la pestaña que se abrió (o en cualquier momento después, haciendo clic en 
   dispositivo nuevo, te pedirá tu **passphrase de recuperación una vez** para terminar
   de conectarlo — después de eso, tu contraseña sola
   desbloquea BrowserSync en ese dispositivo.
+- **Firefox y Chromium con la misma cuenta:** Firefox tiene una carpeta raíz más, el
+  **Menú de marcadores**; en Chromium aparece como una carpeta "Menú de marcadores"
+  dentro de "Otros marcadores", y lo que muevas ahí aparece en el menú de Firefox. Los
+  separadores y las carpetas inteligentes de Firefox ("Más visitados", URLs `place:`)
+  no se sincronizan: se quedan solo en ese Firefox.
 - Si reinicias tu navegador, el popup te pedirá que vuelvas a ingresar tu
   **contraseña** una vez para reanudar la sincronización — tu sesión sigue intacta,
   esto solo vuelve a derivar la clave de cifrado local, que a propósito nunca se
@@ -300,7 +325,8 @@ En la pestaña que se abrió (o en cualquier momento después, haciendo clic en 
   de ver qué tiene sincronizado otro de tus dispositivos sin tener que cambiar a él.
 - Haz clic en **"Contraseñas guardadas"** en el popup para abrir tu bóveda de
   contraseñas: añade, edita, copia y genera contraseñas, o importa el CSV que exporta tu
-  navegador (`chrome://password-manager/settings` → Exportar). Las contraseñas se cifran
+  navegador (`chrome://password-manager/settings` → Exportar, o `about:logins` → ⋯ →
+  Exportar en Firefox). Las contraseñas se cifran
   con la misma clave de datos que todo lo demás y se sincronizan con tus otros
   dispositivos; el servidor no puede leerlas. Borra el CSV exportado después de
   importarlo: está en texto plano.
@@ -343,3 +369,11 @@ Si usas perfiles separados del navegador para lo personal y lo laboral, instala 
 extensión en cada perfil de forma independiente — cada uno mantiene su propia URL de
 servidor, cuenta, y estado de sincronización, así que puedes apuntarlos a servidores
 distintos o usar cuentas distintas sin que interfieran entre sí.
+
+---
+
+## Licencia
+
+BrowserSync (la extensión y el servidor) se distribuye bajo la
+[GNU Affero General Public License v3.0](LICENSE). Si ofreces a otras personas una
+versión modificada del servidor, tienes que darles acceso a su código fuente.
