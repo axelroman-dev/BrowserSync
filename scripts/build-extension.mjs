@@ -19,9 +19,12 @@ const SOURCE = join(ROOT, "extension");
 // Fixed forever once the add-on is on AMO - it's how Firefox recognises
 // updates and keeps each user's storage.
 const GECKO_ID = "browsersync@axelroman-dev";
-// 140 (an ESR) is the first release that understands
-// data_collection_permissions, which AMO requires from new add-ons.
+// 140 (an ESR) is the first desktop release that understands
+// data_collection_permissions, which AMO requires from new add-ons; on
+// Android it came in 142. (The add-on itself is desktop-only - Firefox for
+// Android has no bookmarks or history API - but AMO's linter checks both.)
 const GECKO_MIN_VERSION = "140.0";
+const GECKO_ANDROID_MIN_VERSION = "142.0";
 
 // Release-tooling files that live in extension/ but never ship.
 const ALWAYS_SKIPPED = ["version.txt", "CHANGELOG.md"];
@@ -59,6 +62,7 @@ const TARGETS = {
               required: ["authenticationInfo", "bookmarksInfo", "browsingActivity", "personallyIdentifyingInfo"],
             },
           },
+          gecko_android: { strict_min_version: GECKO_ANDROID_MIN_VERSION },
         },
       };
     },
