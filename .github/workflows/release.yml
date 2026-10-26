@@ -89,9 +89,16 @@ jobs:
           done
       # A listed add-on is reviewed by Mozilla before it goes live, so this
       # only uploads it; it doesn't wait for the signed .xpi (AMO serves
-      # that to users itself once approved).
+      # that to users itself once approved). Skipped (with a warning) until
+      # the AMO secrets exist - the very first version has to be submitted
+      # by hand anyway, to create the listing (see README, "Releasing").
       - name: Submit to AMO
         env:
           WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
           WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
-        run: npx --yes web-ext@8 sign --source-dir dist/firefox --artifacts-dir dist/web-ext --channel listed --approval-timeout 0
+        run: |
+          if [ -z "$WEB_EXT_API_KEY" ] || [ -z "$WEB_EXT_API_SECRET" ]; then
+            echo "::warning::AMO_JWT_ISSUER/AMO_JWT_SECRET aren't set - skipping the AMO submission. Upload the Firefox ZIP from this release to AMO by hand."
+            exit 0
+          fi
+          npx --yes web-ext@8 sign --source-dir dist/firefox --artifacts-dir dist/web-ext --channel listed --approval-timeout 0
