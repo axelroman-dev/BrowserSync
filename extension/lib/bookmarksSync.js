@@ -242,7 +242,21 @@ async function applyMergeToBrowser(local, remoteNodesBySyncId, combinedTombstone
   const reorderCandidates = [];
 
   // 1. Deletions: anything tombstoned that still exists locally goes away.
-  for (const [syncId, deletedAt] of Object.entries(combinedTombstones)) {
+  //    Deepest first: a deleted folder's children are tombstoned along with
+  //    it, and chrome.bookmarks.remove() refuses a folder that still has
+  //    children - so removing the folder before them used to fail silently,
+  //    leaving an empty folder behind that then re-synced under a new syncId.
+  const depth = (node) => {
+    let levels = 0;
+    for (let p = node.parentSyncId; p && localNodes.has(p) && levels < 1000; p = localNodes.get(p).parentSyncId) levels++;
+    return levels;
+  };
+  const deletions = Object.entries(combinedTombstones).sort(([a], [b]) => {
+    const nodeA = localNodes.get(a);
+    const nodeB = localNodes.get(b);
+    return (nodeB ? depth(nodeB) : -1) - (nodeA ? depth(nodeA) : -1);
+  });
+  for (const [syncId, deletedAt] of deletions) {
     if (ROOT_SYNC_IDS.has(syncId)) continue;
     const existing = localNodes.get(syncId);
     if (existing) {
