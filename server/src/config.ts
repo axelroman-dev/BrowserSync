@@ -20,6 +20,9 @@ export const config = {
   accessTokenTtl: process.env.ACCESS_TOKEN_TTL ?? "15m",
   refreshTokenTtlDays: Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 90),
   allowRegistration: (process.env.ALLOW_REGISTRATION ?? "true") === "true",
+  // When false, "/" redirects to the account dashboard instead of showing the
+  // public landing page (public/index.html).
+  showLanding: (process.env.SHOW_LANDING ?? "true") === "true",
   corsOrigin: process.env.CORS_ORIGIN ?? "*",
   maxBlobBytes: Number(process.env.MAX_BLOB_BYTES ?? 5 * 1024 * 1024),
   // How many reverse-proxy hops to trust when reading the client IP from

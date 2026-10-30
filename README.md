@@ -21,6 +21,11 @@ Two parts:
 - **`server/`** — a self-hosted, multi-user backend (Node.js + Express + PostgreSQL)
   that stores and relays encrypted blobs. It never sees your data in plaintext.
 
+Get the extension:
+
+- **Chrome / Chromium browsers:** [Chrome Web Store](https://chromewebstore.google.com/detail/browsersync-self-hosted/maihfciicepeinnpcdoiafijgghcfeme)
+- **Firefox:** [Firefox Add-ons (AMO)](https://addons.mozilla.org/en-US/firefox/addon/browsersync-self-hosted/)
+
 See [`PRIVACY.md`](PRIVACY.md) for what's stored and what isn't.
 
 ---
@@ -68,6 +73,19 @@ ALLOW_REGISTRATION=false
 ```bash
 docker compose up -d
 ```
+
+### Hiding the landing page
+
+By default `/` shows a public page explaining what BrowserSync is, with links to the
+extension stores. If you'd rather not advertise it, turn it off:
+
+```bash
+# in .env
+SHOW_LANDING=false
+```
+
+`/` then redirects straight to the account dashboard (`/dashboard/`). The API and the
+dashboard work the same either way. Restart with `docker compose up -d` to apply.
 
 ### Exposing it outside your homelab
 
@@ -221,14 +239,14 @@ point it at their own instance. If you're forking this extension for your own us
 
 ### Distributing the extension to your users
 
-There's no Chrome Web Store listing (this isn't going through Google review, and on
-forks without Chrome Sync there's no first-party alternative to publish it as anyway).
-Chromium users load it unpacked — see the user section below. Firefox users install
-it from AMO, since Firefox only runs add-ons Mozilla has signed (if you fork it, you
-need your own AMO listing and add-on ID - `GECKO_ID` in
-[`scripts/build-extension.mjs`](scripts/build-extension.mjs)). Share the `extension/` folder
-with them (a zip, a shared network drive, a release on your repo, or a git clone) plus
-a link to [`PRIVACY.md`](PRIVACY.md).
+The extension is published on the [Chrome Web Store](https://chromewebstore.google.com/detail/browsersync-self-hosted/maihfciicepeinnpcdoiafijgghcfeme) (for any
+Chromium-based browser) and on [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/browsersync-self-hosted/). Point your users at those
+and give them your server URL, plus a link to [`PRIVACY.md`](PRIVACY.md).
+
+If you fork it, those listings won't carry your changes: Chromium users can load your
+`extension/` folder unpacked (see the user section below), but Firefox only runs add-ons
+Mozilla has signed, so you need your own AMO listing and add-on ID - `GECKO_ID` in
+[`scripts/build-extension.mjs`](scripts/build-extension.mjs).
 
 ---
 
@@ -241,10 +259,12 @@ all with the same account.
 
 ### 1. Install the extension
 
-**Firefox:** install BrowserSync from [addons.mozilla.org](https://addons.mozilla.org/)
-and skip to step 2.
+**Chrome, Brave, Edge, Helium and other Chromium-based browsers:** install BrowserSync
+from the [Chrome Web Store](https://chromewebstore.google.com/detail/browsersync-self-hosted/maihfciicepeinnpcdoiafijgghcfeme) and skip to step 2.
 
-**Chromium-based browsers:**
+**Firefox:** install BrowserSync from [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/browsersync-self-hosted/) and skip to step 2.
+
+**Unpacked (a fork, or a version not in the store yet):**
 
 1. Get the `extension` folder from whoever set up the server you'll be using (or
    from this repo, if you're setting it up yourself).
