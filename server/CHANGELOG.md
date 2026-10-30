@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.0](https://github.com/axelroman-dev/BrowserSync/compare/server-v2.4.4...server-v2.5.0) (2026-10-30)
+
+
+### Features
+
+* **server:** SHOW_LANDING env var to hide the landing page ([#48](https://github.com/axelroman-dev/BrowserSync/issues/48)) ([61ef62b](https://github.com/axelroman-dev/BrowserSync/commit/61ef62bc7341f83e6e2fbf9bc8f7bec62d88f3f5))
+
 ## [2.4.4](https://github.com/axelroman-dev/BrowserSync/compare/server-v2.4.3...server-v2.4.4) (2026-10-25)
 
 
