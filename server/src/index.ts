@@ -43,6 +43,11 @@ app.use("/api/sync", syncRouter);
 // since the server never holds the key to decrypt the actual blobs. Both
 // pages are served from this same origin/port so they can call the API with
 // same-origin fetch()es, no CORS configuration needed.
+// SHOW_LANDING=false hides the landing page: "/" goes straight to the
+// dashboard, which keeps loading its own assets from public/ as usual.
+if (!config.showLanding) {
+  app.get(["/", "/index.html"], (_req, res) => res.redirect(302, "/dashboard/"));
+}
 app.use(express.static(path.join(__dirname, "../public")));
 
 // Centralized error handler so an unexpected exception never leaks a stack
@@ -57,4 +62,5 @@ await seedDevAccount();
 app.listen(config.port, () => {
   console.log(`BrowserSync server listening on port ${config.port}`);
   console.log(`Registration is ${config.allowRegistration ? "OPEN" : "CLOSED"}`);
+  console.log(`Landing page is ${config.showLanding ? "SHOWN" : "HIDDEN"}`);
 });

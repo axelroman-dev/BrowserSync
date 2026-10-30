@@ -2,12 +2,15 @@
 
 Self-hosted, multi-user, end-to-end encrypted sync backend for the
 [BrowserSync](https://github.com/axelroman-dev/BrowserSync) browser extension — a
-bookmark/history sync system for any Chromium-based browser (built for forks without
-Chrome Sync, like Helium, but works anywhere).
+bookmark/history sync system for any Chromium-based browser and Firefox (built for
+forks without Chrome Sync, like Helium, but works anywhere).
 
 The server never sees your data in plaintext. Bookmarks/history are encrypted
 client-side before they're ever uploaded; this container only stores and relays
 ciphertext. See the [full privacy explanation](https://github.com/axelroman-dev/BrowserSync/blob/main/PRIVACY.md).
+
+Get the extension from the [Chrome Web Store](https://chromewebstore.google.com/detail/browsersync-self-hosted/maihfciicepeinnpcdoiafijgghcfeme) (any Chromium-based browser) or
+[Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/browsersync-self-hosted/).
 
 ## Quick start
 
@@ -42,6 +45,7 @@ are in the [admin section of the README](https://github.com/axelroman-dev/Browse
 | `DATABASE_URL` | Postgres connection string |
 | `JWT_SECRET` | Signs access tokens — generate a long random value |
 | `ALLOW_REGISTRATION` | `true`/`false` — closes public signup without a rebuild |
+| `SHOW_LANDING` | `true`/`false` — `false` hides the landing page; `/` redirects to the dashboard |
 
 See [`.env.example`](https://github.com/axelroman-dev/BrowserSync/blob/main/server/.env.example)
 for the full list.

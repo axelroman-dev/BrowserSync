@@ -24,6 +24,11 @@ Dos partes:
 - **`server/`** — un backend multiusuario autoalojado (Node.js + Express + PostgreSQL)
   que almacena y transmite blobs cifrados. Nunca ve tus datos en texto plano.
 
+Consigue la extensión:
+
+- **Chrome / navegadores Chromium:** [Chrome Web Store](https://chromewebstore.google.com/detail/browsersync-self-hosted/maihfciicepeinnpcdoiafijgghcfeme)
+- **Firefox:** [Firefox Add-ons (AMO)](https://addons.mozilla.org/es/firefox/addon/browsersync-self-hosted/)
+
 Ver [`PRIVACY.md`](PRIVACY.md) (o [`PRIVACY.es.md`](PRIVACY.es.md)) para saber qué se
 guarda y qué no.
 
@@ -74,6 +79,19 @@ ALLOW_REGISTRATION=false
 ```bash
 docker compose up -d
 ```
+
+### Ocultar la página de inicio
+
+Por defecto `/` muestra una página pública que explica qué es BrowserSync, con enlaces
+a las tiendas de extensiones. Si prefieres no anunciarlo, desactívala:
+
+```bash
+# en .env
+SHOW_LANDING=false
+```
+
+Entonces `/` redirige directamente al panel de cuenta (`/dashboard/`). La API y el
+panel funcionan igual en ambos casos. Reinicia con `docker compose up -d` para aplicarlo.
 
 ### Exponerlo fuera de tu homelab
 
@@ -231,15 +249,16 @@ propio uso:
 
 ### Distribuir la extensión a tus usuarios
 
-No hay una publicación en la Chrome Web Store (esto no pasa por revisión de Google, y
-en los forks sin Chrome Sync tampoco existe una alternativa oficial donde publicarla).
-Tus usuarios de Chromium la cargan como "sin empaquetar" — ver la sección de usuarios
-abajo. Los de Firefox la instalan desde AMO, porque Firefox solo ejecuta complementos
-firmados por Mozilla (si haces un fork, necesitas tu propia ficha en AMO y tu propio ID
-de complemento - `GECKO_ID` en [`scripts/build-extension.mjs`](scripts/build-extension.mjs)).
-Comparte la carpeta `extension/` con ellos (un zip, una unidad de red compartida, un
-release en tu repo, o un clon de git) junto con un enlace a [`PRIVACY.md`](PRIVACY.md)
+La extensión está publicada en la [Chrome Web Store](https://chromewebstore.google.com/detail/browsersync-self-hosted/maihfciicepeinnpcdoiafijgghcfeme) (para cualquier
+navegador basado en Chromium) y en [Firefox Add-ons](https://addons.mozilla.org/es/firefox/addon/browsersync-self-hosted/). Manda a tus usuarios
+ahí y dales la URL de tu servidor, junto con un enlace a [`PRIVACY.md`](PRIVACY.md)
 (o [`PRIVACY.es.md`](PRIVACY.es.md)).
+
+Si haces un fork, esas fichas no llevan tus cambios: los usuarios de Chromium pueden
+cargar tu carpeta `extension/` como "sin empaquetar" (ver la sección de usuarios abajo),
+pero Firefox solo ejecuta complementos firmados por Mozilla, así que necesitas tu propia
+ficha en AMO y tu propio ID de complemento - `GECKO_ID` en
+[`scripts/build-extension.mjs`](scripts/build-extension.mjs).
 
 ---
 
@@ -252,10 +271,12 @@ más nuevo), todo con la misma cuenta.
 
 ### 1. Instalar la extensión
 
-**Firefox:** instala BrowserSync desde [addons.mozilla.org](https://addons.mozilla.org/)
-y pasa al paso 2.
+**Chrome, Brave, Edge, Helium y otros navegadores basados en Chromium:** instala
+BrowserSync desde la [Chrome Web Store](https://chromewebstore.google.com/detail/browsersync-self-hosted/maihfciicepeinnpcdoiafijgghcfeme) y pasa al paso 2.
 
-**Navegadores basados en Chromium:**
+**Firefox:** instala BrowserSync desde [Firefox Add-ons](https://addons.mozilla.org/es/firefox/addon/browsersync-self-hosted/) y pasa al paso 2.
+
+**Sin empaquetar (un fork, o una versión que aún no está en la tienda):**
 
 1. Consigue la carpeta `extension` de quien haya configurado el servidor que vas a
    usar (o de este repositorio, si lo estás configurando tú mismo).
