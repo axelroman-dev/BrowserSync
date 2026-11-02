@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.5.0](https://github.com/axelroman-dev/BrowserSync/compare/server-v2.4.4...server-v2.5.0) (2026-11-02)
+
+
+### Features
+
+* **server:** SHOW_LANDING env var to hide the landing page ([#48](https://github.com/axelroman-dev/BrowserSync/issues/48)) ([61ef62b](https://github.com/axelroman-dev/BrowserSync/commit/61ef62bc7341f83e6e2fbf9bc8f7bec62d88f3f5))
+
+
+### Bug Fixes
+
+* **deps:** bump dotenv from 16.6.1 to 18.0.9 in /server ([#52](https://github.com/axelroman-dev/BrowserSync/issues/52)) ([2bb8725](https://github.com/axelroman-dev/BrowserSync/commit/2bb8725f48af24708e555a937c93e98cede74db0))
+* **deps:** bump node from `55fb5f5` to `c86ecea` in /server ([#50](https://github.com/axelroman-dev/BrowserSync/issues/50)) ([2a8a316](https://github.com/axelroman-dev/BrowserSync/commit/2a8a316e16bccfda20a38961f4192c4d1b3e1914))
+* **deps:** bump qs override to 6.16.1 (GHSA-6pq8-jhm2-2vcw) ([#54](https://github.com/axelroman-dev/BrowserSync/issues/54)) ([44c6564](https://github.com/axelroman-dev/BrowserSync/commit/44c6564a616eb545b2f67c36335322d30dafe284))
+
 ## [2.4.4](https://github.com/axelroman-dev/BrowserSync/compare/server-v2.4.3...server-v2.4.4) (2026-10-25)
 
 
