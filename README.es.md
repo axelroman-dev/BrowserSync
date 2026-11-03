@@ -209,15 +209,17 @@ Un commit cuenta para la parte que toca, `extension/` o `server/`. En cada push 
 release-please mantiene actualizado un único pull request de **release** que sube las
 versiones (`extension/manifest.json`, `server/package.json`, `server/package-lock.json`)
 y los changelogs. Fusiónalo cuando quieras publicar: crea los tags y las releases de
-GitHub, publica la imagen del servidor si hubo versión del servidor, y adjunta los ZIP de
-la extensión para Chromium y Firefox a la release de la extensión. No edites esas
+GitHub, publica la imagen del servidor si hubo versión del servidor, y adjunta los paquetes
+de la extensión a la release de la extensión (un ZIP para Chromium, un XPI para Firefox). No edites esas
 versiones a mano. La publicación en Firefox es manual: sube
-`browsersync-extension-firefox-X.Y.Z.zip` de esa release a
+`browsersync-extension-firefox-X.Y.Z.xpi` de esa release a
 [AMO](https://addons.mozilla.org/developers/) como versión nueva, con sus notas.
 
 Las dos builds salen de la misma carpeta `extension/`:
 `node scripts/build-extension.mjs chrome|firefox` genera `dist/chrome/` o
-`dist/firefox/` (la de Firefox solo cambia el manifest - ver el script). La propia
+`dist/firefox/` (la de Firefox solo cambia el manifest - ver el script) y la empaqueta
+como `dist/browsersync-extension-chrome-X.Y.Z.zip` o
+`dist/browsersync-extension-firefox-X.Y.Z.xpi`. La propia
 `extension/` se sigue pudiendo cargar sin empaquetar en Chromium tal cual.
 
 Cada PR corre el [CI](.github/workflows/ci.yml), y `main` solo acepta el merge cuando

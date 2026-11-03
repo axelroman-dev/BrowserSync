@@ -201,15 +201,17 @@ for whichever of `extension/` and `server/` it touches. On every push to `main`,
 release-please keeps one **release** pull request up to date that bumps the versions
 (`extension/manifest.json`, `server/package.json`, `server/package-lock.json`) and the
 changelogs. Merge it when you want to release: it creates the tags and GitHub releases,
-publishes the server image if the server was released, and attaches the extension ZIPs
-for Chromium and Firefox to the extension's release. Never edit those version fields by
+publishes the server image if the server was released, and attaches the extension
+packages to the extension's release (a ZIP for Chromium, an XPI for Firefox). Never edit those version fields by
 hand. Publishing the Firefox one is manual: upload
-`browsersync-extension-firefox-X.Y.Z.zip` from that release to
+`browsersync-extension-firefox-X.Y.Z.xpi` from that release to
 [AMO](https://addons.mozilla.org/developers/) as a new version, with its release notes.
 
 Both builds come from the same `extension/` folder:
 `node scripts/build-extension.mjs chrome|firefox` writes `dist/chrome/` or
-`dist/firefox/` (the Firefox one only differs in its manifest - see the script).
+`dist/firefox/` (the Firefox one only differs in its manifest - see the script) and
+packages it as `dist/browsersync-extension-chrome-X.Y.Z.zip` or
+`dist/browsersync-extension-firefox-X.Y.Z.xpi`.
 `extension/` itself stays loadable unpacked in Chromium as-is.
 
 Every PR runs [CI](.github/workflows/ci.yml), and `main` only accepts a merge once its

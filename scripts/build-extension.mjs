@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// Builds the extension for one browser into dist/<target>/:
+// Builds the extension for one browser into dist/<target>/, and packages
+// it next to that folder - a .zip for the Chrome Web Store, an .xpi for
+// AMO (the same ZIP format under Firefox's extension):
 //
-//   node scripts/build-extension.mjs chrome
-//   node scripts/build-extension.mjs firefox
+//   node scripts/build-extension.mjs chrome   -> dist/browsersync-extension-chrome-X.Y.Z.zip
+//   node scripts/build-extension.mjs firefox  -> dist/browsersync-extension-firefox-X.Y.Z.xpi
 //
 // There's no bundling: extension/ already runs as-is in Chromium (load it
 // unpacked straight from the repo), and the code itself feature-detects the
@@ -10,6 +12,7 @@
 // files and, for Firefox, rewrites the manifest and swaps in the files that
 // replace Chromium-only code (`replace` below). The version always comes
 // from extension/manifest.json, which release-please keeps up to date.
+import { execFileSync } from "node:child_process";
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,11 +36,13 @@ const ALWAYS_SKIPPED = ["version.txt", "CHANGELOG.md", "lib/clipboard.firefox.js
 
 const TARGETS = {
   chrome: {
+    packageExtension: "zip",
     skip: [],
     replace: {},
     manifest: (manifest) => manifest,
   },
   firefox: {
+    packageExtension: "xpi",
     // Only used through chrome.offscreen, which Firefox doesn't have.
     skip: ["offscreen"],
     // Shipped path -> source file used in its place.
@@ -97,3 +102,10 @@ for (const [path, source] of Object.entries(target.replace)) {
 const manifest = JSON.parse(readFileSync(join(SOURCE, "manifest.json"), "utf8"));
 writeFileSync(join(out, "manifest.json"), `${JSON.stringify(target.manifest(manifest), null, 4)}\n`);
 console.log(`Built ${targetName} ${manifest.version} -> ${relative(ROOT, out)}`);
+
+// manifest.json has to sit at the archive's root, so zip from inside the
+// build folder. -X leaves out extra file attributes AMO doesn't need.
+const packageFile = join(ROOT, "dist", `browsersync-extension-${targetName}-${manifest.version}.${target.packageExtension}`);
+rmSync(packageFile, { force: true });
+execFileSync("zip", ["-qrX", packageFile, "."], { cwd: out, stdio: "inherit" });
+console.log(`Packaged -> ${relative(ROOT, packageFile)}`);
