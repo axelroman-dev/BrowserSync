@@ -222,6 +222,9 @@
           <button type="button" id="pw-toggle-btn" class="secondary-button" data-i18n="passwords.show">Show</button>
           <button type="button" id="pw-generate-btn" class="secondary-button" data-i18n-title="passwords.generate" title="Generate">↻</button>
         </div>
+        <label for="pw-folder" data-i18n="passwords.folderLabel">Folder</label>
+        <input id="pw-folder" type="text" autocomplete="off" list="pw-folder-options" maxlength="60" data-i18n-placeholder="passwords.folderPlaceholder" placeholder="Optional, e.g. Work, Google, Personal" />
+        <datalist id="pw-folder-options"></datalist>
         <label for="pw-totp" data-i18n="passwords.totpLabel">Two-step verification (TOTP)</label>
         <input id="pw-totp" type="text" autocomplete="off" spellcheck="false" data-i18n-placeholder="passwords.totpPlaceholder" placeholder="Secret key or otpauth:// link" />
         <label for="pw-notes" data-i18n="passwords.notesLabel">Notes</label>

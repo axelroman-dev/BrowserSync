@@ -237,9 +237,14 @@ async function handleAutofill(sender) {
  */
 async function handleAddLogin(sender) {
   if (!webOrigin(sender.tab.url)) return { ok: false };
-  const url = chrome.runtime.getURL(`popup/popup.html?add=${encodeURIComponent(sender.tab.url)}`);
-  await chrome.windows.create({ url, type: "popup", width: 360, height: 600, focused: true });
+  await openAddWindow(sender.tab.url);
   return { ok: true };
+}
+
+/** Opens the "Add password" window (popup.html?add=...), starting on `pageUrl` if it's a web page. */
+export function openAddWindow(pageUrl) {
+  const url = chrome.runtime.getURL(`popup/popup.html?add=${encodeURIComponent(pageUrl ?? "")}`);
+  return chrome.windows.create({ url, type: "popup", width: 360, height: 600, focused: true });
 }
 
 /** Fills a password generated in the in-page menu into the field it was opened on. */

@@ -363,6 +363,8 @@ body.with-tabs .popup { flex: 1; min-height: 0; overflow-y: auto; }
 body.popout { width: auto; max-height: none; min-height: 100vh; }
 body.popout.with-tabs { height: 100vh; }
 body.popout .tab-bar { display: none; }
+/* Closing the window is the way out; the back arrow is only for the popup's own editor. */
+body.popout #pw-back-btn { display: none; }
 
 .tab-title { margin: 0 0 12px; font-size: 14px; font-weight: 700; }
 #popup-generator .generator input { margin-top: 0; }

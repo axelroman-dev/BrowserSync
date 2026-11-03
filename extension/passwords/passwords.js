@@ -10,7 +10,7 @@ import { siteIconElement } from "../lib/favicon.js";
 import { parseTotp, generateTotp, formatTotp } from "../lib/totp.js";
 import { entriesToCsv, downloadFile, datedFilename } from "../lib/backup.js";
 import { getNeverSaveHosts, removeNeverSaveHost } from "../lib/neverSave.js";
-import { listEntries, saveEntry, deleteEntry, importEntries, parseCsv } from "../lib/passwordVault.js";
+import { listEntries, listFolders, saveEntry, deleteEntry, importEntries, parseCsv } from "../lib/passwordVault.js";
 import { HOST_ORIGINS } from "../lib/pageCredentials.js";
 import { initI18n, t } from "../lib/i18n.js";
 
@@ -36,6 +36,7 @@ const fields = {
   password: document.getElementById("entry-password"),
   totp: document.getElementById("entry-totp"),
   notes: document.getElementById("entry-notes"),
+  folder: document.getElementById("entry-folder"),
 };
 
 let entries = [];
@@ -89,6 +90,7 @@ async function loadEntries() {
     entries = [];
     showError(document.getElementById("vault-error"), err.message);
   }
+  renderFolderFilter();
   renderEntries();
   await renderSyncLine();
 }
@@ -105,14 +107,44 @@ async function renderSyncLine() {
   }
 }
 
+// Folder filter values: "" is every entry, NO_FOLDER the ones without a
+// folder, anything else a folder name (matched case-insensitively).
+const NO_FOLDER = "\u0000none";
+
+function renderFolderFilter() {
+  const select = document.getElementById("folder-filter");
+  const folders = listFolders(entries);
+  const previous = select.value;
+  const option = (value, label) => Object.assign(document.createElement("option"), { value, textContent: label });
+  select.replaceChildren(
+    option("", t("passwords.folderAll")),
+    ...folders.map((folder) => option(folder, folder)),
+    option(NO_FOLDER, t("passwords.folderNone")),
+  );
+  // Keep the chosen folder while it still exists (e.g. after a background sync).
+  const keep = previous === NO_FOLDER ? previous : folders.find((f) => f.toLowerCase() === previous.toLowerCase());
+  select.value = keep ?? "";
+  select.hidden = !folders.length;
+  document.getElementById("entry-folder-options").replaceChildren(...folders.map((folder) => option(folder, "")));
+}
+
+function inSelectedFolder(entry) {
+  const selected = document.getElementById("folder-filter").value;
+  if (!selected) return true;
+  if (selected === NO_FOLDER) return !entry.folder;
+  return entry.folder?.toLowerCase() === selected.toLowerCase();
+}
+
 function renderEntries() {
   const container = document.getElementById("entries-list");
   container.replaceChildren();
 
   const query = document.getElementById("search-input").value.trim().toLowerCase();
-  const visible = query
-    ? entries.filter((entry) => `${entry.url} ${entry.username} ${entry.notes}`.toLowerCase().includes(query))
-    : entries;
+  const visible = entries.filter(
+    (entry) =>
+      inSelectedFolder(entry) &&
+      (!query || `${entry.url} ${entry.username} ${entry.notes} ${entry.folder ?? ""}`.toLowerCase().includes(query)),
+  );
 
   if (!visible.length) {
     const empty = document.createElement("p");
@@ -197,6 +229,20 @@ function renderEntryRow(entry) {
     badge.className = "match-badge";
     badge.textContent = t(MATCH_LABEL_KEYS[entry.match]);
     site.appendChild(badge);
+  }
+  // Clicking the folder shows just that folder.
+  if (entry.folder) {
+    const folderBadge = document.createElement("button");
+    folderBadge.type = "button";
+    folderBadge.className = "match-badge folder-badge";
+    folderBadge.textContent = entry.folder;
+    folderBadge.title = t("passwords.folderFilterLabel");
+    folderBadge.addEventListener("click", () => {
+      const select = document.getElementById("folder-filter");
+      select.value = listFolders(entries).find((f) => f.toLowerCase() === entry.folder.toLowerCase()) ?? "";
+      renderEntries();
+    });
+    site.appendChild(folderBadge);
   }
   info.appendChild(site);
 
@@ -301,6 +347,9 @@ function openDialog(entry = null) {
   fields.password.value = entry?.password ?? "";
   fields.notes.value = entry?.notes ?? "";
   fields.totp.value = entry?.totp ?? "";
+  // A new entry starts in the folder being viewed.
+  const filtered = document.getElementById("folder-filter").value;
+  fields.folder.value = entry ? (entry.folder ?? "") : filtered === NO_FOLDER ? "" : filtered;
   setPasswordVisible(false);
   document.getElementById("entry-generator").hidden = true;
   showError(document.getElementById("entry-error"), "");
@@ -362,6 +411,7 @@ document.getElementById("entry-form").addEventListener("submit", async (e) => {
       password: fields.password.value,
       notes: fields.notes.value,
       totp: fields.totp.value,
+      folder: fields.folder.value,
     }),
   );
   saveBtn.disabled = false;
@@ -509,6 +559,7 @@ document.getElementById("export-form").addEventListener("submit", async (e) => {
 document.getElementById("add-btn").addEventListener("click", () => openDialog());
 
 document.getElementById("search-input").addEventListener("input", renderEntries);
+document.getElementById("folder-filter").addEventListener("change", renderEntries);
 
 document.getElementById("import-btn").addEventListener("click", () => document.getElementById("import-file").click());
 

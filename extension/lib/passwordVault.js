@@ -2,12 +2,13 @@
 // to read from or write back to (extensions have no API for the browser's
 // own saved passwords), so the vault is its own list of entries:
 //
-//   { id, url, origin, username, password, notes, match, favicon, totp, createdAt, updatedAt }
+//   { id, url, origin, username, password, notes, match, favicon, totp, folder, createdAt, updatedAt }
 //
 // (`match` is the entry's URL-matching mode, or null to follow the device
 // default - see urlMatch.js. `favicon` is a small data: URL of the site's
 // icon, or null - see favicon.js. `totp` is the 2FA secret or otpauth://
-// link, or null - see totp.js.)
+// link, or null - see totp.js. `folder` is a free-form label such as
+// "Work" or "Google" to group and filter entries by, or null.)
 //
 // kept in chrome.storage.local encrypted with the DEK (see storage.js) and
 // synced as the "passwords" blob. Losing an edit here is far worse than
@@ -35,6 +36,7 @@ const LOCK_NAME = "browsersync-password-vault";
 // device offline for longer than this could bring a deleted entry back.
 const TOMBSTONE_TTL_MS = 180 * 24 * 60 * 60 * 1000;
 const MAX_CONFLICT_RETRIES = 3;
+const MAX_FOLDER_LENGTH = 60;
 
 function withVaultLock(fn) {
   return navigator.locks.request(LOCK_NAME, fn);
@@ -105,19 +107,34 @@ export async function listEntries(key) {
     .sort((x, y) => (x.origin ?? x.url).localeCompare(y.origin ?? y.url) || x.username.localeCompare(y.username));
 }
 
-/**
- * Creates (no `id`) or updates (with `id`) one entry. `faviconPageUrl` is
- * the page to take the icon from when it isn't `url` itself - the browser
- * caches icons per visited page, and the login page is the one known to
- * have been visited.
- */
+/** A folder name worth storing (trimmed, single line), or null. */
+function cleanFolder(value) {
+  const text = typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, MAX_FOLDER_LENGTH) : "";
+  return text || null;
+}
+
+/** Folder names in use, sorted for display (case-insensitive, first spelling wins). */
+export function listFolders(entries) {
+  const byKey = new Map();
+  for (const entry of entries) {
+    if (entry.folder && !byKey.has(entry.folder.toLowerCase())) byKey.set(entry.folder.toLowerCase(), entry.folder);
+  }
+  return [...byKey.values()].sort((x, y) => x.localeCompare(y));
+}
+
 /** A TOTP value worth storing (see totp.js), or null. */
 function cleanTotp(value) {
   const text = typeof value === "string" ? value.trim() : "";
   return parseTotp(text) ? text : null;
 }
 
-export async function saveEntry(key, { id, url, username, password, notes, match, totp, faviconPageUrl }) {
+/**
+ * Creates (no `id`) or updates (with `id`) one entry. `faviconPageUrl` is
+ * the page to take the icon from when it isn't `url` itself - the browser
+ * caches icons per visited page, and the login page is the one known to
+ * have been visited.
+ */
+export async function saveEntry(key, { id, url, username, password, notes, match, totp, folder, faviconPageUrl }) {
   // Read before taking the lock: it's only a local cache lookup, but other
   // vault writers needn't wait on it. Only real saves refresh the icon -
   // never a background pass, whose bumped updatedAt could win the per-entry
@@ -136,6 +153,7 @@ export async function saveEntry(key, { id, url, username, password, notes, match
     // `totp` left undefined (e.g. the in-page save prompt, which only knows
     // the password) keeps whatever the entry already has.
     if (totp !== undefined) fields.totp = cleanTotp(totp);
+    if (folder !== undefined) fields.folder = cleanFolder(folder);
     const index = id ? entries.findIndex((entry) => entry.id === id && !entry.deleted) : -1;
     if (index >= 0) {
       const existing = entries[index];
@@ -144,7 +162,7 @@ export async function saveEntry(key, { id, url, username, password, notes, match
       const keptFavicon = existing.url === fields.url ? (existing.favicon ?? null) : null;
       entries[index] = { ...existing, ...fields, favicon: favicon ?? keptFavicon, updatedAt: now };
     } else {
-      entries.push({ id: crypto.randomUUID(), totp: null, ...fields, favicon, createdAt: now, updatedAt: now });
+      entries.push({ id: crypto.randomUUID(), totp: null, folder: null, ...fields, favicon, createdAt: now, updatedAt: now });
     }
     await writeLocalEntries(key, entries, { passwordsPendingSync: true });
   });
@@ -184,6 +202,7 @@ export async function importEntries(key, rows) {
         password: String(row.password ?? ""),
         notes: String(row.notes ?? ""),
         totp: cleanTotp(row.totp),
+        folder: cleanFolder(row.folder),
         match: MATCH_MODES.includes(row.match) ? row.match : null,
         favicon: favicons[i],
         createdAt: now,
@@ -202,8 +221,8 @@ export async function importEntries(key, rows) {
 /**
  * Parses a password CSV export. Columns are found by header name, which
  * covers Chrome/Edge/Brave (name,url,username,password,note), Firefox
- * (url,username,password,...) and Bitwarden (login_uri,login_username,
- * login_password,notes) exports alike. Handles quoted fields with commas,
+ * (url,username,password,...) and Bitwarden (folder,login_uri,
+ * login_username,login_password,notes) exports alike. Handles quoted fields with commas,
  * doubled quotes and line breaks.
  */
 export function parseCsv(text) {
@@ -251,6 +270,7 @@ export function parseCsv(text) {
   const passCol = column("password", "login_password");
   const notesCol = column("note", "notes", "comment");
   const totpCol = column("totp", "login_totp", "otpauth");
+  const folderCol = column("folder", "group", "grouping", "tag", "tags");
   if (urlCol < 0 || passCol < 0) return null;
 
   return rows.map((row) => ({
@@ -259,6 +279,7 @@ export function parseCsv(text) {
     password: row[passCol] ?? "",
     notes: notesCol >= 0 ? (row[notesCol] ?? "") : "",
     totp: totpCol >= 0 ? (row[totpCol] ?? "") : "",
+    folder: folderCol >= 0 ? (row[folderCol] ?? "") : "",
   }));
 }
 
