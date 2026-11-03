@@ -54,14 +54,15 @@ const views = {
 // bar at the bottom (like Bitwarden's). The connect/unlock/setup steps
 // stay full-screen without it.
 const TAB_VIEWS = ["status", "passwords", "generator", "settings"];
-// popup.html?add=<page URL>: the "Add account" window opened from the
-// in-page menu (see handleAddLogin in pageCredentials.js). It goes through
-// the usual unlock steps, then shows only the add form for that page.
-const addFor = (() => {
-  const value = new URLSearchParams(location.search).get("add");
-  return value && /^https?:/i.test(value) ? value : null;
-})();
-if (addFor) document.body.classList.add("popout");
+// popup.html?add=<page URL>: the "Add password" window, opened from the
+// in-page menu (see handleAddLogin in pageCredentials.js) or the popup's
+// own "+" button. It goes through the usual unlock steps, then shows only
+// the add form, starting on that page - or on no site when `add` is empty
+// (the popup was opened over a non-web tab).
+const addParam = new URLSearchParams(location.search).get("add");
+const addWindow = addParam !== null;
+const addFor = addParam && /^https?:/i.test(addParam) ? addParam : null;
+if (addWindow) document.body.classList.add("popout");
 const tabBar = document.getElementById("tab-bar");
 let activeTab = "status";
 let popupGenerator = null;
@@ -78,7 +79,7 @@ function showView(name) {
     tab.setAttribute("aria-selected", String(selected));
   }
   if (name === "generator") showGenerator();
-  if (name === "passwords") showPasswordsTab({ addFor });
+  if (name === "passwords") showPasswordsTab({ addWindow, addFor });
   if (name === "settings") showSettingsTab();
 }
 
@@ -215,7 +216,7 @@ async function render() {
     await renderSetupForm();
     return;
   }
-  if (addFor) {
+  if (addWindow) {
     if (views.passwords.hidden) showView("passwords");
     return;
   }

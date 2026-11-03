@@ -65,7 +65,7 @@ jobs:
     if: needs.release-please.outputs.extension_released == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: write # upload the ZIP to the GitHub release
+      contents: write # upload the packages to the GitHub release
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -79,9 +79,9 @@ jobs:
           TAG: ${{ needs.release-please.outputs.extension_tag }}
           VERSION: ${{ needs.release-please.outputs.extension_version }}
         run: |
-          for browser in chrome firefox; do
-            node scripts/build-extension.mjs "$browser"
-            zip_name="browsersync-extension-${browser}-${VERSION}.zip"
-            (cd "dist/${browser}" && zip -qr "../../${zip_name}" .)
-            gh release upload "$TAG" "$zip_name"
-          done
+          # Each build packages itself: a .zip for Chrome, an .xpi for Firefox.
+          node scripts/build-extension.mjs chrome
+          node scripts/build-extension.mjs firefox
+          gh release upload "$TAG" \
+            "dist/browsersync-extension-chrome-${VERSION}.zip" \
+            "dist/browsersync-extension-firefox-${VERSION}.xpi"

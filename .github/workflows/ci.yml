@@ -146,16 +146,14 @@ jobs:
       - name: Lint the Firefox build
         run: npx --yes web-ext@8 lint --source-dir ../dist/firefox
 
-      - name: Package
-        run: |
-          (cd ../dist/chrome && zip -qr ../../browsersync-extension-chrome.zip .)
-          (cd ../dist/firefox && zip -qr ../../browsersync-extension-firefox.zip .)
+      # The builds above already packaged themselves (.zip for Chrome, .xpi
+      # for Firefox).
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: browsersync-extension
           path: |
-            browsersync-extension-chrome.zip
-            browsersync-extension-firefox.zip
+            dist/browsersync-extension-chrome-*.zip
+            dist/browsersync-extension-firefox-*.xpi
           retention-days: 14
 
   # The only check the main ruleset requires. Skipped parts are fine (their

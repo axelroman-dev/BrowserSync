@@ -9,12 +9,13 @@ import * as auth from "../lib/auth.js";
 import { getAllLocal } from "../lib/storage.js";
 import { siteIconElement } from "../lib/favicon.js";
 import { parseTotp, generateTotp } from "../lib/totp.js";
-import { listEntries, saveEntry, deleteEntry } from "../lib/passwordVault.js";
+import { listEntries, listFolders, saveEntry, deleteEntry } from "../lib/passwordVault.js";
 import { entryMatchesUrl, loadPublicSuffixList } from "../lib/urlMatch.js";
 import { generatePassword, loadGeneratorOptions } from "../lib/passwordGenerator.js";
 import { armConfirm } from "../lib/uiConfirm.js";
 import { t } from "../lib/i18n.js";
 import { svgFromMarkup } from "../lib/svgIcon.js";
+import { openAddWindow } from "../lib/pageCredentials.js";
 
 // Same as the vault page. Best effort: the popup closes as soon as it loses
 // focus, and the clear only runs while it's still open.
@@ -33,8 +34,9 @@ let entries = [];
 let editingId = null;
 let clipboardTimer = null;
 let activeTabUrl = null;
-// Opened as the "Add account" window from the in-page menu: only the add
-// form is used, and the window closes once it's saved or cancelled.
+// Opened as the "Add password" window (from the in-page menu or the "+"
+// button): only the add form is used, and the window closes once it's
+// saved or cancelled.
 let popoutAdd = false;
 
 function showError(el, message) {
@@ -139,7 +141,7 @@ function emptyHint(text) {
 
 async function render() {
   const query = $("pw-search").value.trim().toLowerCase();
-  const matches = (entry) => `${entry.url} ${entry.username} ${entry.notes}`.toLowerCase().includes(query);
+  const matches = (entry) => `${entry.url} ${entry.username} ${entry.notes} ${entry.folder ?? ""}`.toLowerCase().includes(query);
 
   // Logins for the page the popup was opened over - hidden while searching,
   // where everything matching is listed once below anyway.
@@ -186,6 +188,7 @@ const fields = {
   password: $("pw-password"),
   totp: $("pw-totp"),
   notes: $("pw-notes"),
+  folder: $("pw-folder"),
 };
 
 function setPasswordVisible(visible) {
@@ -207,6 +210,10 @@ function openEditor(entry = null) {
   fields.password.value = entry?.password ?? "";
   fields.totp.value = entry?.totp ?? "";
   fields.notes.value = entry?.notes ?? "";
+  fields.folder.value = entry?.folder ?? "";
+  $("pw-folder-options").replaceChildren(
+    ...listFolders(entries).map((folder) => Object.assign(document.createElement("option"), { value: folder })),
+  );
   setPasswordVisible(false);
   $("pw-delete-btn").hidden = !entry;
   showError($("pw-edit-error"), "");
@@ -244,7 +251,12 @@ $("pw-generate-btn").addEventListener("click", async () => {
 });
 
 $("pw-back-btn").addEventListener("click", closeEditor);
-$("pw-add-btn").addEventListener("click", () => openEditor());
+// Adding happens in a window of its own, which stays open while the user
+// switches tabs to copy things in - the popup would close on losing focus.
+$("pw-add-btn").addEventListener("click", async () => {
+  await openAddWindow(activeTabUrl);
+  window.close();
+});
 $("pw-search").addEventListener("input", render);
 
 $("pw-edit-pane").addEventListener("submit", async (e) => {
@@ -267,6 +279,7 @@ $("pw-edit-pane").addEventListener("submit", async (e) => {
       password: fields.password.value,
       notes: fields.notes.value,
       totp: fields.totp.value,
+      folder: fields.folder.value,
       // Keeps an edited entry's own matching mode; new ones follow the default.
       match: entries.find((entry) => entry.id === editingId)?.match ?? null,
       faviconPageUrl: activeTabUrl && !editingId ? activeTabUrl : undefined,
@@ -300,13 +313,13 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 /**
- * Called each time the tab is opened. `addFor` (a page URL) opens straight
- * on the add form for that page - the "Add account" window.
+ * Called each time the tab is opened. `addWindow` opens straight on the add
+ * form - the "Add password" window - starting on `addFor` (a page URL) if given.
  */
-export async function showPasswordsTab({ addFor = null } = {}) {
+export async function showPasswordsTab({ addWindow = false, addFor = null } = {}) {
   closeEditor();
   $("pw-search").value = "";
-  if (addFor) {
+  if (addWindow) {
     activeTabUrl = addFor;
     await loadEntries();
     openEditor();
