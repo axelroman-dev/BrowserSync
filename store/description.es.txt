@@ -7,7 +7,6 @@ NOVEDADES EN 2.6.0
   • La importación CSV lee las carpetas de tu archivo, y las exportaciones las incluyen.
   • El "+" del popup ahora abre la ventana Añadir contraseña, que sigue abierta mientras cambias de pestaña para copiar datos.
 
-
 FUNCIONES
   • Marcadores: sincronización en ambos sentidos con fusión, así que se conservan los movimientos, cambios de nombre y borrados.
   • Historial: opcional, con la cantidad de días a conservar configurable.
