@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.5.1](https://github.com/axelroman-dev/BrowserSync/compare/server-v2.5.0...server-v2.5.1) (2026-11-11)
+
+
+### Bug Fixes
+
+* **deps:** bump the production group in /server with 2 updates ([#57](https://github.com/axelroman-dev/BrowserSync/issues/57)) ([261054c](https://github.com/axelroman-dev/BrowserSync/commit/261054c965a2c8b261ca2ea5d5f401d8cacf413c))
+
 ## [2.5.0](https://github.com/axelroman-dev/BrowserSync/compare/server-v2.4.4...server-v2.5.0) (2026-11-02)
 
 
