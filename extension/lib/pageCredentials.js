@@ -16,7 +16,8 @@
 //
 // All of this only runs once the user grants the optional http/https host
 // permission from the vault page - see syncContentScriptRegistration().
-import { getActiveKey } from "./auth.js";
+import { getActiveKey, unlock } from "./auth.js";
+import { runSyncCycle } from "./syncOrchestrator.js";
 import { getAllLocal } from "./storage.js";
 import { listEntries, saveEntry, syncPasswords } from "./passwordVault.js";
 import { entryMatchesUrl, loadPublicSuffixList } from "./urlMatch.js";
@@ -301,6 +302,23 @@ async function handleSavePending(sender) {
 }
 
 /**
+ * Unlocks from the in-page suggestions frame, so the user stays on the page
+ * instead of being sent to a separate tab. The password goes straight from
+ * the extension's own frame to here; the surrounding site never sees it.
+ */
+async function handleFrameUnlock(message) {
+  if (typeof message.password !== "string" || !message.password) return { ok: false, error: "empty" };
+  try {
+    await unlock(message.password);
+  } catch (err) {
+    return { ok: false, error: err.code === "no_local_envelope" ? "no_local_envelope" : "wrong_password", message: err.message };
+  }
+  // Same as unlocking from the popup: catch up on anything missed while locked.
+  runSyncCycle().catch(() => {});
+  return { ok: true };
+}
+
+/**
  * Routes one runtime message. Returns a promise for messages this module
  * owns, or null so background.js can try its other handlers.
  */
@@ -330,6 +348,8 @@ export function handleCredentialMessage(message, sender) {
       return isFromOurFrame(sender) ? closeInPage(sender.tab.id, message.target).then(() => ({ ok: true })) : null;
     case "frame-add-login":
       return isFromOurFrame(sender) ? handleAddLogin(sender) : null;
+    case "frame-unlock":
+      return isFromOurFrame(sender) ? handleFrameUnlock(message) : null;
     case "frame-open-vault":
       return isFromOurFrame(sender)
         ? chrome.tabs.create({ url: chrome.runtime.getURL("passwords/passwords.html") }).then(() => ({ ok: true }))

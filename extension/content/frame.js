@@ -12,7 +12,8 @@ import { generatePassword, loadGeneratorOptions } from "../lib/passwordGenerator
 await initI18n();
 
 const params = new URLSearchParams(location.search);
-const mode = params.get("mode") === "save" ? "save" : "suggest";
+// "unlock": the context menu's password prompt - just the unlock form, closed once unlocked.
+const mode = ["save", "unlock"].includes(params.get("mode")) ? params.get("mode") : "suggest";
 // "otp": opened from a verification-code field - lists entries with a 2FA secret and fills the current code.
 const kind = params.get("kind") === "otp" ? "otp" : "login";
 // Opened from a password field: also offer a generated password.
@@ -82,15 +83,16 @@ async function renderSuggest() {
   document.getElementById("suggest-view").hidden = false;
   const list = document.getElementById("suggestions");
   const message = document.getElementById("suggest-message");
-  const unlockBtn = document.getElementById("unlock-btn");
 
   const response = await send({ type: "frame-get-suggestions", kind });
   if (response?.locked) {
     message.textContent = t("inPage.locked");
+    message.classList.add("compact");
     message.hidden = false;
-    unlockBtn.hidden = false;
+    showUnlockForm();
     return;
   }
+  message.classList.remove("compact");
   const suggestions = response?.suggestions ?? [];
   if (!suggestions.length) {
     message.textContent = t(kind === "otp" ? "inPage.noCodesForSite" : "inPage.noneForSite", { site: hostOf(response?.origin) });
@@ -186,12 +188,68 @@ onSafeClick(document.getElementById("add-btn"), () => {
   send({ type: "frame-add-login" });
   close();
 });
-onSafeClick(document.getElementById("unlock-btn"), () => {
-  send({ type: "frame-open-vault" });
-  close();
-});
+// Locked: the password is typed into this frame (an extension page the site
+// can't read) and unlocked in place, then the frame closes so the user is
+// back on the page - no separate tab or window.
+let unlockWired = false;
+function showUnlockForm() {
+  const form = document.getElementById("unlock-form");
+  const input = document.getElementById("unlock-password");
+  const errorEl = document.getElementById("unlock-error");
+  const submit = document.getElementById("unlock-submit");
+  form.hidden = false;
+  input.focus();
+  if (unlockWired) return;
+  unlockWired = true;
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    // Enter in the field is fine; a click on the button gets the same
+    // anti-clickjacking check as every other button here.
+    if (!event.isTrusted || (event.submitter && !clickAllowed(event))) return;
+    if (!input.value) {
+      errorEl.textContent = t("common.enterPassword");
+      errorEl.hidden = false;
+      return;
+    }
+    submit.disabled = true;
+    submit.textContent = t("common.unlocking");
+    const result = await send({ type: "frame-unlock", password: input.value }).catch(() => null);
+    input.value = "";
+    submit.disabled = false;
+    submit.textContent = t("common.unlock");
+    if (!result?.ok) {
+      if (result?.error === "no_local_envelope") {
+        // Needs the recovery passphrase: that flow lives in the full page.
+        send({ type: "frame-open-vault" });
+        close();
+        return;
+      }
+      errorEl.textContent = result?.message || t("common.couldNotUnlock");
+      errorEl.hidden = false;
+      input.focus();
+      return;
+    }
+    // Unlocked: get out of the way so the user is straight back on the page.
+    close();
+  });
+}
+
+/** mode=unlock: the suggest view cut down to the locked message and the password form. */
+async function renderUnlock() {
+  const response = await send({ type: "frame-get-suggestions", kind: "login" });
+  // Already unlocked (from the popup, say) since the menu was built.
+  if (!response?.locked) return close();
+  document.getElementById("suggest-view").hidden = false;
+  document.querySelector("#suggest-view .footer").hidden = true;
+  const message = document.getElementById("suggest-message");
+  message.textContent = t("inPage.locked");
+  message.classList.add("compact");
+  message.hidden = false;
+  showUnlockForm();
+}
 
 if (mode === "save") renderSave();
+else if (mode === "unlock") renderUnlock();
 else {
   if (offerGenerate) renderGenerate();
   renderSuggest();

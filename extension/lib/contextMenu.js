@@ -108,6 +108,15 @@ async function addAccountItems(tab, key, canFill) {
 
 export async function handleContextMenuClick(info, tab) {
   const menuId = String(info.menuItemId);
+  if (menuId === "bs-unlock" && webOrigin(tab?.url)) {
+    // Asks for the password in a small prompt on the page itself, so the
+    // user doesn't leave it. Pages without the content script (no host
+    // permission yet, or it hasn't loaded) fall back to the vault tab.
+    const shown = await chrome.tabs
+      .sendMessage(tab.id, { type: "bs-open-unlock" }, { frameId: 0 })
+      .then(() => true, () => false);
+    if (shown) return;
+  }
   if (menuId === "bs-open" || menuId === "bs-unlock") {
     await chrome.tabs.create({ url: chrome.runtime.getURL("passwords/passwords.html") });
     return;
