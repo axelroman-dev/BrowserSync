@@ -15,6 +15,12 @@
   <section id="suggest-view" hidden>
     <div id="suggestions" class="suggestions"></div>
     <p id="suggest-message" class="message" hidden></p>
+    <!-- Locked: the password is asked right here, so the user never leaves the page -->
+    <form id="unlock-form" class="unlock-form" hidden>
+      <input id="unlock-password" type="password" autocomplete="current-password" data-i18n-placeholder="common.passwordPlaceholder" placeholder="Password" />
+      <button type="submit" id="unlock-submit" class="primary-button" data-i18n="common.unlock">Unlock</button>
+      <p id="unlock-error" class="unlock-error" hidden></p>
+    </form>
     <!-- &generate=1 (password fields): a strong password from the generator, with its saved options -->
     <div id="generate-section" class="generate-section" hidden>
       <button type="button" id="generate-btn" class="generate-button" data-i18n="generator.inPageOffer">Generate a strong password</button>
@@ -25,7 +31,6 @@
       </div>
     </div>
     <div class="footer">
-      <button type="button" id="unlock-btn" class="primary-button" data-i18n="common.unlock" hidden>Unlock</button>
       <button type="button" id="add-btn" class="primary-button" data-i18n="inPage.addLogin" hidden>Add account</button>
       <button type="button" id="manage-btn" class="link-button" data-i18n="inPage.manage">Manage passwords</button>
     </div>

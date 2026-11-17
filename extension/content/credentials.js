@@ -257,6 +257,21 @@
     savePrompt.style.right = "12px";
   }
 
+  // Opened from the context menu's "Unlock": same corner as the save prompt.
+  let unlockPrompt = null;
+  function openUnlockPrompt() {
+    closeUnlockPrompt();
+    unlockPrompt = createFrame("unlock", 320, 160);
+    unlockPrompt.style.position = "fixed";
+    unlockPrompt.style.top = "12px";
+    unlockPrompt.style.right = "12px";
+  }
+
+  function closeUnlockPrompt() {
+    unlockPrompt?.remove();
+    unlockPrompt = null;
+  }
+
   function closeSavePrompt() {
     savePrompt?.remove();
     savePrompt = null;
@@ -352,8 +367,11 @@
       } else {
         setFieldValue(field, message.code);
       }
+    } else if (message?.type === "bs-open-unlock") {
+      openUnlockPrompt();
     } else if (message?.type === "bs-close") {
       if (message.target === "save") closeSavePrompt();
+      else if (message.target === "unlock") closeUnlockPrompt();
       else closeMenu();
     }
   });
