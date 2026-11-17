@@ -2,10 +2,8 @@ Sync your bookmarks, history and passwords between your own devices through a se
 
 Works in Firefox (140 or newer) and in Chromium browsers (Brave, Vivaldi, Edge, Chromium, ...), on the same account, so your data follows you between them. Made for browsers without Chrome Sync and for anyone who'd rather not hand their data to Google.
 
-WHAT'S NEW IN 2.6.0
-  • Password folders: organize your accounts into folders like Work or Google, filter the password list by folder, and search by folder name.
-  • CSV import reads folders from your file, and exports include them.
-  • The "+" in the popup now opens the Add password window, which stays open while you switch tabs to copy things in.
+WHAT'S NEW IN 2.7.0
+  • Unlock without leaving the page: when BrowserSync is locked, the suggestion list in a login field and Unlock in the right-click menu ask for your password in a small floating prompt that closes once unlocked. No more separate tab.
 
 FEATURES
   • Bookmarks: two-way sync with merge, so moves, renames and deletions carry over.

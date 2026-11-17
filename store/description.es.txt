@@ -2,10 +2,8 @@ Sincroniza tus marcadores, historial y contraseñas entre tus propios dispositiv
 
 Funciona en Firefox (140 o posterior) y en navegadores Chromium (Brave, Vivaldi, Edge, Chromium, ...), con la misma cuenta, así que tus datos te siguen de uno a otro. Hecho para navegadores sin Chrome Sync y para quien prefiere no entregarle sus datos a Google.
 
-NOVEDADES EN 2.6.0
-  • Carpetas de contraseñas: organiza tus cuentas en carpetas como Trabajo o Google, filtra la lista de contraseñas por carpeta y busca por nombre de carpeta.
-  • La importación CSV lee las carpetas de tu archivo, y las exportaciones las incluyen.
-  • El "+" del popup ahora abre la ventana Añadir contraseña, que sigue abierta mientras cambias de pestaña para copiar datos.
+NOVEDADES EN 2.7.0
+  • Desbloquea sin salir de la página: cuando BrowserSync está bloqueado, la lista de sugerencias de un campo de inicio de sesión y la opción Desbloquear del menú de clic derecho piden tu contraseña en una pequeña ventana flotante, que se cierra al desbloquear. Ya no se abre una pestaña aparte.
 
 FUNCIONES
   • Marcadores: sincronización en ambos sentidos con fusión, así que se conservan los movimientos, cambios de nombre y borrados.
