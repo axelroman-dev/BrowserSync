@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://github.com/axelroman-dev/BrowserSync/compare/server-v2.5.2...server-v2.7.0) (2026-11-17)
+
+
+### Documentation
+
+* **server:** correct the image tags list ([#66](https://github.com/axelroman-dev/BrowserSync/issues/66)) ([d4ebcce](https://github.com/axelroman-dev/BrowserSync/commit/d4ebcceefb95f299e9e17962a149b3e6f876b199))
+
 ## [2.5.2](https://github.com/axelroman-dev/BrowserSync/compare/server-v2.5.1...server-v2.5.2) (2026-11-17)
 
 
