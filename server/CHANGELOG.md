@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.5.2](https://github.com/axelroman-dev/BrowserSync/compare/server-v2.5.1...server-v2.5.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* **deps:** bump node from `c86ecea` to `dc26ae9` in /server ([#61](https://github.com/axelroman-dev/BrowserSync/issues/61)) ([c703664](https://github.com/axelroman-dev/BrowserSync/commit/c7036649e74fca51943355b6003835ce00ab524e))
+* **deps:** bump the production group in /server with 2 updates ([#62](https://github.com/axelroman-dev/BrowserSync/issues/62)) ([06d3676](https://github.com/axelroman-dev/BrowserSync/commit/06d3676c93476e01a9523f512effdba49828de4b))
+
 ## [2.5.1](https://github.com/axelroman-dev/BrowserSync/compare/server-v2.5.0...server-v2.5.1) (2026-11-11)
 
 
