@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://github.com/axelroman-dev/BrowserSync/compare/extension-v2.6.0...extension-v2.7.0) (2026-11-17)
+
+
+### Features
+
+* **extension:** unlock from the page without opening a tab ([#63](https://github.com/axelroman-dev/BrowserSync/issues/63)) ([42c41a2](https://github.com/axelroman-dev/BrowserSync/commit/42c41a2b9ab08ee110773bc55cccd6bb2f3e1427))
+
 ## [2.6.0](https://github.com/axelroman-dev/BrowserSync/compare/extension-v2.5.0...extension-v2.6.0) (2026-11-03)
 
 
