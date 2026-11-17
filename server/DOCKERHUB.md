@@ -52,8 +52,8 @@ for the full list.
 
 ## Tags
 
-- `latest` — most recent build from `main`
-- `<version>` (e.g. `1.0.0`, `1.0`, `1`) — from a pushed git tag `v1.0.0`
+- `latest` — the most recent server release
+- `<version>` (e.g. `2.7.0`, `2.7`) — from the server release tagged `server-v2.7.0`
 - `sha-<short-sha>` — pinned to an exact commit, for reproducible deployments
 
 Built for `linux/amd64` and `linux/arm64` (Raspberry Pi / ARM NAS friendly).
